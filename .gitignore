@@ -11,11 +11,6 @@ __pycache__/
 !download/
 !doc/
 
-# Ignore all files in these folders, but not the folders themselves
-data/*
-download/*
-doc/*
-
 # Distribution / packaging
 .Python
 build/
