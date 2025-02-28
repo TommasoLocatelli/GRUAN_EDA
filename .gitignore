@@ -11,6 +11,10 @@ __pycache__/
 !download/
 !doc/
 
+data/**
+download/**
+doc/**
+
 # Distribution / packaging
 .Python
 build/
