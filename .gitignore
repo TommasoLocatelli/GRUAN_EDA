@@ -11,6 +11,7 @@ __pycache__/
 !download/
 !doc/
 
+# To be fixed (want to ignore files but not folders)
 data/**
 download/**
 doc/**
