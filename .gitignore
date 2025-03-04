@@ -11,12 +11,16 @@ __pycache__/
 #!data/
 data/availability/*
 !data/availability/
+!data/availability/.gitkeep
 data/gdp/*
 !data/gdp/
+!data/gdp/.gitkeep
 download/*
 !download/
+!download/.gitkeep
 doc/*
 !doc/
+!doc/.gitkeep
 
 # Distribution / packaging
 .Python
