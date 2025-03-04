@@ -6,15 +6,13 @@ __pycache__/
 # C extensions
 *.so
 
-# Except these folders
+# Folders
+data/*
 !data/
+download/*
 !download/
+doc/*
 !doc/
-
-# To be fixed (want to ignore files but not folders)
-data/**
-download/**
-doc/**
 
 # Distribution / packaging
 .Python
