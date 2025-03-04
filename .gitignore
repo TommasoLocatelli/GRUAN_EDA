@@ -7,8 +7,12 @@ __pycache__/
 *.so
 
 # Folders
-data/*
-!data/
+#data/*
+#!data/
+data/availability/*
+!data/availability/
+data/gdp/*
+!data/gdp/
 download/*
 !download/
 doc/*
