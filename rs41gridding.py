@@ -8,6 +8,8 @@ from helpers.download_manager.download_manager import DownloadManager
 DM=DownloadManager()
 from helpers.format_manager.format_manager import FormatManager
 FM=FormatManager()
+from helpers.grid_manager.grid_manager import GridManager
+GM=GridManager()
 
 # COSTANTS
 
@@ -30,39 +32,23 @@ for file_name in files_name:
 gdp_folder = 'data\\gdp\\products_RS41-GDP-1_LIN_2017'
 gdp_files = [os.path.join(gdp_folder, f) for f in os.listdir(gdp_folder) if f.endswith('.nc')]
 gdps=[]
-for file in gdp_files[:2]:
+for file in gdp_files[:10]:
     FM.read_nc_file(file)
     glb_attrs, data, vars_attrs=FM.return_dataframes()
     gdp=[glb_attrs, data, vars_attrs]
     gdps.append(gdp)
-    print(data)
-    break
 
 # Variable Spatial Gridding
-binsize=10000 #expressed in meters
+binsize=1000 #expressed in meters
 for gdp in gdps:
     bins=range(0, int(gdp[1]['alt'].max()), binsize)
     bin_alt = [(bins[i]+bins[i+1])/2 for i in range(len(bins)-1)] # take the middle of the bin
     gridata = pd.DataFrame(bin_alt, columns=['alt'])
     variables = ['temp']#'press', 'temp', 'rh', 'wdir', 'wspeed']
     for var in variables:
-        bin_avg = gdp[1].groupby(pd.cut(gdp[1]['alt'], bins), observed=True)[var].mean().reset_index(drop=True) # 3.5
-        uc_ucor = var + '_uc_ucor'
-        bin_ucor = gdp[1].groupby(pd.cut(gdp[1]['alt'], bins), observed=True)[uc_ucor].apply(
-            lambda x: (x**2).sum()**0.5/len(x)).reset_index(drop=True) #3.6
-        bin_uvar = gdp[1].groupby(pd.cut(gdp[1]['alt'], bins), observed=True)[var].apply(
-            lambda x: ((x.var())/len(x))**0.5 ).reset_index(drop=True) #3.7
-        bin_uc = (bin_ucor**2+bin_uvar**2)**0.5 #3.8
-        uc_scor = var+'_uc_scor'
-        bin_sc = gdp[1].groupby(pd.cut(gdp[1]['alt'], bins), observed=True)[uc_scor].mean().reset_index(drop=True) #3.9
-        uc_tcor = var+'_uc_tcor'
-        bin_tc = gdp[1].groupby(pd.cut(gdp[1]['alt'], bins), observed=True)[uc_tcor].mean().reset_index(drop=True) #3.8
-        bin_u = (bin_uc**2+bin_sc**2+bin_tc**2)**0.5
-        gridata[var] = bin_avg
-        var_u = var+'_u'
-        gridata[var_u] = bin_u
+        gridata = GM.rs41_spatial_griding(gdp[1], binsize, [var])
         var_uc = var+'_uc'
-
+        var_u = var+'_u'
         # plot
         plt.scatter(gdp[1][var], gdp[1]['alt'], label='Original Data', alpha=0.5)
         plt.scatter(gridata[var], gridata['alt'], label='Gridded Data', color='red', alpha=0.5)

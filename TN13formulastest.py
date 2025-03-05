@@ -32,7 +32,7 @@ gridata[u_ucor] = df.groupby(pd.cut(df['alt'], bins), observed=True)[uc_ucor].ap
     lambda x: (x**2).sum()**0.5/len(x)).reset_index(drop=True) #3.6
 uc_var = var+'_var'
 gridata[uc_var] = df.groupby(pd.cut(df['alt'], bins), observed=True)[var].apply(
-    lambda x: ((x.var())/len(x))**0.5 ).reset_index(drop=True) #3.7
+    lambda x: ((x-x.mean())**2).sum()/(len(x)*(len(x)-1))**0.5 ).reset_index(drop=True) #3.7
 u_uc = var+'_u_uc'
 gridata[u_uc] = (gridata[u_ucor]**2+gridata[uc_var]**2)**0.5 #3.8
 uc_scor = var+'_uc_scor' # original spattialy correlated uncertainty
@@ -54,6 +54,40 @@ print(gridata[var][0]==var_values[:binsize].mean(), gridata[var][1]==var_values[
 
 print('-----------------var_u_cor-----------------')
 print(gridata[u_ucor][0], gridata[u_ucor][1])
-test=[(sum([u**2 for u in var_uc_ucor_values[:binsize]])**0.5)/len(var_uc_ucor_values[:binsize]), (sum([u**2 for u in var_uc_ucor_values[binsize:]])**0.5)/len(var_uc_ucor_values[binsize:])]
-print(test[0], test[1])
-print(gridata[u_ucor][0]==test[0], gridata[u_ucor][1]==test[1])
+test1=[(sum([u**2 for u in var_uc_ucor_values[:binsize]])**0.5)/len(var_uc_ucor_values[:binsize]), (sum([u**2 for u in var_uc_ucor_values[binsize:]])**0.5)/len(var_uc_ucor_values[binsize:])]
+print(test1[0], test1[1])
+print(gridata[u_ucor][0]==test1[0], gridata[u_ucor][1]==test1[1])
+
+print('-----------------var_var-----------------')
+print(gridata[uc_var][0], gridata[uc_var][1])
+N=[len(var_values[:binsize]),len(var_values[binsize:])]
+test2=[
+    (sum([(value-var_values[:binsize].mean())**2 for value in var_values[:binsize]]))/(N[0]*(N[0]-1))**0.5,
+    (sum([(value-var_values[binsize:].mean())**2 for value in var_values[binsize:]]))/(N[1]*(N[1]-1))**0.5 
+]
+print(test2[0], test2[1])
+print(gridata[uc_var][0]==test2[0], gridata[uc_var][1]==test2[1])
+
+print('-----------------var_u_uc-----------------')
+print(gridata[u_uc][0], gridata[u_uc][1])
+test3=[(test1[0]**2+test2[0]**2)**0.5, (test1[1]**2+test2[1]**2)**0.5]
+print(test3[0], test3[1])
+print(gridata[u_uc][0]==test3[0], gridata[u_uc][1]==test3[1])
+
+print('-----------------var_u_sc-----------------')
+print(gridata[u_sc][0], gridata[u_sc][1])
+test4=[var_uc_scor_values[:binsize].mean(), var_uc_scor_values[binsize:].mean()]
+print(test4[0], test4[1])
+print(gridata[u_sc][0]==test4[0], gridata[u_sc][1]==test4[1])
+
+print('-----------------var_u_tc-----------------')
+print(gridata[u_tc][0], gridata[u_tc][1])
+test5=[var_uc_tcor_values[:binsize].mean(), var_uc_tcor_values[binsize:].mean()]
+print(test5[0], test5[1])
+print(gridata[u_tc][0]==test5[0], gridata[u_tc][1]==test5[1])
+
+print('-----------------var_u-----------------')
+print(gridata[u][0], gridata[u][1])
+test6=[(test3[i]**2+test4[i]**2+test5[i]**2)**0.5 for i in range(2)]
+print(test6[0], test6[1])
+print(gridata[u][0]==test6[0], gridata[u][1]==test6[1])
