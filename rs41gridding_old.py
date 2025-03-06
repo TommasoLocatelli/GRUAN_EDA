@@ -34,24 +34,25 @@ gdp_files = [os.path.join(gdp_folder, f) for f in os.listdir(gdp_folder) if f.en
 gdps=[]
 for file in gdp_files[:10]:
     FM.read_nc_file(file)
-    gdp=FM.return_gdp()
+    glb_attrs, data, vars_attrs=FM.return_dataframes()
+    gdp=[glb_attrs, data, vars_attrs]
     gdps.append(gdp)
 
 # Variable Spatial Gridding
 binsize=1000 #expressed in meters
 for gdp in gdps:
-    bins=range(0, int(gdp.data['alt'].max()), binsize)
+    bins=range(0, int(gdp[1]['alt'].max()), binsize)
     bin_alt = [(bins[i]+bins[i+1])/2 for i in range(len(bins)-1)] # take the middle of the bin
     gridata = pd.DataFrame(bin_alt, columns=['alt'])
     variables = ['temp']#'press', 'temp', 'rh', 'wdir', 'wspeed']
     for var in variables:
-        gridata = GM.rs41_spatial_gridding(gdp.data, binsize, [var])
+        gridata = GM.rs41_spatial_gridding(gdp[1], binsize, [var])
         var_uc = var+'_uc'
         var_u = var+'_u'
         # plot
-        plt.scatter(gdp.data[var], gdp.data['alt'], label='Original Data', alpha=0.5)
+        plt.scatter(gdp[1][var], gdp[1]['alt'], label='Original Data', alpha=0.5)
         plt.scatter(gridata[var], gridata['alt'], label='Gridded Data', color='red', alpha=0.5)
-        plt.fill_betweenx(gdp.data['alt'], gdp.data[var] - gdp.data[var_uc], gdp.data[var] + gdp.data[var_uc], color='blue', alpha=0.2, label='Original Uncertainty')    
+        plt.fill_betweenx(gdp[1]['alt'], gdp[1][var] - gdp[1][var_uc], gdp[1][var] + gdp[1][var_uc], color='blue', alpha=0.2, label='Original Uncertainty')    
         plt.fill_betweenx(gridata['alt'], gridata[var] - gridata[var_u], gridata[var] + gridata[var_u], color='red', alpha=0.2, label='Gridded Uncertainty')
         plt.xlabel('Temperature (K)')
         plt.ylabel('Altitude (m)')
@@ -59,16 +60,5 @@ for gdp in gdps:
         plt.title('Temperature Spatial Gridding')
         plt.show()
         ## OBS: why sometimes the grid uncertainty is pretty high?
-        # plot uncertainty distribution over altitude
-        plt.figure()
-        plt.plot(gdp.data['alt'], gdp.data['temp_uc'], label='temp_uc')
-        plt.plot(gdp.data['alt'], gdp.data['temp_uc_ucor'], label='temp_uc_ucor')
-        plt.plot(gdp.data['alt'], gdp.data['temp_uc_scor'], label='temp_uc_scor')
-        plt.plot(gdp.data['alt'], gdp.data['temp_uc_tcor'], label='temp_uc_tcor')
-        plt.xlabel('Altitude (m)')
-        plt.ylabel('Uncertainty')
-        plt.legend()
-        plt.title('Temperature Uncertainty Components over Altitude')
-        plt.show()
     
 # Variable Temporal Gridding

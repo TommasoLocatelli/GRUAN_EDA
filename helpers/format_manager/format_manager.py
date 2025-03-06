@@ -1,5 +1,6 @@
 import pandas as pd
 import xarray as xr
+from helpers.format_manager.gdp import Gdp
 
 class FormatManager:
     def __init__(self):
@@ -7,6 +8,7 @@ class FormatManager:
         self.global_attrs=None
         self.variables=None
         self.variables_attrs=None
+        self.gdp=None
 
     def read_nc_file(self, path):
         #Open .nc file
@@ -22,7 +24,12 @@ class FormatManager:
             attrs['variable'] = var_name
             variables_attrs.append(attrs)
         self.variables_attrs=pd.DataFrame(variables_attrs)
+        self.gdp=(Gdp(self.global_attrs, self.variables, self.variables_attrs))
 
     def return_dataframes(self):
         if self.data:
             return self.global_attrs, self.variables, self.variables_attrs
+        
+    def return_gdp(self):
+        if self.gdp:
+            return self.gdp
