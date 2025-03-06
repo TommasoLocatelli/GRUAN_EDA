@@ -1,4 +1,5 @@
 import pandas as pd
+from helpers.format_manager.gdp import Gdp
 
 class GridManager:
 
@@ -40,3 +41,22 @@ class GridManager:
             u = var+'_u'
             gridata[u] = (gridata[u_uc]**2+gridata[u_sc]**2+gridata[u_tc]**2)**0.5 #3.11
         return gridata
+    
+    def rs41_temporal_gridding(self, gdps, time_binsize, spatial_binsize, vars):
+        """
+        "If a temporal gridding is to be carried out (e.g. a monthly mean), it should follow the spatial
+        gridding as second step. That is, a temporal gridding should be applied to vertical profiles which
+        were first converted to the same altitude grid." (TN13, p. 3.4.1.2)
+        """
+        assert isinstance(gdps, list) and all(isinstance(gdp, Gdp) for gdp in gdps), 'gdps should be a list of Gdp instances'
+        assert isinstance(time_binsize, int), 'time_binsize should be an integer' # in days
+        assert isinstance(spatial_binsize, int), 'spatial_binsize should be an integer' # in meters 
+        assert isinstance(vars, list) and all(var in gdps[0].data.columns for var in vars), 'vars should be a list of column names in data'
+
+        # Spatial Gridding
+        for gdp in gdps:
+            gridata=self.rs41_spatial_gridding(gdp.data, spatial_binsize, vars)
+            gdp.set_gridata(gridata)
+
+        # Temporal Gridding
+        
