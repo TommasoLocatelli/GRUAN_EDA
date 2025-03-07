@@ -1,5 +1,6 @@
 import pandas as pd
 from helpers.format_manager.gdp import Gdp
+from tqdm import tqdm
 
 class GridManager:
 
@@ -20,8 +21,8 @@ class GridManager:
 
         bins=range(0, int(data['alt'].max()//binsize+2)*binsize, binsize) # make sure to exceed the max value by more than binsize
         bin_alt = [(bins[i]+bins[i+1])/2 for i in range(len(bins)-1)] # take the middle of the bin
+        gridata = pd.DataFrame(bin_alt, columns=['alt'])
         for var in vars:
-            gridata = pd.DataFrame(bin_alt, columns=['alt'])
             gridata[var] = data.groupby(pd.cut(data['alt'], bins), observed=True)[var].mean().reset_index(drop=True) # 3.5
             uc_ucor = var + '_uc_ucor' # original uncorrelated uncertainty
             u_ucor = var + '_u_ucor'
@@ -59,4 +60,42 @@ class GridManager:
             gdp.set_gridata(gridata)
 
         # Temporal Gridding
-        
+        times=[gdp.time for gdp in gdps]
+        print(times)
+        min_time = min(times).replace(hour=0, minute=0, second=0, microsecond=0)
+        #print(times)
+        days_range=range(0, int((max(times)-min_time).days+time_binsize+1), time_binsize)
+        bins=[min_time+pd.Timedelta(days=i) for i in days_range]
+        #print(bins)
+        gdps = sorted([gdp for gdp in gdps], key=lambda x: x.time)
+        temporal_grid = pd.DataFrame()
+        i=0 # index to keep track of the grids
+        for bin in tqdm(bins, desc="Temporal Gridding Progress"):
+            bin_grids = []
+            for gdp in gdps[i:]:
+                if gdp.time < bin:
+                    bin_grids.append(gdp.gridata)
+                else:
+                    i = gdps.index(gdp)
+                    break
+                if bin_grids:
+                    bins_data = pd.concat(bin_grids)
+                    partial_temporal_grid = pd.DataFrame()
+                    partial_temporal_grid['alt'] = bins_data['alt'].unique()
+                    partial_temporal_grid['time'] = bin
+                    for var in vars:
+                        partial_temporal_grid[var] = bins_data.groupby('alt')[var].mean().reset_index(drop=True) #3.12
+                        u_uc = var + '_u_uc'
+                        partial_temporal_grid[u_uc] = bins_data.groupby('alt')[u_uc].apply(
+                        lambda x: (x**2).sum()**0.5 / len(x)).reset_index(drop=True) #3.13
+                        #uc_var = var + '_var'
+                        #partial_temporal_grid[uc_var] = bins_data.groupby('alt')
+                        #u_sc = var + '_u_sc'
+                        #partial_temporal_grid[u_sc] = bins_data.groupby('alt')[var + '_u_sc'].mean().reset_index(drop=True)
+                        #u_tc = var + '_u_tc'
+                        #partial_temporal_grid[u_tc] = bins_data.groupby('alt')[var + '_u_tc'].mean().reset_index(drop=True)
+                        #u = var + '_u'
+                        #partial_temporal_grid[u] = (partial_temporal_grid[u_uc]**2 + partial_temporal_grid[u_sc]**2 + partial_temporal_grid[u_tc]**2)**0.5
+                    partial_temporal_grid['time'] = bin
+                    temporal_grid = pd.concat([temporal_grid, partial_temporal_grid], ignore_index=True)
+        return temporal_grid

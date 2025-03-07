@@ -45,6 +45,7 @@ for gdp in gdps:
     gridata = pd.DataFrame(bin_alt, columns=['alt'])
     variables = ['temp']#'press', 'temp', 'rh', 'wdir', 'wspeed']
     for var in variables:
+        break
         gridata = GM.rs41_spatial_gridding(gdp.data, binsize, [var])
         var_uc = var+'_uc'
         var_u = var+'_u'
@@ -72,3 +73,18 @@ for gdp in gdps:
         plt.show()
     
 # Variable Temporal Gridding
+time_binsize=3
+spatial_binsize=10000
+vars=['temp']
+temp_grid = GM.rs41_temporal_gridding(gdps, time_binsize, spatial_binsize, vars)
+print(temp_grid)    
+# Plot temperature trend over time for each altitude
+unique_alts = temp_grid['alt'].unique()
+for alt in unique_alts:
+    alt_data = temp_grid[temp_grid['alt'] == alt]
+    plt.plot(alt_data['time'], alt_data['temp'], label=f'Altitude {alt} m')
+plt.xlabel('Time')
+plt.ylabel('Temperature (K)')
+plt.legend()
+plt.title('Temperature Trend over Time for Each Altitude')
+plt.show()
