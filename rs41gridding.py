@@ -42,12 +42,12 @@ for file in tqdm(gdp_files[:] , desc="Reading GDPs"):
 # Variable Spatial Gridding
 binsize=1000 #expressed in meters
 for gdp in gdps:
+    break
     bins=range(0, int(gdp.data['alt'].max()), binsize)
     bin_alt = [(bins[i]+bins[i+1])/2 for i in range(len(bins)-1)] # take the middle of the bin
     gridata = pd.DataFrame(bin_alt, columns=['alt'])
     variables = ['temp']#'press', 'temp', 'rh', 'wdir', 'wspeed']
     for var in variables:
-        break
         gridata = GM.rs41_spatial_gridding(gdp.data, binsize, [var])
         var_uc = var+'_uc'
         var_u = var+'_u'

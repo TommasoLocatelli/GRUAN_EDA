@@ -75,30 +75,30 @@ class GridManager:
                 else:
                     i = gdps.index(gdp)
                     break
-                if bin_grids:
-                    bins_data = pd.concat(bin_grids)
-                    partial_temporal_grid = pd.DataFrame()
-                    partial_temporal_grid['alt'] = bins_data['alt'].unique()
-                    partial_temporal_grid['time'] = bin
-                    for var in vars:
-                        partial_temporal_grid[var] = bins_data.groupby('alt')[var].mean().reset_index(drop=True) #3.12
-                        u_ucor = var + '_u_ucor'
-                        partial_temporal_grid[u_ucor] = bins_data.groupby('alt')[u_ucor].apply(
-                            lambda x: (x**2).sum()**0.5 / len(x)).reset_index(drop=True) #3.13
-                        uc_var = var + '_var'
-                        partial_temporal_grid[uc_var] = bins_data.groupby('alt')[var].apply( 
-                            lambda x: (((x - x.mean())**2).sum() / (len(x) * (len(x) - 1))**0.5 if len(x) > 1 else float(0))
-                            ).reset_index(drop=True) #3.14
-                        u_sc = var + '_u_sc'
-                        partial_temporal_grid[u_sc] = bins_data.groupby('alt')[var + '_u_sc'].apply(
-                            lambda x: (((x**2).sum())**0.5)/len(x)).reset_index(drop=True) #3.15
-                        u_uc = var + '_u_uc'
-                        partial_temporal_grid[u_uc] = (
-                            partial_temporal_grid[u_ucor]**2 + partial_temporal_grid[uc_var]**2 + partial_temporal_grid[u_sc]**2)**0.5 #3.16
-                        u_tc = var + '_u_tc'
-                        partial_temporal_grid[u_tc] = bins_data.groupby('alt')[var + '_u_tc'].mean().reset_index(drop=True) #3.17
-                        u = var + '_u'
-                        partial_temporal_grid[u] = (partial_temporal_grid[u_uc]**2 + partial_temporal_grid[u_tc]**2)**0.5
-                    partial_temporal_grid['time'] = bin
-                    temporal_grid = pd.concat([temporal_grid, partial_temporal_grid], ignore_index=True)
+            if bin_grids:
+                bins_data = pd.concat(bin_grids)
+                partial_temporal_grid = pd.DataFrame()
+                partial_temporal_grid['alt'] = bins_data['alt'].unique()
+                partial_temporal_grid['time'] = bin
+                for var in vars:
+                    partial_temporal_grid[var] = bins_data.groupby('alt')[var].mean().reset_index(drop=True) #3.12
+                    u_ucor = var + '_u_ucor'
+                    partial_temporal_grid[u_ucor] = bins_data.groupby('alt')[u_ucor].apply(
+                        lambda x: (x**2).sum()**0.5 / len(x)).reset_index(drop=True) #3.13
+                    uc_var = var + '_var'
+                    partial_temporal_grid[uc_var] = bins_data.groupby('alt')[var].apply( 
+                        lambda x: (((x - x.mean())**2).sum() / (len(x) * (len(x) - 1))**0.5 if len(x) > 1 else float(0))
+                        ).reset_index(drop=True) #3.14
+                    u_sc = var + '_u_sc'
+                    partial_temporal_grid[u_sc] = bins_data.groupby('alt')[var + '_u_sc'].apply(
+                        lambda x: (((x**2).sum())**0.5)/len(x)).reset_index(drop=True) #3.15
+                    u_uc = var + '_u_uc'
+                    partial_temporal_grid[u_uc] = (
+                        partial_temporal_grid[u_ucor]**2 + partial_temporal_grid[uc_var]**2 + partial_temporal_grid[u_sc]**2)**0.5 #3.16
+                    u_tc = var + '_u_tc'
+                    partial_temporal_grid[u_tc] = bins_data.groupby('alt')[var + '_u_tc'].mean().reset_index(drop=True) #3.17
+                    u = var + '_u'
+                    partial_temporal_grid[u] = (partial_temporal_grid[u_uc]**2 + partial_temporal_grid[u_tc]**2)**0.5
+                partial_temporal_grid['time'] = bin
+                temporal_grid = pd.concat([temporal_grid, partial_temporal_grid], ignore_index=True)
         return temporal_grid

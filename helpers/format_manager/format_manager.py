@@ -33,3 +33,5 @@ class FormatManager:
     def return_gdp(self):
         if self.gdp:
             return self.gdp
+        
+    # add some method to save read data with a more usable format (pickle, csv, etc)
