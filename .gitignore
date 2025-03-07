@@ -21,6 +21,9 @@ download/*
 doc/*
 !doc/
 !doc/.gitkeep
+outputs/*
+!outputs/
+!outputs/.gitkeep
 
 # Distribution / packaging
 .Python

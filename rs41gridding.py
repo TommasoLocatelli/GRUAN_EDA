@@ -2,6 +2,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+from tqdm import tqdm
+from datetime import datetime
 
 # helpers
 from helpers.download_manager.download_manager import DownloadManager
@@ -32,7 +34,7 @@ for file_name in files_name:
 gdp_folder = 'data\\gdp\\products_RS41-GDP-1_LIN_2017'
 gdp_files = [os.path.join(gdp_folder, f) for f in os.listdir(gdp_folder) if f.endswith('.nc')]
 gdps=[]
-for file in gdp_files[:10]:
+for file in tqdm(gdp_files[:] , desc="Reading GDPs"):
     FM.read_nc_file(file)
     gdp=FM.return_gdp()
     gdps.append(gdp)
@@ -77,14 +79,23 @@ time_binsize=3
 spatial_binsize=10000
 vars=['temp']
 temp_grid = GM.rs41_temporal_gridding(gdps, time_binsize, spatial_binsize, vars)
-print(temp_grid)    
+#print(temp_grid.head(), temp_grid.columns)    
 # Plot temperature trend over time for each altitude
 unique_alts = temp_grid['alt'].unique()
 for alt in unique_alts:
     alt_data = temp_grid[temp_grid['alt'] == alt]
     plt.plot(alt_data['time'], alt_data['temp'], label=f'Altitude {alt} m')
+    plt.fill_between(alt_data['time'], alt_data['temp'] - alt_data['temp_u'], alt_data['temp'] + alt_data['temp_u'], alpha=0.2)
 plt.xlabel('Time')
 plt.ylabel('Temperature (K)')
 plt.legend()
 plt.title('Temperature Trend over Time for Each Altitude')
+
+output_folder = 'outputs'
+if not os.path.exists(output_folder):
+    os.makedirs(output_folder)
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+output_file = os.path.join(output_folder, f'temperature_trend_over_time_{timestamp}.png')
+plt.savefig(output_file)
+print(f"Plot saved to {output_file}")
 plt.show()
