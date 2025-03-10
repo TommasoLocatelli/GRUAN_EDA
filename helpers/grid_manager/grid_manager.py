@@ -81,6 +81,7 @@ class GridManager:
                 partial_temporal_grid['alt'] = bins_data['alt'].unique()
                 partial_temporal_grid['time'] = bin
                 for var in vars:
+                    #partial_temporal_grid['count'] = bins_data.groupby('alt')[var].count().reset_index(drop=True)
                     partial_temporal_grid[var] = bins_data.groupby('alt')[var].mean().reset_index(drop=True) #3.12
                     u_ucor = var + '_u_ucor'
                     partial_temporal_grid[u_ucor] = bins_data.groupby('alt')[u_ucor].apply(
