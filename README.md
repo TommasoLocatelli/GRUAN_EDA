@@ -1,25 +1,14 @@
-# Global Climate Observing System (GCOS) Reference Upper Air Network (GRUAN) Exploratory Data Analysis (EDA)
+# GCOS Reference Upper Air Network (GRUAN) Exploratory Data Analysis (EDA) by GRUANpy
 
-GOAL: build a flexible and automated work space in order to download, process and analyse GRUAN data.
+## What is GRUAN?
 
-For GRUAN data and documentation look at gruan.org.
-Thanks to NetCDF Explorer (VSCode Extension) to let us look at .nc.info files.
-Credit to https://github.com/javad-rzvn for noaa_ftp.
+"The Global Climate Observing System (GCOS) Reference Upper-Air Network (GRUAN) is an international reference observing network of sites measuring essential climate variables above Earth's surface, designed to fill an important gap in the current global observing system. GRUAN measurements are providing long-term, high-quality climate data records from the surface, through the troposphere, and into the stratosphere. These are being used to determine trends, constrain and calibrate data from more spatially‐comprehensive observing systems (including satellites and current radiosonde networks), and provide appropriate data for studying atmospheric processes. GRUAN is envisaged as a global network of eventually 30-40 sites that, to the extent possible, builds on existing observational networks and capabilities." 
+https://www.gruan.org/
 
-# GRUANpy
+## What is GRUANpy?
 
-## What is it?
-
-GRUANpy is an essential toolkit for analizing Gcos Reference Upper Air Network (GRUAN) written in python.
-
-## Workflow
-
-add workflow description
+GRUANpy is an essential toolkit for analizing GRUAN data written in python. (work in progress)
 
 ## Repo structure
 
-add repo description
-
-## How to use it?
-
-add example
+Thanks to NetCDF Explorer (VSCode Extension) to let us look at .nc.info files.
