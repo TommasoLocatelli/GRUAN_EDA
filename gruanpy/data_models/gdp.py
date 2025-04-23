@@ -11,4 +11,4 @@ class Gdp:
             return self.data
         
         def variables_attrs(self):
-            return self.variables_attrs    
+            return self.variables_attrs
