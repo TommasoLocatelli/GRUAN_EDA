@@ -9,21 +9,11 @@ __pycache__/
 # Folders
 #data/*
 #!data/
-data/availability/*
-!data/availability/
-!data/availability/.gitkeep
-data/gdp/*
-!data/gdp/
-!data/gdp/.gitkeep
-download/*
-!download/
-!download/.gitkeep
-doc/*
-!doc/
-!doc/.gitkeep
-outputs/*
-!outputs/
-!outputs/.gitkeep
+
+gdp/*
+!gdp/
+!gdp/.gitkeep
+temp/*
 
 # Distribution / packaging
 .Python
