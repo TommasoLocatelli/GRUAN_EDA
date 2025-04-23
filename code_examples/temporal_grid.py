@@ -12,7 +12,7 @@ from gruanpy.data_models.ggd import Ggd
 rm=RM()
 gm=GM()
 
-gdp_folder=r'C:\Users\tomma\Documents\SDC\Repos\GRUAN_EDA\gdp\products_RS41-GDP-1_LIN_2017'
+gdp_folder=r'gdp\products_RS41-GDP-1_LIN_2017'
 gdp_files = [os.path.join(gdp_folder, f) for f in os.listdir(gdp_folder) if f.endswith('.nc')]
 gdps=[]
 for file in tqdm(gdp_files[:10] , desc="Reading GDPs"):
