@@ -1,18 +1,18 @@
 """
-This script demonstrates how to use the DownloadManager class to explore and download GRUAN data products (GDP) from an FTP server.
+This script demonstrates how to use the Downloagpanager class to explore and download GRUAN data products (GDP) from an FTP server.
 It allows the user to navigate through directories and download files interactively.
 """
 
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from gruanpy.helpers.download.download_manager import DownloadManager as DM
+from gruanpy import GRUANpy as GP
 
-dm = DM()
+gp = GP()
 dir_path=r'pub/data/gruan/processing'
 
 while True:
-    items=dm.search(dir_path)
+    items=gp.search(dir_path)
     print('-'*50)
     print(f'Items in the directory "{dir_path}":')
     for item in items:
@@ -30,7 +30,7 @@ while True:
         item=items[choice]
         print("You chose:",item)
         if item.endswith('.nc'):
-            dm.download(dir_path, item)
+            gp.download(dir_path, item)
         else:
             item = "/"+item
             dir_path+=item

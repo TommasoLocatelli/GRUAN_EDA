@@ -1,3 +1,3 @@
-import gruanpy as gp
+from gruanpy import GRUANpy as Gp
 
-dm=gp.DownloadManager()
+gp=Gp()

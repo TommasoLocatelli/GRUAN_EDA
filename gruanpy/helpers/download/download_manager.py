@@ -40,7 +40,7 @@ class DownloadManager:
         self.ftp_url=ftp_url
         self.download_folder=download_folder
 
-    def search(self, ftp_dir_path):
+    def search(self, ftp_dir_path=r'pub/data/gruan/processing'):
 
         ftp=FTP(self.ftp_url)
         ftp.login()
