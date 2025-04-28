@@ -7,6 +7,9 @@ class GriddingManager:
         pass
 
     def spatial_gridding(self, gdp, bin_column, target_columns, bin_size): #TN-13
+
+        # WORK IN PROGRESS: if bin_column is pressure use mandatory pressure levels
+
         # spatial gridding
         data=gdp.data
         bin = bin_column+'_bin'
