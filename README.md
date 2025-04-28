@@ -10,6 +10,14 @@ https://www.gruan.org/
 GDP are documented NetCDF files containing data and metadata from GRUAN.
 "All certified GRUAN data products are based on measurements and processing that adhere to the GRUAN principles (e.g. [Immler et al., 2010](https://www.gruan.org/documentation/articles/immler-et-al-2010-amt))."
 
+https://www.gruan.org/data/data-products/gdp
+
+Certified GRUAN data products
+- RS92-GDP.2 -- RS92 GRUAN data product version 2
+- RS-11G-GDP.1 -- RS-11G GRUAN data product version 1
+- RS41-GDP.1 -- RS41 GRUAN data product version 1
+- IMS-100-GDP.2 -- iMS-100 GRUAN data product version 2
+
 ## What is GRUANpy?
 
 GRUANpy is an essential toolkit for analizing GDP written in python. (work in progress)
