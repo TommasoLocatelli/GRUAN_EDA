@@ -6,21 +6,44 @@ class GriddingManager:
     def __init__(self):
         pass
 
-    def spatial_gridding(self, gdp, bin_column, target_columns, bin_size): #TN-13
-
-        # WORK IN PROGRESS: if bin_column is pressure use mandatory pressure levels
+    def _mandatory_levels(self):
+        # Mandatory levels in mb (Millibars) = hPa (Hectopascals) https://glossary.ametsoc.org/wiki/Mandatory_level
+        lvls=[
+            1000, 925, 850, 700, 500, 400, 300, 250, 200, 150, 
+            100, 70, 50, 30, 20, 10, 7, 5, 3, 2, 1
+        ]  
+        return lvls
+    
+    def spatial_gridding(self, gdp, bin_column, target_columns, bin_size, mandatory_levels_flag=True): #TN-13
+        # bin_size is ignore if mandatory_levels_flag is True
+        assert bin_column in ['alt', 'press'] 
 
         # spatial gridding
         data=gdp.data
+        # 
         bin = bin_column+'_bin'
-        data[bin] = (data[bin_column] // bin_size) * bin_size + bin_size / 2
-        binned_data = data.groupby(bin)[target_columns].mean().reset_index() # 3.5
+        if mandatory_levels_flag:
+            bin_lvl = bin_column+'_bin_lvl'
+            data[bin_lvl] = data['press'].apply(
+                lambda x: min(self._mandatory_levels(), key=lambda lvl: abs(lvl - x)) #python crazy syntax to select the nearest lvl
+            )
+            lvls_mean = data.groupby(bin_lvl)[bin_column].mean().to_dict()
+            data[bin] = data[bin_lvl].apply(lambda x: lvls_mean[x])
+            binned_data = data.groupby(bin_lvl)[target_columns].mean().reset_index() # 3.5
+            binned_data[bin] = binned_data[bin_lvl].apply(lambda x: lvls_mean[x])
+        else:
+            data[bin] = (data[bin_column] // bin_size) * bin_size + bin_size / 2
+            binned_data = data.groupby(bin)[target_columns].mean().reset_index() # 3.5
+        
         for col in target_columns:
-            binned_data[col + '_uc_ucor'] = data.groupby(bin)[col + '_uc_ucor'].apply(
-                        lambda x: (x**2).sum()**0.5/len(x)).reset_index(drop=True) #3.6
+            binned_data[col + '_uc_ucor_avg'] = data.groupby(bin)[col + '_uc_ucor'].apply(
+                        lambda x: (((x**2).sum())**0.5)/len(x)
+                        ).reset_index(drop=True) #3.6
             binned_data[col + '_var'] = data.groupby(bin)[col].apply(
-                        lambda x: ((x-x.mean())**2).sum()/(len(x)*(len(x)-1))**0.5 ).reset_index(drop=True) #3.7
-            binned_data[col + '_uc'] = (binned_data[col+'_uc_ucor']**2 + binned_data[col + '_var']**2)**0.5 #3.8
+                        lambda x: (((x-x.mean())**2).sum()/(len(x)*(len(x)-1)))**0.5
+                        ).reset_index(drop=True) #3.7
+            binned_data[col + '_uc_ucor'] = (
+                binned_data[col+'_uc_ucor_avg']**2 + binned_data[col + '_var']**2)**0.5 #3.8
             if col+'_uc_scor' in data.columns:
                 binned_data[col + '_uc_scor'] = data.groupby(bin)[col + '_uc_scor'].mean().reset_index(drop=True) #3.9
             else:
@@ -29,7 +52,7 @@ class GriddingManager:
                 binned_data[col + '_uc_tcor'] = data.groupby(bin)[col + '_uc_tcor'].mean().reset_index(drop=True) #3.10
             else:
                 binned_data[col + '_uc_tcor']=0
-            binned_data[col+'_u']=(binned_data[col+'_uc']**2 + binned_data[col+'_uc_scor']**2 + binned_data[col+'_uc_tcor']**2)**0.5 #3.11
+            binned_data[col+'_uc']=(binned_data[col+'_uc_ucor']**2 + binned_data[col+'_uc_scor']**2 + binned_data[col+'_uc_tcor']**2)**0.5 #3.11
 
         # add metadata
         metadata = gdp.global_attrs[gdp.global_attrs['Attribute'].str.contains('Product|Measurement', case=False)]
@@ -58,15 +81,20 @@ class GriddingManager:
         binned_data = data.groupby(bin)[target_columns].mean().reset_index() # 3.12
         binned_data['time'] = first_data + pd.to_timedelta(binned_data[bin], unit='D')
         for col in target_columns:
-            binned_data[col + '_uc'] = data.groupby(bin)[col + '_uc'].apply(
-                        lambda x: (x**2).sum()**0.5/len(x)).reset_index(drop=True) #3.13
+            binned_data[col + '_uc_ucor_avg'] = data.groupby(bin)[col + '_uc_ucor'].apply(
+                        lambda x: (((x**2).sum())**0.5)/len(x)
+                        ).reset_index(drop=True) #3.13
             binned_data[col + '_var'] = data.groupby(bin)[col].apply(
-                        lambda x: ((x-x.mean())**2).sum()/(len(x)*(len(x)-1))**0.5 ).reset_index(drop=True) #3.14
+                        lambda x: ((((x-x.mean())**2).sum())/(len(x)*(len(x)-1)))**0.5
+                        ).reset_index(drop=True) #3.14
             binned_data[col + '_uc_sc']=data.groupby(bin)[col + '_uc_scor'].apply(
-                        lambda x: (x**2).sum()**0.5/len(x)).reset_index(drop=True).reset_index(drop=True) #3.15
-            binned_data[col + '_unc']= (binned_data[col+'_uc']**2 + binned_data[col + '_var']**2 + binned_data[col + '_uc_sc']**2)**0.5 #3.16
+                        lambda x: (((x**2).sum())**0.5)/len(x)
+                        ).reset_index(drop=True) #3.15
+            binned_data[col + '_uc_ucor']=(
+                binned_data[col+'_uc_ucor_avg']**2 + binned_data[col + '_var']**2 + binned_data[col + '_uc_sc']**2)**0.5 #3.16
             binned_data[col + '_cor']=data.groupby(bin)[col + '_uc_tcor'].mean().reset_index(drop=True) #3.17
-            binned_data[col+'_u']=(binned_data[col+'_unc']**2 + binned_data[col+'_cor']**2)**0.5 #3.18
+            binned_data[col+'_uc']=(
+                binned_data[col+'_uc_ucor']**2 + binned_data[col+'_cor']**2)**0.5 #3.18
         
         # add metadata
         metadata = pd.DataFrame()
