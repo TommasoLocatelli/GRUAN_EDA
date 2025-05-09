@@ -3,6 +3,7 @@ import os
 import plotly.graph_objects as go
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from gruanpy import gruanpy as gp
+import matplotlib.pyplot as plt
 
 file_path=r'gdp\NYA-RS-01_2_RS-11G-GDP_001_20200319T000000_1-002-001.nc'
 gdp=gp.read(file_path)
@@ -10,7 +11,6 @@ print(gdp.global_attrs)
 print(gdp.data.head())
 print(gdp.variables_attrs.head())
 
-#trajectory
 fig = go.Figure()
 
 fig.add_trace(go.Scatter3d(
@@ -31,3 +31,15 @@ fig.update_layout(
 )
 
 fig.show()
+
+# temperature vs altitude
+plt.figure(figsize=(10, 6))
+
+sc = plt.scatter(gdp.data['temp'], gdp.data['alt'], c=gdp.data['press'], cmap='coolwarm', marker='o')
+plt.colorbar(sc, label='Pressure '+gdp.variables_attrs[gdp.variables_attrs['variable']=='press']['units'].values[0])
+
+plt.xlabel('Temperature '+gdp.variables_attrs[gdp.variables_attrs['variable']=='temp']['units'].values[0])
+plt.ylabel('Altitude m')
+plt.title('Altitude vs. Temperature with Pressure as Color')
+plt.grid(True)
+plt.show()

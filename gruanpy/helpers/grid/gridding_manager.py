@@ -14,7 +14,7 @@ class GriddingManager:
         ]  
         return lvls
     
-    def spatial_gridding(self, gdp, bin_column, target_columns, bin_size, mandatory_levels_flag=True): #TN-13
+    def spatial_gridding(self, gdp, bin_column, target_columns, bin_size=100, mandatory_levels_flag=True): #TN-13
         # bin_size is ignore if mandatory_levels_flag is True
         assert bin_column in ['alt', 'press'] 
 
@@ -23,14 +23,14 @@ class GriddingManager:
         # 
         bin = bin_column+'_bin'
         if mandatory_levels_flag:
-            bin_lvl = bin_column+'_bin_lvl'
+            bin_lvl = 'mand_lvl'
             data[bin_lvl] = data['press'].apply(
                 lambda x: min(self._mandatory_levels(), key=lambda lvl: abs(lvl - x)) #python crazy syntax to select the nearest lvl
             )
             lvls_mean = data.groupby(bin_lvl)[bin_column].mean().to_dict()
             data[bin] = data[bin_lvl].apply(lambda x: lvls_mean[x])
             binned_data = data.groupby(bin_lvl)[target_columns].mean().reset_index() # 3.5
-            binned_data[bin] = binned_data[bin_lvl].apply(lambda x: lvls_mean[x])
+            binned_data[bin_column] = binned_data[bin_lvl].apply(lambda x: lvls_mean[x])
         else:
             data[bin] = (data[bin_column] // bin_size) * bin_size + bin_size / 2
             binned_data = data.groupby(bin)[target_columns].mean().reset_index() # 3.5
@@ -64,7 +64,7 @@ class GriddingManager:
         ggd=Ggd(metadata, binned_data)
         return ggd
     
-    def temporal_gridding(self, ggds, target_columns, bin_size):
+    def temporal_gridding(self, ggds, target_columns, bin_size, lvl_column='mand_lvl'):
         # merge data from all ggds in a single table
         data=pd.DataFrame()
         for ggd in ggds:
@@ -78,21 +78,23 @@ class GriddingManager:
         bin='time_bin'
         data[bin] = (data['time'].dt.day // bin_size) * bin_size + bin_size / 2
         first_data = data['time'].min()
-        binned_data = data.groupby(bin)[target_columns].mean().reset_index() # 3.12
+        
+        binned_data = data.groupby([bin, lvl_column])[target_columns].mean().reset_index() # 3.12
+
         binned_data['time'] = first_data + pd.to_timedelta(binned_data[bin], unit='D')
         for col in target_columns:
-            binned_data[col + '_uc_ucor_avg'] = data.groupby(bin)[col + '_uc_ucor'].apply(
+            binned_data[col + '_uc_ucor_avg'] = data.groupby([bin,lvl_column])[col + '_uc_ucor'].apply(
                         lambda x: (((x**2).sum())**0.5)/len(x)
                         ).reset_index(drop=True) #3.13
-            binned_data[col + '_var'] = data.groupby(bin)[col].apply(
-                        lambda x: ((((x-x.mean())**2).sum())/(len(x)*(len(x)-1)))**0.5
+            binned_data[col + '_var'] = data.groupby([bin,lvl_column])[col].apply(
+                        lambda x: ((((x-x.mean())**2).sum())/(len(x)*max((len(x)-1),1)))**0.5
                         ).reset_index(drop=True) #3.14
-            binned_data[col + '_uc_sc']=data.groupby(bin)[col + '_uc_scor'].apply(
+            binned_data[col + '_uc_sc']=data.groupby([bin,lvl_column])[col + '_uc_scor'].apply(
                         lambda x: (((x**2).sum())**0.5)/len(x)
                         ).reset_index(drop=True) #3.15
             binned_data[col + '_uc_ucor']=(
                 binned_data[col+'_uc_ucor_avg']**2 + binned_data[col + '_var']**2 + binned_data[col + '_uc_sc']**2)**0.5 #3.16
-            binned_data[col + '_cor']=data.groupby(bin)[col + '_uc_tcor'].mean().reset_index(drop=True) #3.17
+            binned_data[col + '_cor']=data.groupby([bin,lvl_column])[col + '_uc_tcor'].mean().reset_index(drop=True) #3.17
             binned_data[col+'_uc']=(
                 binned_data[col+'_uc_ucor']**2 + binned_data[col+'_cor']**2)**0.5 #3.18
         
