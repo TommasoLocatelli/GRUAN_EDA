@@ -6,7 +6,7 @@ Alternatively, the DM class helps in downloading some examples of GDP made avail
 National Oceanic and Atmospheric Administration (NOAA).
 The class exploit the ftplib library to connect to the FTP server and download files and can be used in principle to download other types of binary file from others FTP servers.
 
-See an example of usage to explore and download GDP from the NOAA FTP server in "code_examples\download_gdp.py".
+See an example of usage to explore and download GDP from the NOAA FTP server in code_examples folder "download_gdp.py".
 
 Attributes:
     ftp_url (str): The URL of the FTP server. Defaults to "ftp.ncdc.noaa.gov".
@@ -41,7 +41,7 @@ class DownloadManager:
         self.download_folder=download_folder
 
     def search(self, ftp_dir_path=r'pub/data/gruan/processing'):
-
+        ftp = FTP(self.ftp_url, timeout=30)
         ftp=FTP(self.ftp_url)
         ftp.login()
         ftp.cwd(ftp_dir_path)
@@ -52,7 +52,7 @@ class DownloadManager:
     
     def download(self, ftp_dir_path, filename):
 
-        ftp = FTP(self.ftp_url)
+        ftp = FTP(self.ftp_url, timeout=30)
         ftp.login()
         ftp.cwd(ftp_dir_path)
         

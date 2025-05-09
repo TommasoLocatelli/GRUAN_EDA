@@ -7,3 +7,5 @@ class GRUANpy(DM, RM, GM):
     A helper class that inherits methods from DownloadManager, ReadingManager, and GriddingManager.
     """
     pass
+
+gruanpy = GRUANpy()

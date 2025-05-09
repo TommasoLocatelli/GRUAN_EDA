@@ -1,14 +1,12 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from gruanpy import GRUANpy as Gp
+from gruanpy import gruanpy as gp
 import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from datetime import datetime
 from gruanpy.data_models.ggd import Ggd
-
-gp=Gp()
 
 # Need to download and unzip a folder with RS41 GDPs from GRUAN website
 gdp_folder=r'gdp\products_RS41-GDP-1_LIN_2017' # Path to the folder

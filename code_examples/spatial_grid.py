@@ -1,11 +1,10 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from gruanpy import GRUANpy as Gp
+from gruanpy import gruanpy as gp
 import pandas as pd
 import matplotlib.pyplot as plt
 
-gp=Gp()
 # Need to download one GDP
 file_path=r'gdp\POT-RS-02_2_RS41-GDP_001_20250303T230900_1-000-001.nc' # Path to the file
 gdp=gp.read(file_path)
