@@ -7,34 +7,28 @@
 # https://cds.climate.copernicus.eu/datasets/insitu-observations-gruan-reference-network?tab=overview
 
 import cdsapi
+from gruanpy import gruanpy as gp
+import geopandas as gpd
+from shapely.geometry import Point
+import matplotlib.pyplot as plt
+import geopandas as gpd
+from shapely.geometry import Point
 
 dataset = "insitu-observations-gruan-reference-network"
 request = {
     "variable": [
         "air_temperature",
-        "relative_humidity",
-        "relative_humidity_effective_vertical_resolution",
-        "wind_speed",
-        "wind_from_direction",
-        "eastward_wind_speed",
-        "northward_wind_speed",
-        "shortwave_radiation",
         "air_pressure",
         "altitude",
-        "geopotential_height",
-        "frost_point_temperature",
-        "water_vapour_volume_mixing_ratio",
-        "vertical_speed_of_radiosonde",
-        "time_since_launch"
+        "geopotential_height"
     ],
-    "year": "2017",
-    "month": "04",
+    "year": "2020",
+    "month": "01",
     "day": [
-        "01", "02", "03",
-        "04", "05", "06",
-        "07", "08", "09",
-        "10", "11", "12",
-        "13", "14", "15"
+        "03", "10", "15",
+        "17", "22", "23",
+        "24", "28", "29",
+        "31"
     ],
     "data_format": "netcdf"
 }
@@ -42,10 +36,27 @@ request = {
 #client = cdsapi.Client()
 #client.retrieve(dataset, request).download()
 
-from gruanpy import gruanpy as gp
-
-file_path=r'a28f5ee8204f2b21f6100a702d0e99e5.nc'
+file_path=r'd0ab1600cad40f265c7a2678fe26f15d.nc'
 gdp=gp.read(file_path)
-print(gdp.global_attrs)
-print(gdp.data.head())
-print(gdp.variables_attrs.head())
+
+# Extract longitude and latitude data
+longitude = gdp.data['longitude|station_configuration']
+latitude = gdp.data['latitude|station_configuration']
+# Create a GeoDataFrame
+geometry = [Point(xy) for xy in zip(longitude, latitude)]
+geo_df = gpd.GeoDataFrame(gdp.data, geometry=geometry)
+# Set the coordinate reference system (CRS) to WGS84
+gdf = gpd.read_file(
+    "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson"
+)
+# Plot the data
+fig, ax = plt.subplots(figsize=(10, 10))
+# Plot the world map (gdf)
+gdf.plot(ax=ax, color='lightgrey', edgecolor='black')
+# Plot the points (geo_df)
+geo_df.plot(ax=ax, color='red', markersize=50, label='Stations')
+
+# Add legend and title
+plt.legend()
+plt.title("Station Locations on World Map")
+plt.show()

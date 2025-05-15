@@ -9,6 +9,7 @@ cycler==0.12.1
 ecmwf-datastores-client==0.1.0
 ecmwf-opendata==0.3.19
 fonttools==4.57.0
+geopandas==1.0.1
 idna==3.10
 kiwisolver==1.4.8
 matplotlib==3.10.1
@@ -21,12 +22,15 @@ pandas==2.2.3
 pillow==11.2.1
 plotly==6.0.1
 progressbar2==4.5.0
+pyogrio==0.11.0
 pyparsing==3.2.3
+pyproj==3.7.1
 python-dateutil==2.9.0.post0
 python-utils==3.9.1
 pytz==2025.2
 requests==2.32.3
 scipy==1.15.2
+shapely==2.1.0
 six==1.17.0
 tqdm==4.67.1
 typing_extensions==4.13.2
