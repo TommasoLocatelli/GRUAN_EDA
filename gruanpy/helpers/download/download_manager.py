@@ -30,6 +30,15 @@ Methods:
             filename (str): The name of the file to download.
         Returns:
             None
+
+    execute_request(api_request):
+        Executes a request string.
+        Args:
+            api_request (str): The request string to execute.
+        Returns:
+            None
+        how to generate request:
+        https://cds.climate.copernicus.eu/datasets/insitu-observations-gruan-reference-network?tab=overview
 """
 
 from ftplib import FTP
@@ -62,4 +71,10 @@ class DownloadManager:
             ftp.retrbinary(f"RETR {filename}", local_file.write)
         
         ftp.quit()
+
+    def exec_request(self, api_request):
+        assert isinstance(api_request, str), "api_request must be a string"
+        api_request = api_request.lstrip()
+        assert api_request.startswith("import cdsapi"), "api_request must start with 'import cdsapi'"
+        exec(api_request)
 

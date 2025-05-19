@@ -6,13 +6,15 @@
 # Ho to generate request:
 # https://cds.climate.copernicus.eu/datasets/insitu-observations-gruan-reference-network?tab=overview
 
-import cdsapi
 from gruanpy import gruanpy as gp
 import geopandas as gpd
 from shapely.geometry import Point
 import matplotlib.pyplot as plt
 import geopandas as gpd
 from shapely.geometry import Point
+
+api_request = """
+import cdsapi
 
 dataset = "insitu-observations-gruan-reference-network"
 request = {
@@ -22,20 +24,19 @@ request = {
         "altitude",
         "geopotential_height"
     ],
-    "year": "2020",
-    "month": "01",
-    "day": [
-        "03", "10", "15",
-        "17", "22", "23",
-        "24", "28", "29",
-        "31"
-    ],
+    "year": "2018",
+    "month": "02",
+    "day": ["02"],
     "data_format": "netcdf"
 }
 
-#client = cdsapi.Client()
-#client.retrieve(dataset, request).download()
+client = cdsapi.Client()
+client.retrieve(dataset, request).download()
+"""
 
+gp.exec_request(api_request)
+
+"""
 file_path=r'd0ab1600cad40f265c7a2678fe26f15d.nc'
 gdp=gp.read(file_path)
 
@@ -60,3 +61,4 @@ geo_df.plot(ax=ax, color='red', markersize=50, label='Stations')
 plt.legend()
 plt.title("Station Locations on World Map")
 plt.show()
+"""
