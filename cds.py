@@ -34,10 +34,16 @@ client = cdsapi.Client()
 client.retrieve(dataset, request).download()
 """
 
-gp.exec_request(api_request)
+#gp.exec_request(api_request)
 
+file_path=r'821d8bfc3c29386363bf47e24d40bec1.nc'
+gdp=gp.read(file_path)
+print(gdp.global_attrs)
+print(gdp.data.head())
+print(gdp.variables_attrs.head())
+print(gdp.data.columns)
 """
-file_path=r'd0ab1600cad40f265c7a2678fe26f15d.nc'
+file_path=r'821d8bfc3c29386363bf47e24d40bec1.nc'
 gdp=gp.read(file_path)
 
 # Extract longitude and latitude data
@@ -61,4 +67,5 @@ geo_df.plot(ax=ax, color='red', markersize=50, label='Stations')
 plt.legend()
 plt.title("Station Locations on World Map")
 plt.show()
+
 """

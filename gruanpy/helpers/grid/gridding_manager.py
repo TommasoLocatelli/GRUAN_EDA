@@ -76,7 +76,7 @@ class GriddingManager:
 
         # temporal gridding
         bin='time_bin'
-        data[bin] = (data['time'].dt.day // bin_size) * bin_size + bin_size / 2
+        data[bin] = (data['time'].dt.day // bin_size) * bin_size + bin_size / 2 # TOBEFIXED Fassò: rendi possibile aggragazione per mese o anno consistente nel tempo
         first_data = data['time'].min()
         
         binned_data = data.groupby([bin, lvl_column])[target_columns].mean().reset_index() # 3.12
