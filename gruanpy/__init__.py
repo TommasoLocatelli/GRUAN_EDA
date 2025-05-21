@@ -8,4 +8,13 @@ class GRUANpy(DM, RM, GM):
     """
     pass
 
+    def info(self):
+        """
+        Print the information about  GRUANpy.
+        """
+        print("GRUANpy is a toolkit for working with GRUAN data.")
+        print("For more documentation regarding GRUAN data, please visit https://www.gruan.org/")
+        print("For more details regarding GRUANpy, look at https://github.com/TommasoLocatelli/GRUAN_EDA")
+
+
 gruanpy = GRUANpy()

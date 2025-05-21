@@ -1,3 +1,3 @@
-from gruanpy import GRUANpy as Gp
+from gruanpy import gruanpy as gp
 
-gp=Gp()
+gp.info()

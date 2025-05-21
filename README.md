@@ -20,7 +20,7 @@ Certified GRUAN data products
 
 ## What is GRUANpy?
 
-GRUANpy is an essential toolkit for analizing GDP written in python. (work in progress)
+GRUANpy is a toolkit for analizing GDP.
 
 ## Some tips.
 

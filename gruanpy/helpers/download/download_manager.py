@@ -37,6 +37,12 @@ Methods:
             api_request (str): The request string to execute.
         Returns:
             None
+
+        Meant for Copernicus Climate Data Store (CDS) API
+
+        how to set up:
+        https://cds.climate.copernicus.eu/how-to-api
+        
         how to generate request:
         https://cds.climate.copernicus.eu/datasets/insitu-observations-gruan-reference-network?tab=overview
 """
