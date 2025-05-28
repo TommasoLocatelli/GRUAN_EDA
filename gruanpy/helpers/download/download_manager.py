@@ -65,16 +65,16 @@ class DownloadManager:
 
         return files
     
-    def download(self, ftp_dir_path, filename):
+    def download(self, ftp_dir_path, file_name):
 
         ftp = FTP(self.ftp_url, timeout=30)
         ftp.login()
         ftp.cwd(ftp_dir_path)
         
         os.makedirs(self.download_folder, exist_ok=True)
-        local_file_path = os.path.join(self.download_folder, filename)
+        local_file_path = os.path.join(self.download_folder, file_name)
         with open(local_file_path, 'wb') as local_file:
-            ftp.retrbinary(f"RETR {filename}", local_file.write)
+            ftp.retrbinary(f"RETR {file_name}", local_file.write)
         
         ftp.quit()
 
