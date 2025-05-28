@@ -20,7 +20,6 @@ class GriddingManager:
 
         # spatial gridding
         data=gdp.data
-        # 
         bin = bin_column+'_bin'
         if mandatory_levels_flag:
             bin_lvl = 'mand_lvl'
@@ -31,6 +30,7 @@ class GriddingManager:
             data[bin] = data[bin_lvl].apply(lambda x: lvls_mean[x])
             binned_data = data.groupby(bin_lvl)[target_columns].mean().reset_index() # 3.5
             binned_data[bin_column] = binned_data[bin_lvl].apply(lambda x: lvls_mean[x])
+
         else:
             data[bin] = (data[bin_column] // bin_size) * bin_size + bin_size / 2
             binned_data = data.groupby(bin)[target_columns].mean().reset_index() # 3.5
@@ -79,22 +79,22 @@ class GriddingManager:
         data[bin] = (data['time'].dt.day // bin_size) * bin_size + bin_size / 2 # TOBEFIXED Fassò: rendi possibile aggragazione per mese o anno consistente nel tempo
         first_data = data['time'].min()
         
-        binned_data = data.groupby([bin, lvl_column])[target_columns].mean().reset_index() # 3.12
-
+        binned_data = data.groupby([bin, 'mand_lvl'])[target_columns].mean().reset_index() # 3.12
+        #binned_data['mand_lvl'] = data.groupby([bin])['mand_lvl'].apply(lambda x: x).reset_index(drop=True)
         binned_data['time'] = first_data + pd.to_timedelta(binned_data[bin], unit='D')
         for col in target_columns:
-            binned_data[col + '_uc_ucor_avg'] = data.groupby([bin,lvl_column])[col + '_uc_ucor'].apply(
+            binned_data[col + '_uc_ucor_avg'] = data.groupby([bin,'mand_lvl'])[col + '_uc_ucor'].apply(
                         lambda x: (((x**2).sum())**0.5)/len(x)
                         ).reset_index(drop=True) #3.13
-            binned_data[col + '_var'] = data.groupby([bin,lvl_column])[col].apply(
+            binned_data[col + '_var'] = data.groupby([bin,'mand_lvl'])[col].apply(
                         lambda x: ((((x-x.mean())**2).sum())/(len(x)*max((len(x)-1),1)))**0.5
                         ).reset_index(drop=True) #3.14
-            binned_data[col + '_uc_sc']=data.groupby([bin,lvl_column])[col + '_uc_scor'].apply(
+            binned_data[col + '_uc_sc']=data.groupby([bin,'mand_lvl'])[col + '_uc_scor'].apply(
                         lambda x: (((x**2).sum())**0.5)/len(x)
                         ).reset_index(drop=True) #3.15
             binned_data[col + '_uc_ucor']=(
                 binned_data[col+'_uc_ucor_avg']**2 + binned_data[col + '_var']**2 + binned_data[col + '_uc_sc']**2)**0.5 #3.16
-            binned_data[col + '_cor']=data.groupby([bin,lvl_column])[col + '_uc_tcor'].mean().reset_index(drop=True) #3.17
+            binned_data[col + '_cor']=data.groupby([bin,'mand_lvl'])[col + '_uc_tcor'].mean().reset_index(drop=True) #3.17
             binned_data[col+'_uc']=(
                 binned_data[col+'_uc_ucor']**2 + binned_data[col+'_cor']**2)**0.5 #3.18
         
