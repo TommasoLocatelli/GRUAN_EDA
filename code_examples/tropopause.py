@@ -22,7 +22,7 @@ plt.xlabel('Temperature '+gdp.variables_attrs[gdp.variables_attrs['variable']=='
 plt.ylabel('Altitude m')
 plt.title('Altitude vs. Temperature with Pressure as Color')
 plt.grid(True)
-#plt.show()
+plt.show()
 
 """
 Tropopause Calculation Exercise
@@ -47,9 +47,11 @@ def gdp_trop_wmo(gdp, lapse_rate=2.0):
         print("Warning: Data is not sorted by altitude.")
 
     data = gdp.data[['alt', 'temp']]#.sort_values(by='alt').reset_index(drop=True)
-    data.loc[:, 'delta_alt'] = data['alt'].diff().fillna(1)
-    data.loc[:, 'delta_temp'] = data['temp'].diff().fillna(0)
-    data.loc[:, 'lapse_rate'] = - 1000 * data['delta_temp'] / data['delta_alt']
+    data['alt_lag'] = data['alt'].shift(1)
+    data['temp_lag'] = data['temp'].shift(1)
+    data['delta_alt'] = data['alt'].diff().fillna(1)
+    data['delta_temp'] = data['temp'].diff().fillna(0)
+    data['lapse_rate'] = - 1000 * data['delta_temp'] / data['delta_alt']
     data = data.iloc[1:].reset_index(drop=True)
 
     trop_candidate = data[data['lapse_rate'] < lapse_rate]
@@ -76,6 +78,6 @@ plt.title('Lapse Rate vs Geopotential Height')
 plt.grid(True)
 plt.legend()
 plt.tight_layout()
-#plt.show()
+plt.show()
 
 print(data[abs(data['lapse_rate']) > 50].head(10))
