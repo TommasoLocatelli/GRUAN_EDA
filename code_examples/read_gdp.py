@@ -5,12 +5,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from gruanpy import gruanpy as gp
 import matplotlib.pyplot as plt
 
-file_path=r'gdp\NYA-RS-01_2_RS-11G-GDP_001_20200319T000000_1-002-001.nc'
+file_path=r'gdp\data_examples\LIN-RS-01_2_IMS-100-GDP_002_20220107T093400_1-002-001.nc'
 gdp=gp.read(file_path)
 print(gdp.global_attrs)
-print(gdp.data.head())
-print(gdp.variables_attrs.head())
-
+print(gdp.data)
+print(gdp.variables_attrs)
 fig = go.Figure()
 
 fig.add_trace(go.Scatter3d(

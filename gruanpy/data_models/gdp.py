@@ -1,14 +1,13 @@
-class Gdp:
-    def __init__(self, global_attrs, data, variables_attrs):
-        self.global_attrs = global_attrs
-        self.data = data
-        self.variables_attrs = variables_attrs
+from gruanpy.data_models.gd import GD
 
-    def global_attrs(self):
-        return self.global_attrs
+class GDP(GD):
+    """
+    General Data Model for GRUAN data products.
     
-    def data(self):
-        return self.data
+    Inherits from GD and adds functionality specific to data products.
+    """
     
-    def variables_attrs(self):
-        return self.variables_attrs
+    def __init__(self, global_attrs=None, data=None, variables_attrs=None, metadata=None):
+        super().__init__(metadata=metadata, data=data)
+        self.global_attrs = global_attrs
+        self.variables_attrs = variables_attrs

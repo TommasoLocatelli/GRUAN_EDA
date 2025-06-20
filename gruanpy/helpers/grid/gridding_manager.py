@@ -1,7 +1,7 @@
 import pandas as pd
-from gruanpy.data_models.ggd import Ggd
+from gruanpy.data_models.gd import GD
 from datetime import datetime
-
+pass
 class GriddingManager:
     def __init__(self):
         pass

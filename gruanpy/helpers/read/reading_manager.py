@@ -1,6 +1,6 @@
 import pandas as pd
 import xarray as xr
-from gruanpy.data_models.gdp import Gdp
+from gruanpy.data_models.gdp import GDP
 import os
 
 class ReadingManager:
@@ -16,7 +16,7 @@ class ReadingManager:
             for var_name, var in content.data_vars.items()
         ])
 
-        gdp=Gdp(global_attrs, data, variables_attrs)
+        gdp=GDP(global_attrs, data, variables_attrs)
         return gdp
 
     def read_cdm(self, file_path):
@@ -27,7 +27,7 @@ class ReadingManager:
             return self.read(file_path)
         elif ext == '.csv':
             data = pd.read_csv(file_path)
-            gdp = Gdp(None, data, None)
+            gdp = GDP(None, data, None)
             return gdp
         else:
             raise ValueError(f"Unsupported file extension: {ext}")
