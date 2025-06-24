@@ -34,6 +34,8 @@ class GriddingManager:
         else:
             data[bin] = (data[bin_column] // bin_size) * bin_size + bin_size / 2
             binned_data = data.groupby(bin)[target_columns].mean().reset_index() # 3.5
+            bin_mean = data.groupby(bin)[bin_column].mean().to_dict()
+            binned_data[bin_column] = binned_data[bin].apply(lambda x: bin_mean[x])
         
         for col in target_columns:
             binned_data[col + '_uc_ucor_avg'] = data.groupby(bin)[col + '_uc_ucor'].apply(
@@ -61,7 +63,7 @@ class GriddingManager:
         metadata = metadata._append({'Attribute': 'g.Gridding.BinSize', 'Value': str(bin_size)}, ignore_index=True)
         metadata = metadata._append({'Attribute': 'g.Gridding.TargetColumns', 'Value': ', '.join(target_columns)}, ignore_index=True)
 
-        ggd=Ggd(metadata, binned_data)
+        ggd=GD(metadata, binned_data)
         return ggd
     
     def temporal_gridding(self, ggds, target_columns, bin_size, lvl_column='mand_lvl'):
@@ -107,5 +109,5 @@ class GriddingManager:
         metadata = metadata._append({'Attribute': 'g.Gridding.BinSize', 'Value': str(bin_size)}, ignore_index=True)
         metadata = metadata._append({'Attribute': 'g.Gridding.TargetColumns', 'Value': ', '.join(target_columns)}, ignore_index=True)
         
-        ggd=Ggd(metadata, binned_data)
+        ggd=GD(metadata, binned_data)
         return ggd
