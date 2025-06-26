@@ -28,7 +28,10 @@ class PBLHMethods:
         # The PBLH is the height where the virtual potential temperature drops below the surface value
         data['pblh'] = 0
         surface_virtual_potential_temperature = data['virtual_temperature'].iloc[0]
-        index = data[data['virtual_temperature'] < surface_virtual_potential_temperature].index
+        # Consider only the first 5000 meters above the first altitude
+        alt_limit = data['alt'].iloc[0] + 5000
+        subset = data[data['alt'] <= alt_limit]
+        index = subset[subset['virtual_temperature'] < surface_virtual_potential_temperature].index
         if not index.empty:
             pblh_index = index[0]
             data.at[pblh_index, 'pblh'] = 1
@@ -48,11 +51,43 @@ class PBLHMethods:
         """
         # Compute potential temperature and its gradient
         data['potential_temperature'] = ff.potential_temperature(data['temp'], data['press'])
-        # Drop rows with missing altitude or potential temperature values to avoid TypeError
-        data = data.dropna(subset=['alt', 'potential_temperature']).reset_index(drop=True)
-        data['potential_temperature_gradient'] = data['potential_temperature'].diff() / data['alt'].diff()
+        data['delta_temp'] = data['temp'].diff().fillna(0)
+        data['delta_alt'] = data['alt'].diff().fillna(1)
+        data['delta_alt'] = data['delta_alt'].apply(lambda x: x if abs(x) >= 1 else 1) #get rid of zero or very small values
+        data['potential_temperature_gradient'] = data['delta_temp'] / data['delta_alt']
         data['pblh'] = 0
         # Find the index of the maximum gradient
-        max_gradient_index = data['potential_temperature_gradient'].idxmax()
+        # Consider only the first 5000 meters above the first altitude
+        alt_limit = data['alt'].iloc[0] + 5000
+        subset = data[data['alt'] <= alt_limit]
+        max_gradient_index = subset['potential_temperature_gradient'].idxmax()
         data.at[max_gradient_index, 'pblh'] = 1 
+        return data
+    
+    def specific_humidity_gradient(self, data):
+        """
+        Calculate the specific humidity gradient and determine the PBLH
+        as the altitude where the gradient is minimum.
+
+        Parameters:
+        data (DataFrame): Data containing 'specific_humidity' and 'alt' columns.
+
+        Returns:
+        DataFrame: Data with additional columns for specific humidity gradient
+        and a marker for PBLH.
+        """
+        data['specific_humidity'] = ff.specific_humidity(
+            data['temp'], data['rh'], data['press']
+        )
+        data['delta_sh'] = data['specific_humidity'].diff().fillna(0)
+        data['delta_alt'] = data['alt'].diff().fillna(1)
+        data['delta_alt'] = data['delta_alt'].apply(lambda x: x if abs(x) >= 1 else 1)
+        data['specific_humidity_gradient'] = data['delta_sh'] / data['delta_alt']
+        data['pblh'] = 0
+        # Find the index of the minimum gradient    
+        # Consider only the first 5000 meters above the first altitude
+        alt_limit = data['alt'].iloc[0] + 5000
+        subset = data[data['alt'] <= alt_limit]
+        min_gradient_index = subset['specific_humidity_gradient'].idxmin()
+        data.at[min_gradient_index, 'pblh'] = 1
         return data
