@@ -17,5 +17,4 @@ class GRUANpy(DM, RM, GM, A):
         print("For more documentation regarding GRUAN data, please visit https://www.gruan.org/")
         print("For more details regarding GRUANpy, look at https://github.com/TommasoLocatelli/GRUAN_EDA")
 
-
 gruanpy = GRUANpy()
