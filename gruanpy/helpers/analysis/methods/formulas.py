@@ -131,7 +131,7 @@ class Formulas:
         q = w / (1 + w)
         return q
 
-    def bulk_richardson_number(self, avg_Tv, delta_virtual_pot_temp, delta_z, delta_wspeed, g=CNST.G0):
+    def bulk_richardson_number(self, avg_Tv, delta_virtual_pot_temp, delta_z, delta_u, delta_v, g=CNST.G0):
         """Calculate the bulk Richardson number.
         Parameters:
         avg_Tv (float or array-like): Average virtual temperature in Kelvin.
@@ -143,5 +143,6 @@ class Formulas:
         float or array-like: Bulk Richardson number (dimensionless).
         """
         numerator = g * (delta_virtual_pot_temp / avg_Tv) * delta_z
-        Ri_b = numerator / delta_wspeed
+        denominator = delta_u**2 + delta_v**2
+        Ri_b = numerator / denominator
         return Ri_b
