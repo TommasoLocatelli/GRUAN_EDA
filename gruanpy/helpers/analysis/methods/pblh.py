@@ -103,3 +103,26 @@ class PBLHMethods:
             pblh_index = index[0]
             data.at[pblh_index, 'pblh_Ri'] = 1
         return data
+
+    def bulk_richardson_number_method(self, data):
+        """
+        version of Seidel et al. (2012) using bulk Richardson number
+        """
+        self._find_upper_bound(data)
+        # computes missing variables if not present
+        data['es']=FM.tetens_equation(data['temp']) if 'es' not in data else data['es']
+        data['e']=FM.water_vapor_pressure_from_RH(data['rh'], data['es']) if 'e' not in data else data['e']
+        data['virtual_temp']=FM.virtual_temperature(data['temp'], data['e'], data['press']) if 'virtual_temp' not in data else data['virtual_temp']
+        data['virtual_potential_temp']=FM.potential_temperature(data['virtual_temp'], data['press']) if 'virtual_potential_temp' not in data else data['virtual_potential_temp']
+        data['uspeed'] = data['wspeed'] * np.cos(np.radians(data['wdir'])) if 'uspeed' not in data else data['uspeed']
+        data['vspeed'] = data['wspeed'] * np.sin(np.radians(data['wdir'])) if 'vspeed' not in data else data['vspeed']
+        # compute Richardson number
+        surface_virtual_potential_temperature = data['virtual_potential_temp'].iloc[0]
+        data['Ri_b'] = FM.bulk_richardson_number(surface_virtual_potential_temperature, data['virtual_potential_temp'], data['alt'], data['uspeed'], data['vspeed'])
+        # apply criterion
+        data['pblh_Ri'] = 0
+        index = data[(data['Ri_b'] > 0.25) & (data['alt'] <= self.altitude_bound)].index
+        if not index.empty:
+            pblh_index = index[0]
+            data.at[pblh_index, 'pblh_Ri'] = 1
+        return data

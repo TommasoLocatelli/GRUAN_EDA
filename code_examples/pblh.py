@@ -12,7 +12,7 @@ gdp=gp.read(file_path)
 data=gp.parcel_method(gdp.data)
 data=gp.potential_temperature_gradient(gdp.data)
 data=gp.RH_gradient(gdp.data)
-data=gp.richardson_number_method(gdp.data)
+data=gp.bulk_richardson_number_method(gdp.data)
 
 plt.figure()
 
@@ -59,13 +59,12 @@ plt.title('Richardson Number vs Altitude')
 plt.grid(True)
 
 # Add horizontal lines for PBLH from different methods
-pblh_pm = gdp.data['alt'][data['pblh_pm'] == 1][0] if 'pblh_pm' in data and any(data['pblh_pm'] == 1) else None
-pblh_theta = gdp.data['alt'][data['pblh_theta'] == 1][0] if 'pblh_theta' in data and any(data['pblh_theta'] == 1) else None
-pblh_rh = gdp.data['alt'][data['pblh_rh'] == 1][0] if 'pblh_rh' in data and any(data['pblh_rh'] == 1) else None
-pblh_Ri = gdp.data['alt'][data['pblh_Ri'] == 1][0] if 'pblh_Ri' in data and any(data['pblh_Ri'] == 1) else None
+pblh_pm = gdp.data['alt'][data['pblh_pm'] == 1].iloc[0] if 'pblh_pm' in data and any(data['pblh_pm'] == 1) else None
+pblh_theta = gdp.data['alt'][data['pblh_theta'] == 1].iloc[0] if 'pblh_theta' in data and any(data['pblh_theta'] == 1) else None
+pblh_rh = gdp.data['alt'][data['pblh_rh'] == 1].iloc[0] if 'pblh_rh' in data and any(data['pblh_rh'] == 1) else None
+pblh_Ri = gdp.data['alt'][data['pblh_Ri'] == 1].iloc[0] if 'pblh_Ri' in data and any(data['pblh_Ri'] == 1) else None
 
 pblh_values = [pblh_pm, pblh_theta, pblh_rh, pblh_Ri]
-print(pblh_values)
 pblh_colors = ['r', 'g', 'b', 'm']
 pblh_labels = ['PBLH_PM', 'PBLH_Theta', 'PBLH_RH', 'PBLH_Ri']
 

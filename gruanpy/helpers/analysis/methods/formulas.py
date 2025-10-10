@@ -131,7 +131,7 @@ class Formulas:
         q = w / (1 + w)
         return q
 
-    def bulk_richardson_number(self, avg_Tv, delta_virtual_pot_temp, delta_z, delta_u, delta_v, g=CNST.G0):
+    def richardson_number(self, avg_Tv, delta_virtual_pot_temp, delta_z, delta_u, delta_v, g=CNST.G0):
         """Calculate the bulk Richardson number.
         Parameters:
         avg_Tv (float or array-like): Average virtual temperature in Kelvin.
@@ -142,7 +142,20 @@ class Formulas:
         Returns:
         float or array-like: Bulk Richardson number (dimensionless).
         """
-        numerator = g * (delta_virtual_pot_temp / avg_Tv) * delta_z
-        denominator = delta_u**2 + delta_v**2
+        if True:
+            print('Deprecated: use bulk_richardson_number instead.')
+        else:
+            numerator = g * (delta_virtual_pot_temp / avg_Tv) * delta_z
+            denominator = delta_u**2 + delta_v**2
+            Ri_b = numerator / denominator
+            return Ri_b
+    
+    def bulk_richardson_number(self, virtual_pot_temp_s, virtual_pot_temp, z, u, v, g=CNST.G0):
+        """
+        version of Seidel et al. (2012) using bulk Richardson number, but do not interpolate to mid-points.
+        z is the height above the surface, u and v are the wind horizontal speed components at height z,
+        """
+        numerator = (g/virtual_pot_temp_s) * (virtual_pot_temp - virtual_pot_temp_s) * z
+        denominator = u**2 + v**2
         Ri_b = numerator / denominator
         return Ri_b
