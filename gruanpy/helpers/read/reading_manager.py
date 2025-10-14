@@ -10,7 +10,8 @@ class ReadingManager:
     def read(self, file_path):
         content=xr.open_dataset(file_path)
         global_attrs=pd.DataFrame(content.attrs.items(), columns=['Attribute', 'Value'])
-        data=content.to_dataframe()
+        data = content.to_dataframe().sort_values(by='alt') # Ensure data is sorted by altitude
+        data = data.reset_index()  # Reset index to have a clean DataFrame
         variables_attrs = pd.DataFrame([
             {**var.attrs, 'variable': var_name} 
             for var_name, var in content.data_vars.items()

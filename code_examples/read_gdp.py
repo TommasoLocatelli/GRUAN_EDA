@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from gruanpy import gruanpy as gp
 import matplotlib.pyplot as plt
 
-file_path=r'gdp\data_examples\LIN-RS-01_2_IMS-100-GDP_002_20220107T093400_1-002-001.nc'
+file_path=r'gdp\products_RS41-GDP-1_POT_2025\POT-RS-01_2_RS41-GDP_001_20250130T113000_1-000-001.nc'
 gdp=gp.read(file_path)
 print(gdp.global_attrs)
 print(gdp.data)

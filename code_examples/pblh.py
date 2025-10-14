@@ -15,6 +15,8 @@ file_paths = [
 
 for file_path in file_paths:
     gdp=gp.read(file_path)
+    print(gdp.data)
+    
     data=gp.parcel_method(gdp.data)
     data=gp.potential_temperature_gradient(gdp.data)
     data=gp.RH_gradient(gdp.data)

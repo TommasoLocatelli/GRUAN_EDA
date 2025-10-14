@@ -74,36 +74,6 @@ class PBLHMethods:
         data.at[min_gradient_index, 'pblh_rh'] = 1 
         return data
 
-    def richardson_number_method(self, data):
-        """
-        "The ratio of buoyancy-related turbulence to mechanical shear-related turbulence 
-        is calculated to obtain the Richardson number, which determines the PBLH as the lowest level 
-        when Ri crosses a critical value of 0.25" Li et al. (2021)
-        """
-        self._find_upper_bound(data)
-        # computes missing variables if not present
-        data['es']=FM.tetens_equation(data['temp']) if 'es' not in data else data['es']
-        data['e']=FM.water_vapor_pressure_from_RH(data['rh'], data['es']) if 'e' not in data else data['e']
-        data['virtual_temp']=FM.virtual_temperature(data['temp'], data['e'], data['press']) if 'virtual_temp' not in data else data['virtual_temp']
-        data['virtual_potential_temp']=FM.potential_temperature(data['virtual_temp'], data['press']) if 'virtual_potential_temp' not in data else data['virtual_potential_temp']
-        data['uspeed'] = data['wspeed'] * np.cos(np.radians(data['wdir'])) if 'uspeed' not in data else data['uspeed']
-        data['vspeed'] = data['wspeed'] * np.sin(np.radians(data['wdir'])) if 'vspeed' not in data else data['vspeed']
-        # compute gradients
-        data['delta_virtual_potential_temp'] = data['virtual_potential_temp'].diff()
-        data['delta_z'] = data['alt'].diff()
-        data['avg_Tv'] = (data['virtual_temp'] + data['virtual_temp'].shift(1)) / 2
-        data['delta_u'] = data['uspeed'].diff()
-        data['delta_v'] = data['vspeed'].diff()
-        # compute Richardson number
-        data['Ri_b'] = FM.bulk_richardson_number(data['avg_Tv'], data['delta_virtual_potential_temp'], data['delta_z'], data['delta_u'], data['delta_v'])
-        # apply criterion
-        data['pblh_Ri'] = 0
-        index = data[(data['Ri_b'] > 0.25) & (data['alt'] <= self.altitude_bound)].index
-        if not index.empty:
-            pblh_index = index[0]
-            data.at[pblh_index, 'pblh_Ri'] = 1
-        return data
-
     def bulk_richardson_number_method(self, data):
         """
         version of Seidel et al. (2012) using bulk Richardson number

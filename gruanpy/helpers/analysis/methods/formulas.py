@@ -130,25 +130,6 @@ class Formulas:
         """
         q = w / (1 + w)
         return q
-
-    def richardson_number(self, avg_Tv, delta_virtual_pot_temp, delta_z, delta_u, delta_v, g=CNST.G0):
-        """Calculate the bulk Richardson number.
-        Parameters:
-        avg_Tv (float or array-like): Average virtual temperature in Kelvin.
-        delta_virtual_pot_temp (float or array-like): Difference in virtual potential temperature in Kelvin.
-        delta_z (float or array-like): Difference in height in meters.
-        delta_u (float or array-like): Difference in u-component of wind in m/s.
-        delta_v (float or array-like): Difference in v-component of wind in m/s.
-        Returns:
-        float or array-like: Bulk Richardson number (dimensionless).
-        """
-        if True:
-            print('Deprecated: use bulk_richardson_number instead.')
-        else:
-            numerator = g * (delta_virtual_pot_temp / avg_Tv) * delta_z
-            denominator = delta_u**2 + delta_v**2
-            Ri_b = numerator / denominator
-            return Ri_b
     
     def bulk_richardson_number(self, virtual_pot_temp_s, virtual_pot_temp, z, u, v, g=CNST.G0):
         """
