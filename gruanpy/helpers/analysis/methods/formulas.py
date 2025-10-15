@@ -53,16 +53,26 @@ class Formulas:
         theta = T * (p0 / p) ** (CNST.R_DRY_AIR / CNST.C_P_DRY_AIR)
         return theta
 
-    def tetens_equation(self, T):
+    def tetens_equation(self, T, uncertainty=None):
         """Calculate the saturation vapor pressure using Tetens equation.
         Parameters:
         T (float or array-like): Temperature in Kelvin.
         Returns:
         float or array-like: Saturation vapor pressure in hPa.
         """
-        T_C = self.from_kelvin_to_celsius(T)
-        es = 6.112 * np.exp((17.67 * T_C) / (T_C + 243.5))
+        es = 6.1078 * np.exp((17.27 * (T - 273.16)) / (T - 35.86))
         return es
+        
+    def saturation_vapor_pressure_uncertainty(self, T, T_uc):
+        """Calculate the uncertainty in saturation vapor pressure using Tetens equation.
+        Parameters:
+        T (float or array-like): Temperature in Kelvin.
+        T_uc (float or array-like): Uncertainty in temperature in Kelvin.
+        Returns:
+        float or array-like: Uncertainty in saturation vapor pressure in hPa.
+        """
+        es_uc = 6.1078 * np.exp((17.27 * (T - 273.16)) / (T - 35.86)) * (4098.17/(T - 35.86)**2) * T_uc
+        return es_uc
 
     def water_vapor_saturation_mass(self, es, p):
         """Calculate the water vapor saturation mass (mixing ratio at saturation).

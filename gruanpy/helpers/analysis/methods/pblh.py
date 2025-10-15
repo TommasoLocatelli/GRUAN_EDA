@@ -21,6 +21,7 @@ class PBLHMethods:
         self._find_upper_bound(data)
         # computes missing variables if not present
         data['es']=FM.tetens_equation(data['temp']) if 'es' not in data else data['es']
+        data['es_uc']=FM.saturation_vapor_pressure_uncertainty(data['temp'], data['temp_uc']) if 'es' not in data else data['es']
         data['e']=FM.water_vapor_pressure_from_RH(data['rh'], data['es']) if 'e' not in data else data['e']
         data['virtual_temp']=FM.virtual_temperature(data['temp'], data['e'], data['press']) if 'virtual_temp' not in data else data['virtual_temp']
         data['virtual_potential_temp']=FM.potential_temperature(data['virtual_temp'], data['press']) if 'virtual_potential_temp' not in data else data['virtual_potential_temp']
@@ -48,6 +49,7 @@ class PBLHMethods:
         if virtual:
             temp_clmn='virtual_potential_temp'
             data['es']=FM.tetens_equation(data['temp']) if 'es' not in data else data['es']
+            data['es_uc']=FM.saturation_vapor_pressure_uncertainty(data['temp'], data['temp_uc']) if 'es' not in data else data['es']
             data['e']=FM.water_vapor_pressure_from_RH(data['rh'], data['es']) if 'e' not in data else data['e']
             data['virtual_temp']=FM.virtual_temperature(data['temp'], data['e'], data['press']) if 'virtual_temp' not in data else data['virtual_temp']
             data[temp_clmn]=FM.potential_temperature(data['virtual_temp'], data['press']) if 'potential_temp' not in data else data['potential_temp']
@@ -81,6 +83,7 @@ class PBLHMethods:
         self._find_upper_bound(data)
         # computes missing variables if not present
         data['es']=FM.tetens_equation(data['temp']) if 'es' not in data else data['es']
+        data['es_uc']=FM.saturation_vapor_pressure_uncertainty(data['temp'], data['temp_uc']) if 'es' not in data else data['es']
         data['e']=FM.water_vapor_pressure_from_RH(data['rh'], data['es']) if 'e' not in data else data['e']
         data['virtual_temp']=FM.virtual_temperature(data['temp'], data['e'], data['press']) if 'virtual_temp' not in data else data['virtual_temp']
         data['virtual_potential_temp']=FM.potential_temperature(data['virtual_temp'], data['press']) if 'virtual_potential_temp' not in data else data['virtual_potential_temp']
