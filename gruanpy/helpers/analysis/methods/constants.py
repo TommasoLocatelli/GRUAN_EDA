@@ -13,3 +13,7 @@ class Constants:
         self.DRY_ADIABATIC_LAPSE_RATE = 9.8  # K/km Dry adiabatic lapse rate
         self.G0 = 9.80665  # m/s² Averaged gravity
         self.RIC = 0.25  # Dimensionless Richardson critical number for turbulence
+
+if __name__ == "__main__":
+    CNST = Constants()
+    print(f'Poisson exponent: {CNST.R_DRY_AIR / CNST.C_P_DRY_AIR}')

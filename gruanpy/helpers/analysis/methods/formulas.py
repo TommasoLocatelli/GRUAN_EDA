@@ -38,7 +38,7 @@ class Formulas:
         Returns:
         float or array-like: Virtual temperature in Kelvin.
         """
-        Tv = T * (1 - (e / p)*(1 - CNST.EPSILON))
+        Tv = T / (1 - (e / p)*(1 - CNST.EPSILON))
         return Tv
 
     def potential_temperature(self, T, p, p0=1000.0):
