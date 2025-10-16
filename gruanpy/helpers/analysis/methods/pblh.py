@@ -23,8 +23,11 @@ class PBLHMethods:
         data['es']=FM.tetens_equation(data['temp']) if 'es' not in data else data['es']
         data['es_uc']=FM.saturation_vapor_pressure_uncertainty(data['temp'], data['temp_uc']) if 'es' not in data else data['es']
         data['e']=FM.water_vapor_pressure_from_RH(data['rh'], data['es']) if 'e' not in data else data['e']
+        data['e_uc']=FM.water_vapor_pressure_uncertainty(data['rh'], data['es'], data['rh_uc'], data['es_uc']) if 'e_uc' not in data else data['e_uc']
         data['virtual_temp']=FM.virtual_temperature(data['temp'], data['e'], data['press']) if 'virtual_temp' not in data else data['virtual_temp']
+        data['virtual_temp_uc']=FM.virtual_temperature_uncertainty(data['temp'], data['e'], data['press'], data['temp_uc'], data['e_uc'], data['press_uc']) if 'virtual_temp_uc' not in data else data['virtual_temp_uc']
         data['virtual_potential_temp']=FM.potential_temperature(data['virtual_temp'], data['press']) if 'virtual_potential_temp' not in data else data['virtual_potential_temp']
+        data['theta_uc']=FM.potential_temperature_uncertainty(data['virtual_temp'], data['press'], data['virtual_temp_uc'], data['press_uc']) if 'theta_uc' not in data else data['theta_uc']
         # apply parcel method criterion
         data['pblh_pm'] = 0
         surface_virtual_potential_temperature = data['virtual_potential_temp'].iloc[0]
@@ -51,11 +54,15 @@ class PBLHMethods:
             data['es']=FM.tetens_equation(data['temp']) if 'es' not in data else data['es']
             data['es_uc']=FM.saturation_vapor_pressure_uncertainty(data['temp'], data['temp_uc']) if 'es' not in data else data['es']
             data['e']=FM.water_vapor_pressure_from_RH(data['rh'], data['es']) if 'e' not in data else data['e']
+            data['e_uc']=FM.water_vapor_pressure_uncertainty(data['rh'], data['es'], data['rh_uc'], data['es_uc']) if 'e_uc' not in data else data['e_uc']
             data['virtual_temp']=FM.virtual_temperature(data['temp'], data['e'], data['press']) if 'virtual_temp' not in data else data['virtual_temp']
+            data['virtual_temp_uc']=FM.virtual_temperature_uncertainty(data['temp'], data['e'], data['press'], data['temp_uc'], data['e_uc'], data['press_uc']) if 'virtual_temp_uc' not in data else data['virtual_temp_uc']
             data[temp_clmn]=FM.potential_temperature(data['virtual_temp'], data['press']) if 'potential_temp' not in data else data['potential_temp']
+            data['theta_uc']=FM.potential_temperature_uncertainty(data['virtual_temp'], data['press'], data['virtual_temp_uc'], data['press_uc']) if 'theta_uc' not in data else data['theta_uc']
         else:
             temp_clmn='potential_temp'
             data[temp_clmn]=FM.potential_temperature(data['temp'], data['press']) if 'potential_temp' not in data else data['potential_temp']
+            data['theta_uc']=FM.potential_temperature_uncertainty(data['temp'], data['press'], data['temp_uc'], data['press_uc']) if 'theta_uc' not in data else data['theta_uc']
         # compute gradient and apply criterion
         data['potential_temp_gradient'] = (data[temp_clmn].diff() / data['alt'].diff())
         data['pblh_theta'] = 0

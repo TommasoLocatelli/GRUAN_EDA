@@ -32,65 +32,71 @@ for file_path in file_paths[:5]:
     plt.suptitle(f'GRUAN Profile: {where}, {when}', fontsize=16)
 
     plt.subplot(2, 2, 1)
-    # Plot temperature vs altitude with uncertainty rectangles
+    # Plot temperature vs altitude with uncertainty ellipses
     for t, a, t_uc, a_uc in zip(gdp.data['temp'], gdp.data['alt'], gdp.data['temp_uc'], gdp.data['alt_uc']):
-        rect = Ellipse((t, a), t_uc, a_uc, color='lightcoral', alpha=0.3)
-        plt.gca().add_patch(rect)
+        ellip = Ellipse((t, a), t_uc, a_uc, color='lightcoral', alpha=0.3)
+        plt.gca().add_patch(ellip)
     plt.scatter(gdp.data['temp'], gdp.data['alt'],
                 #gdp.data['temp'][gdp.data.index % 2 == 0], gdp.data['alt'][gdp.data.index % 2 == 0], 
-                color="#781E1A")
+                color="#781E1A", label='temp')
     #plt.axhline(pblh_theta, color='r', linestyle='--', label='PBLH_Theta')
+    plt.scatter(gdp.data['virtual_potential_temp'], gdp.data['alt'], color='orange', label='theta')
+    for t, a, t_uc, a_uc in zip(gdp.data['virtual_potential_temp'], gdp.data['alt'], gdp.data['theta_uc'], gdp.data['alt_uc']):
+        ellip = Ellipse((t, a), t_uc, a_uc, color='gold', alpha=0.3)
+        plt.gca().add_patch(ellip)
     plt.xlabel('Temperature (K)')
     plt.ylabel('Altitude (m)')
     plt.title('Temperature vs Altitude')# with Theta PBLH')
     plt.grid(True)
+    plt.legend()
 
     plt.subplot(2, 2, 2)
-    # Plot RH vs altitude with uncertainty rectangles
+    # Plot RH vs altitude with uncertainty ellipses
     for rh, a, rh_uc, a_uc in zip(gdp.data['rh'], gdp.data['alt'], gdp.data['rh_uc'], gdp.data['alt_uc']):
-        rect = Ellipse((rh, a), rh_uc, a_uc, color='lightskyblue', alpha=0.3)
-        plt.gca().add_patch(rect)
-    plt.scatter(gdp.data['rh'], gdp.data['alt'], color="#2C3993")
+        ellip = Ellipse((rh, a), rh_uc, a_uc, color='lightskyblue', alpha=0.3)
+        plt.gca().add_patch(ellip)
+    plt.scatter(gdp.data['rh'], gdp.data['alt'], color="#2C3993", label='rh')
     plt.xlabel('Relative Humidity (%)')
     plt.ylabel('Altitude (m)')
     plt.title('RH vs Altitude')
     plt.grid(True)
+    plt.legend()
     
     plt.subplot(2, 2, 3)
-    # Plot wind speed vs altitude with uncertainty rectangles
+    # Plot wind speed vs altitude with uncertainty ellipses
     for ws, a, ws_uc, a_uc in zip(gdp.data['wspeed'], gdp.data['alt'], gdp.data['wspeed_uc'], gdp.data['alt_uc']):
-        rect = Ellipse((ws, a), ws_uc, a_uc, color='lightgreen', alpha=0.3)
-        plt.gca().add_patch(rect)
-    plt.scatter(gdp.data['wspeed'], gdp.data['alt'], color="#329E32")
+        ellip = Ellipse((ws, a), ws_uc, a_uc, color='lightgreen', alpha=0.3)
+        plt.gca().add_patch(ellip)
+    plt.scatter(gdp.data['wspeed'], gdp.data['alt'], color="#329E32", label='wspeed')
     plt.xlabel('Wind Speed (m/s)')
     plt.ylabel('Altitude (m)')
     plt.title('Wind Speed vs Altitude')
     plt.grid(True)
+    plt.legend()
 
     plt.subplot(2, 2, 4)
-    # Plot pressure vs altitude with uncertainty rectangles
+    # Plot pressure vs altitude with uncertainty ellipses
     for p, a, p_uc, a_uc in zip(gdp.data['press'], gdp.data['alt'], gdp.data['press_uc'], gdp.data['alt_uc']):
-        rect = Ellipse((p, a), p_uc, a_uc, color='plum', alpha=0.3)
-        plt.gca().add_patch(rect)
-    plt.scatter(gdp.data['press'], gdp.data['alt'], color="#543395")
+        ellip = Ellipse((p, a), p_uc, a_uc, color='plum', alpha=0.3)
+        plt.gca().add_patch(ellip)
+    plt.scatter(gdp.data['press'], gdp.data['alt'], color="#543395", label='press')
+    for es, a, es_uc, a_uc in zip(data['es'], gdp.data['alt'], gdp.data['es_uc'], gdp.data['alt_uc']):
+        ellip = Ellipse((es, a), es_uc, a_uc, color='lightgray', alpha=0.3)
+        plt.gca().add_patch(ellip)
+    plt.scatter(data['es'], gdp.data['alt'], color="#1A6878", label='es')
+    plt.scatter(data['e'], gdp.data['alt'], color="#A41A8D", label='e')
+    for e, a, e_uc, a_uc in zip(data['e'], gdp.data['alt'], data['e_uc'], gdp.data['alt_uc']):
+        ellip = Ellipse((e, a), e_uc, a_uc, color='violet', alpha=0.3)
+        plt.gca().add_patch(ellip)
     plt.xlabel('Pressure (hPa)')
     plt.ylabel('Altitude (m)')
     plt.title('Pressure vs Altitude')
     plt.grid(True)
 
     plt.tight_layout()
+    plt.legend()
     plt.show()
-
-    plt.figure()
-    for es, a, es_uc, a_uc in zip(data['es'], gdp.data['alt'], gdp.data['es_uc'], gdp.data['alt_uc']):
-        rect = Ellipse((es, a), es_uc, a_uc, color='lightgray', alpha=0.3)
-        plt.gca().add_patch(rect)
-    plt.scatter(data['es'], gdp.data['alt'], color="#781E1A")
-    plt.xlabel('Saturation Vapor Pressure (hPa)')
-    plt.ylabel('Altitude (m)')
-    plt.title('Saturation Vapor Pressure vs Altitude')
-    plt.grid(True)
-    plt.show()
+    
     break
 
     plt.figure()

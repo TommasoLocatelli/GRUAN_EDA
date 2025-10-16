@@ -10,10 +10,7 @@ class Constants:
         self.M_WATER_VAPOR = 0.01801528  # kg/mol Molar mass of water
         self.EPSILON = 0.622  # Dimensionless Ratio of the molar masses of water vapor to dry air
         self.C_P_DRY_AIR = 1005.7  # J/(kg·K) Specific heat capacity of dry air at constant pressure
+        self.Poisson_exponent = self.R_DRY_AIR / self.C_P_DRY_AIR  # Dimensionless Poisson exponent for dry air
         self.DRY_ADIABATIC_LAPSE_RATE = 9.8  # K/km Dry adiabatic lapse rate
         self.G0 = 9.80665  # m/s² Averaged gravity
         self.RIC = 0.25  # Dimensionless Richardson critical number for turbulence
-
-if __name__ == "__main__":
-    CNST = Constants()
-    print(f'Poisson exponent: {CNST.R_DRY_AIR / CNST.C_P_DRY_AIR}')
