@@ -64,7 +64,8 @@ class PBLHMethods:
             data[temp_clmn]=FM.potential_temperature(data['temp'], data['press']) if 'potential_temp' not in data else data['potential_temp']
             data['theta_uc']=FM.potential_temperature_uncertainty(data['temp'], data['press'], data['temp_uc'], data['press_uc']) if 'theta_uc' not in data else data['theta_uc']
         # compute gradient and apply criterion
-        data['potential_temp_gradient'] = (data[temp_clmn].diff() / data['alt'].diff())
+        data['potential_temp_gradient'] = FM.finite_difference_gradient(data[temp_clmn], data['alt'])
+        data['potential_temp_gradient_uc'] = FM.finite_difference_gradient_uncertainty(data[temp_clmn], data['alt'], data['theta_uc'], data['alt_uc'])
         data['pblh_theta'] = 0
         max_gradient_index = data[(data['alt'] <= self.altitude_bound)]['potential_temp_gradient'].idxmax()
         data.at[max_gradient_index, 'pblh_theta'] = 1 
@@ -77,7 +78,9 @@ class PBLHMethods:
         Vertical gradient is computed using finite differences.
         """
         self._find_upper_bound(data)
-        data['rh_gradient'] = (data['rh'].diff() / data['alt'].diff())
+        data['rh_gradient'] = FM.finite_difference_gradient(data['rh'], data['alt'])
+        data['rh_gradient_uc'] = FM.finite_difference_gradient_uncertainty(data['rh'], data['alt'], data['rh_uc'], data['alt_uc'])
+        # apply criterion
         data['pblh_rh'] = 0
         min_gradient_index = data[(data['alt'] <= self.altitude_bound)]['rh_gradient'].idxmin()
         data.at[min_gradient_index, 'pblh_rh'] = 1 

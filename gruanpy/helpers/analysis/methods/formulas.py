@@ -188,6 +188,35 @@ class Formulas:
         q = w / (1 + w)
         return q
     
+    def finite_difference_gradient(self, variable, altitude):
+        """Calculate the vertical gradient of a variable using finite differences.
+        Parameters:
+        variable (array-like): The variable for which to calculate the gradient.
+        altitude (array-like): The altitude corresponding to the variable.
+        Returns:
+        array-like: The vertical gradient of the variable.
+        """
+        gradient = variable.diff()/altitude.diff()
+        return gradient
+    
+    def finite_difference_gradient_uncertainty(self, variable, altitude, variable_uc, altitude_uc):
+        """Calculate the uncertainty in the vertical gradient of a variable using finite differences.
+        Parameters:
+        variable (array-like): The variable for which to calculate the gradient.
+        altitude (array-like): The altitude corresponding to the variable.
+        variable_uc (array-like): Uncertainty in the variable.
+        altitude_uc (array-like): Uncertainty in the altitude.
+        Returns:
+        array-like: The uncertainty in the vertical gradient of the variable.
+        """
+        dvar = variable.diff()
+        dalt = altitude.diff()
+        dvar_uc = variable_uc**2+variable_uc.shift(1)**2
+        dalt_uc = altitude_uc**2+altitude_uc.shift(1)**2
+        
+        gradient_uc = np.sqrt( (dvar_uc / dalt)**2 + (dvar * dalt_uc / dalt**2)**2 )
+        return gradient_uc
+    
     def bulk_richardson_number(self, virtual_pot_temp_s, virtual_pot_temp, z, u, v, g=CNST.G0):
         """
         version of Seidel et al. (2012) using bulk Richardson number, but do not interpolate to mid-points.
