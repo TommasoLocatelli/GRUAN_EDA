@@ -120,41 +120,6 @@ for file_path in file_paths[:5]:
 
     plt.tight_layout()
     plt.show()
-    
-    break
-
-    plt.figure()
-    plt.suptitle(f'GRUAN Profile: {where}, {when}', fontsize=16)
-    plt.subplot(2, 2, 1)
-    plt.plot(gdp.data['virtual_potential_temp'], gdp.data['alt'], color="#781E1A")
-    plt.xlabel('Virtual Potential Temperature (K)')
-    plt.ylabel('Altitude (m)')
-    plt.title('Virtual Potential Temperature vs Altitude')
-    plt.grid(True)
-
-    plt.subplot(2, 2, 2)
-    plt.plot(data['potential_temp_gradient'], gdp.data['alt'], color="#2C3993")
-    plt.xlabel('Theta Gradient (K/m)')
-    plt.ylabel('Altitude (m)')
-    plt.title('Potential Temperature Gradient vs Altitude')
-    plt.grid(True)
-
-    plt.subplot(2, 2, 3)
-    plt.plot(data['rh_gradient'], gdp.data['alt'], color="#329E32")
-    plt.xlabel('RH Gradient (%/m)')
-    plt.ylabel('Altitude (m)')
-    plt.title('RH Gradient vs Altitude')
-    plt.grid(True)
-
-    plt.subplot(2, 2, 4)
-    plt.plot(gdp.data['Ri_b'], gdp.data['alt'], color="#543395")
-    plt.xlabel('Richardson Number')
-    plt.ylabel('Altitude (m)')
-    plt.title('Richardson Number vs Altitude')
-    plt.grid(True)
-
-    plt.tight_layout()
-    plt.show()
 
     # Look at PBLH results
 
@@ -162,4 +127,4 @@ for file_path in file_paths[:5]:
 
     # monte carlo simulation of PBLH methods proof of concept
 
-    break  # Remove this break to process all files
+    #break  # Remove this break to process all files
