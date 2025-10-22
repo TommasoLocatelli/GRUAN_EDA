@@ -1,8 +1,9 @@
 from .methods.constants import Constants as CNST
 from .methods.formulas import Formulas as FM
 from .methods.pblh import PBLHMethods
+from .methods.noise import NoiseMethods
 
-class Analist(CNST, FM, PBLHMethods):
+class Analist(CNST, FM, PBLHMethods, NoiseMethods):
     """
     A class that combines methods for atmospheric analysis, including formulas and PBLH calculations.
     Inherits from Formulas and PBLHMethods to provide a comprehensive set of analytical tools.
