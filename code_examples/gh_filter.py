@@ -50,4 +50,4 @@ for file_path in file_paths[:5]:
     ax.grid()
     plt.legend()
     plt.show()
-    break
+    #break

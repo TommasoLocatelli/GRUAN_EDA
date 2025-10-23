@@ -5,6 +5,9 @@ import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from gruanpy import gruanpy as gp
 
+noise_functions = [gp.gaussian_noise, gp.smooth_noise] # how to conserve dispersion with correlated noise?
+noise_function = noise_functions[0]  # Choose the noise function to use
+
 folder = r'gdp\products_RS41-GDP-1_POT_2025'
 file_paths = [
     os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.nc')
@@ -28,14 +31,14 @@ for file_path in file_paths[:5]:
     n_samples = 100
     noisy_profiles = []
     pblh_samples = {'pm': [], 'theta': [], 'rh': [], 'Ri': []}
-    noise_coeff = 0.005  # fraction of the uncertainty to use as stddev for noise
+    noise_coeff = 0.5# 0.005  # fraction of the uncertainty to use as stddev for noise
     for _ in range(n_samples):
         data_noisy = gdp.data.copy()
-        data_noisy['alt'] = gp.gaussian_noise(data_noisy['alt'], data_noisy['alt_uc']*noise_coeff)
+        data_noisy['alt'] = noise_function(data_noisy['alt'], data_noisy['alt_uc']*noise_coeff)
         data_noisy=data_noisy.sort_values('alt').reset_index(drop=True)
-        data_noisy['temp'] = gp.gaussian_noise(data_noisy['temp'], data_noisy['temp_uc']*noise_coeff)
-        data_noisy['rh'] = gp.gaussian_noise(data_noisy['rh'], data_noisy['rh_uc']*noise_coeff)
-        data_noisy['press'] = gp.gaussian_noise(data_noisy['press'], data_noisy['press_uc']*noise_coeff)
+        data_noisy['temp'] = noise_function(data_noisy['temp'], data_noisy['temp_uc']*noise_coeff)
+        data_noisy['rh'] = noise_function(data_noisy['rh'], data_noisy['rh_uc']*noise_coeff)
+        data_noisy['press'] = noise_function(data_noisy['press'], data_noisy['press_uc']*noise_coeff)
         data_noisy = gp.parcel_method(data_noisy)
         data_noisy = gp.potential_temperature_gradient(data_noisy, virtual=True)
         data_noisy = gp.RH_gradient(data_noisy)

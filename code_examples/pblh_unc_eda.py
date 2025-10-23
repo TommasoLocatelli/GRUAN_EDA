@@ -28,7 +28,7 @@ for file_path in file_paths[:5]:
     #gdp.data = gdp.data[gdp.data.index % 10 == 0]  # Thin data for speed, the bottle necks are the plots
 
     # Look at thermodynamic and dynamic variable profiles and uncertainties
-    if False:
+    if True:
         plt.figure()
         plt.suptitle(f'GRUAN Profile: {where}, {when}', fontsize=16)
 
@@ -153,38 +153,10 @@ for file_path in file_paths[:5]:
         plt.legend()
 
         plt.tight_layout()
-        plt.show()
-
-    #Look at gradient uncertainties
-    if True:
-        plt.figure()
-        plt.suptitle(f'GRUAN Profile: {where}, {when}', fontsize=16)
-
-        plt.subplot(1, 2, 1)
-        # plot pot temp gradient uncertainty
-        plt.scatter(gdp.data['potential_temp_gradient_uc'], gdp.data['potential_temp_gradient'], color="#D2691E", label='theta grad uc')
-        plt.ylabel('Theta Gradient (K/m)')
-        plt.xlabel('Theta Gradient Uncertainty (K/m)')
-        plt.title('Potential Temperature Gradient Uncertainty')
-        plt.grid(True)
-
-        plt.subplot(1, 2, 2)
-        # plot RH gradient uncertainty
-        plt.scatter(gdp.data['rh_gradient_uc'], gdp.data['rh_gradient'], color="#20B2AA", label='RH grad uc')
-        plt.ylabel('RH Gradient (%/m)')
-        plt.xlabel('RH Gradient Uncertainty (%/m)')
-        plt.title('RH Gradient Uncertainty')
-        plt.grid(True)
-        
-        plt.tight_layout()
-        plt.show()
-
-        plt.figure()
-        plt.suptitle(f'GRUAN Profile: {where}, {when}', fontsize=16)
-        
+        plt.show()       
 
     # Look at data['virtual_potential_temp'], data['alt'], data['uspeed'], data['vspeed'], data['Ri_b'] profiles and PBLH_Ri
-    if False:
+    if True:
         plt.figure()
         plt.suptitle(f'GRUAN Profile: {where}, {when}', fontsize=16)
 
@@ -225,7 +197,5 @@ for file_path in file_paths[:5]:
         plt.show()
         
     # how does the result change if gradient is modeled?
-
-    # monte carlo simulation of PBLH methods proof of concept
 
     break  # Remove this break to process all files
