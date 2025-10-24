@@ -3,19 +3,18 @@ import os
 import matplotlib.pyplot as plt
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from gruanpy import gruanpy as gp
+from visual_config.color_map import map_labels_to_colors
+print(map_labels_to_colors)
 
-
+folder = r'gdp\products_RS41-GDP-1_POT_2025'
 file_paths = [
-    r'gdp\products_RS41-GDP-1_POT_2025\POT-RS-01_2_RS41-GDP_001_20250109T162800_1-000-001.nc'
-    ,r'gdp\products_RS41-GDP-1_POT_2025\POT-RS-01_2_RS41-GDP_001_20250116T164200_1-000-001.nc'
-    ,r'gdp\products_RS41-GDP-1_POT_2025\POT-RS-01_2_RS41-GDP_001_20250123T112900_1-000-001.nc'
-    ,r'gdp\products_RS41-GDP-1_POT_2025\POT-RS-01_2_RS41-GDP_001_20250123T160600_1-000-001.nc'
-    ,r'gdp\products_RS41-GDP-1_POT_2025\POT-RS-01_2_RS41-GDP_001_20250130T113000_1-000-001.nc'
+    os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.nc')
 ]
-
-for file_path in file_paths:
-    gdp=gp.read(file_path)
-    print(gdp.data)
+for file_path in file_paths[:5]:
+    gdp = gp.read(file_path)
+    gdp.data = gdp.data[gdp.data['alt'] <= 10000]  # Limit to first 10 km for speed
+    where = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Site.Name']['Value'].values[0]
+    when = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Measurement.StartTime']['Value'].values[0]
     
     data=gp.parcel_method(gdp.data)
     data=gp.potential_temperature_gradient(gdp.data)
@@ -23,8 +22,6 @@ for file_path in file_paths:
     data=gp.bulk_richardson_number_method(gdp.data)
 
     plt.figure()
-    where=gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Site.Name']['Value'].values[0]
-    when=gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Measurement.StartTime']['Value'].values[0]
     plt.suptitle(f'GRUAN Profile: {where}, {when}', fontsize=16)
 
     plt.subplot(2, 3, 1)
@@ -96,3 +93,4 @@ for file_path in file_paths:
 
     plt.tight_layout()
     plt.show()
+    break  # Remove this break to process all files
