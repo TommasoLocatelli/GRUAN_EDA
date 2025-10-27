@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from gruanpy import gruanpy as gp
 from visual_config.color_map import map_labels_to_colors
-print(map_labels_to_colors)
 
 folder = r'gdp\products_RS41-GDP-1_POT_2025'
 file_paths = [
@@ -25,42 +24,42 @@ for file_path in file_paths[:5]:
     plt.suptitle(f'GRUAN Profile: {where}, {when}', fontsize=16)
 
     plt.subplot(2, 3, 1)
-    plt.plot(gdp.data['temp'], gdp.data['alt'])
+    plt.plot(gdp.data['temp'], gdp.data['alt'], color=map_labels_to_colors['temp'])
     plt.xlabel('Temperature (K)')
     plt.ylabel('Altitude (m)')
     plt.title('Temperature vs Altitude')
     plt.grid(True)
 
     plt.subplot(2, 3, 2)
-    plt.plot(gdp.data['virtual_temp'], gdp.data['alt'])
+    plt.plot(gdp.data['virtual_temp'], gdp.data['alt'], color=map_labels_to_colors['virtual_temp'])
     plt.xlabel('Virtual Temperature (K)')
     plt.ylabel('Altitude (m)')
     plt.title('Virtual Temperature vs Altitude')
     plt.grid(True)
 
     plt.subplot(2, 3, 3)
-    plt.plot(gdp.data['virtual_potential_temp'], gdp.data['alt'])
+    plt.plot(gdp.data['virtual_theta'], gdp.data['alt'], color=map_labels_to_colors['theta'])
     plt.xlabel('Virtual Potential Temperature (K)')
     plt.ylabel('Altitude (m)')
     plt.title('Virtual Potential Temperature vs Altitude')
     plt.grid(True)
 
     plt.subplot(2, 3, 4)
-    plt.plot(gdp.data['rh'], gdp.data['alt'])
+    plt.plot(gdp.data['rh'], gdp.data['alt'], color=map_labels_to_colors['rh'])
     plt.xlabel('Relative Humidity (%)')
     plt.ylabel('Altitude (m)')
     plt.title('RH vs Altitude')
     plt.grid(True)
 
     plt.subplot(2, 3, 5)
-    plt.plot(gdp.data['wspeed'], gdp.data['alt'])
+    plt.plot(gdp.data['wspeed'], gdp.data['alt'], color=map_labels_to_colors['wspeed'])
     plt.xlabel('Wind Speed (m/s)')
     plt.ylabel('Altitude (m)')
     plt.title('Wind Speed vs Altitude')
     plt.grid(True)
 
     plt.subplot(2, 3, 6)
-    plt.plot(gdp.data['Ri_b'], gdp.data['alt'])
+    plt.plot(gdp.data['Ri_b'], gdp.data['alt'], color=map_labels_to_colors['Ri_b'])
     plt.xlabel('Richardson Number')
     plt.ylabel('Altitude (m)')
     plt.title('Richardson Number vs Altitude')
@@ -73,16 +72,15 @@ for file_path in file_paths[:5]:
     pblh_Ri = gdp.data['alt'][data['pblh_Ri'] == 1].iloc[0] if 'pblh_Ri' in data and any(data['pblh_Ri'] == 1) else None
 
     pblh_values = [pblh_pm, pblh_theta, pblh_rh, pblh_Ri]
-    pblh_colors = ['r', 'g', 'b', 'm']
-    pblh_labels = ['PBLH_PM', 'PBLH_Theta', 'PBLH_RH', 'PBLH_Ri']
+    pblh_labels = ['pblh_pm', 'pblh_theta', 'pblh_rh', 'pblh_Ri']
 
     for i in range(1, 7):
         plt.subplot(2, 3, i)
-        for pblh, color, label in zip(pblh_values, pblh_colors, pblh_labels):
+        for pblh, label in zip(pblh_values, pblh_labels):
             if pblh is not None:
                 plt.axhline(
                     y=pblh,
-                    color=color,
+                    color=map_labels_to_colors[label],
                     linestyle=['--', '-.', ':', (0, (5, 10))][pblh_labels.index(label) % 4],
                     linewidth=2,
                     label=label,

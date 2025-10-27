@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from gruanpy import gruanpy as gp
+from visual_config.color_map import map_labels_to_colors
 
 noise_functions = [gp.gaussian_noise, gp.smooth_noise] # how to conserve dispersion with correlated noise?
 noise_function = noise_functions[0]  # Choose the noise function to use
@@ -59,29 +60,29 @@ for file_path in file_paths[:5]:
     fig, ax = plt.subplots(figsize=(6, 8))
     for sample in noisy_profiles:
         ax.plot(sample['temp'], sample['alt'], color='gray', alpha=0.3)
-    ax.scatter(gdp.data['temp'], gdp.data['alt'], label='True Temperature', color="#781E1A", linewidth=2 , zorder=5)
+    ax.scatter(gdp.data['temp'], gdp.data['alt'], label='True Temperature', color=map_labels_to_colors['temp'], linewidth=2 , zorder=5)
     ax.set_xlabel('Temperature (°C)')
     ax.set_ylabel('Altitude (m)')
-    ax.axhline(pblh_pm, color='r', linestyle=':', label=f'Parcel Method PBLH: {pblh_pm:.1f} m')
-    ax.axhline(pblh_theta, color='g', linestyle=':', label=f'Theta Gradient PBLH: {pblh_theta:.1f} m')
-    ax.axhline(pblh_rh, color='b', linestyle=':', label=f'RH Gradient PBLH: {pblh_rh:.1f} m')
-    ax.axhline(pblh_Ri, color='m', linestyle=':', label=f'Bulk Ri PBLH: {pblh_Ri:.1f} m')
+    ax.axhline(pblh_pm, color=map_labels_to_colors['pblh_pm'], linestyle=':', label=f'Parcel Method PBLH: {pblh_pm:.1f} m')
+    ax.axhline(pblh_theta, color=map_labels_to_colors['pblh_theta'], linestyle=':', label=f'Theta Gradient PBLH: {pblh_theta:.1f} m')
+    ax.axhline(pblh_rh, color=map_labels_to_colors['pblh_rh'], linestyle=':', label=f'RH Gradient PBLH: {pblh_rh:.1f} m')
+    ax.axhline(pblh_Ri, color=map_labels_to_colors['pblh_Ri'], linestyle=':', label=f'Bulk Ri PBLH: {pblh_Ri:.1f} m')
     ax.set_title(f'Temperature Profiles with Noise\nSite: {where}, Time: {when}')
     ax.grid()
 
     # Plot mean PBLH estimates
-    colors={'pm': 'r', 'theta': 'g', 'rh': 'b', 'Ri': 'm'}
+    labels=['pm', 'theta', 'rh', 'Ri']
     for label, (mean, std) in pblh_uncertainty.items():
         if mean is not None:
-            ax.axhline(mean, linestyle='--', label=f'{label} MC PBLH: {mean:.1f} m', color=colors[label])
+            ax.axhline(mean, linestyle='--', label=f'{label} MC PBLH: {mean:.1f} m', color=map_labels_to_colors['pblh_'+label])
             ax.fill_betweenx(
             y=np.array([mean - std, mean + std]),
             x1=gdp.data['temp'].min()-1,
             x2=gdp.data['temp'].max()+1,
-            color=colors[label],
+            color=map_labels_to_colors['pblh_'+label],
             alpha=0.1
         )
 
     plt.legend()
     plt.show()
-    
+    #break  # Remove this break to process all files
