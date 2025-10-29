@@ -28,7 +28,7 @@ for file_path in file_paths[:5]:
     #gdp.data = gdp.data[gdp.data.index % 10 == 0]  # Thin data for speed, the bottle necks are the plots
 
     # Look at thermodynamic and dynamic variable profiles and uncertainties
-    if True:
+    if False:
         plt.figure()
         plt.suptitle(f'GRUAN Profile: {where}, {when}', fontsize=16)
 

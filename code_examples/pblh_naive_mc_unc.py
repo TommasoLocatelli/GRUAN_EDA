@@ -7,7 +7,7 @@ from gruanpy import gruanpy as gp
 from visual_config.color_map import map_labels_to_colors
 
 noise_functions = [gp.gaussian_noise, gp.smooth_noise] # how to conserve dispersion with correlated noise?
-noise_function = noise_functions[0]  # Choose the noise function to use
+noise_function = noise_functions[1]  # Choose the noise function to use
 
 folder = r'gdp\products_RS41-GDP-1_POT_2025'
 file_paths = [
