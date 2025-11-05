@@ -8,9 +8,11 @@ class PBLHMethods:
     Each method implements a different criterion for determining the PBLH based on atmospheric data.
     """
 
-    def _find_upper_bound(self, data, upper_bound=5000):
+    def _find_upper_bound(self, data, upper_bound=5000, retnrn_value=False):
         ground_level = data['alt'].min()
         self.altitude_bound = ground_level + upper_bound
+        if retnrn_value:
+            return self.altitude_bound
 
     def parcel_method(self, data):
         """
