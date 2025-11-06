@@ -23,8 +23,8 @@ map_labels_to_colors = {
     'vspeed_uc': "#60F19C",
     'Ri_b': "#7E3395",
     'Ri_b_uc': "#CA68E8",
-    'pblh_pm': "#C7122A",
-    'pblh_theta': "#C75412",
+    'pblh_pm': "#C7122ACF",
+    'pblh_theta': "#C77F12",
     'pblh_rh': "#2C3993",
     'pblh_Ri': "#7E3395",
 }
