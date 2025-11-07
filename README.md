@@ -31,7 +31,9 @@ Just put in the "gdp" folder (or wherever you like) a GDP.nc file and import gru
 - make fancy plots
 - compute PBLH
 - ...
+
 The limit is the sky, literraly.
+
 You can find some example inside the "code_example" folder.
 
 ## Some tips.
