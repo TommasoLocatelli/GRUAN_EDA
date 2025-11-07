@@ -1,3 +1,7 @@
+"""
+Code used to generate poster for ICM16 conference 2024.
+Example script to analyze and visualize the uncertainty in PBLH estimation using a naive Monte Carlo approach.
+"""
 import sys
 import os
 import matplotlib.pyplot as plt

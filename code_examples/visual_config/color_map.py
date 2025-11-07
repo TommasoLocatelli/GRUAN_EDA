@@ -1,3 +1,5 @@
+# Trying to maintain consistency across plots in various code_example scripts
+
 map_labels_to_colors = {
     'temp': "#781E1A",
     'temp_uc': 'lightcoral',

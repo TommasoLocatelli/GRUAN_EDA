@@ -1,3 +1,6 @@
+"""
+Example code to perform spatial gridding on GDP data and plot original vs gridded data.
+"""
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -8,7 +11,6 @@ import matplotlib.pyplot as plt
 # Need to download one GDP
 file_path=r'gdp\data_examples\LIN-RS-01_2_RS41-GDP_001_20141209T120000_1-009-002.nc' # Path to the file
 gdp=gp.read(file_path)
-
 main_columns=['alt', 'alt_uc',
             #'lat', 'lat_uc', 'lon', 'lon_uc',
             'press', 'press_uc', 'press_uc_ucor', 'press_uc_scor', 'press_uc_tcor',
@@ -16,13 +18,10 @@ main_columns=['alt', 'alt_uc',
             'rh', 'rh_uc',  'rh_uc_ucor', 'rh_uc_scor', 'rh_uc_tcor'
             #'wdir', 'wdir_uc', 'wspeed', 'wspeed_uc'
             ]
-
 bin_column = 'alt' # Choose the binning column (alt or press)
 target_columns = ['temp', 'rh']
 bin_size = (gdp.data[bin_column].max()-gdp.data[bin_column].min()) / 100
-
 ggd = gp.spatial_gridding(gdp, bin_column, target_columns, bin_size, mandatory_levels_flag=False)
-
 print(gdp.data[[col for col in gdp.data.columns if col in main_columns]].head())
 print(ggd.data.head())
 print(ggd.data.shape)
@@ -41,6 +40,5 @@ for column in target_columns:
     ax1.set_ylabel(bin_column.capitalize())
     ax1.legend()
     ax1.set_title('Spatial Gridding')
-
     plt.tight_layout()
     plt.show()

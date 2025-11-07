@@ -1,3 +1,9 @@
+"""
+Example script to analyze and visualize the uncertainty in PBLH estimation.
+Uncertainty ellipses are used to represent the uncertainties in thermodynamic
+and dynamic variables from GRUAN RS41-GDP profiles.
+Intermadiate variable uncertaity is computed with first order Taylor sereis approximantion (Guide to the Expression of Uncertainty in Measurement, GUM).
+"""
 import sys
 import os
 import matplotlib.pyplot as plt

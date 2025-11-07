@@ -1,5 +1,5 @@
 """
-This script demonstrates how to use the Downloagpanager class to explore and download GRUAN data products (GDP) from an FTP server.
+This script demonstrates how to use the Downloadmanager class to explore and download GRUAN data products (GDP) from an FTP server.
 It allows the user to navigate through directories and download files interactively.
 """
 

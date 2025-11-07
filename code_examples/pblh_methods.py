@@ -1,3 +1,6 @@
+"""
+Example code to compute PBLH using different methods and plot the results for GRUAN RS41 GDP profiles.
+"""
 import sys
 import os
 import matplotlib.pyplot as plt
@@ -84,8 +87,7 @@ for file_path in file_paths[:5]:
                     linestyle=['--', '-.', ':', (0, (5, 10))][pblh_labels.index(label) % 4],
                     linewidth=2,
                     label=label,
-                    alpha=0.7
-                )
+                    alpha=0.7)
         if i == 1:
             plt.legend(loc='best')
 
