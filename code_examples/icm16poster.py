@@ -13,11 +13,12 @@ import seaborn as sns
 import pandas as pd
 
 ADD_VIRTUAL_TEMPERATURE = False
-VIOLINS_PLOT = True
-VERTICAL_PROFILE_PLOT = False
+VIOLINS_PLOT = False
+VERTICAL_PROFILE_PLOT = True
+INCLUDE_RI = False
 
 noise_functions = [gp.gaussian_noise, gp.smooth_noise]
-noise_function = noise_functions[0]  # no autocorrelation or crosscorrelation
+noise_function = noise_functions[1]  # no autocorrelation or crosscorrelation
 
 folder = r'gdp\icm16' # open folder with chosen GDP files
 #folder = r'gdp\products_RS41-GDP-1_LIN_2017'
@@ -79,10 +80,10 @@ for file_path in file_paths[:5]: # 1,
     if VERTICAL_PROFILE_PLOT:
         # plot noisy profiles with pblh estimates and uncertainties
         plt.figure(figsize=(10, 12))
-        plt.suptitle(f'GRUAN Profile: {where}, {when}'#, {file_index}'
+        plt.suptitle(f'RS41-GDP: {where}, {when}'#, {file_index}'
                     , fontsize=16)
         # Temperature plot
-        ax1 = plt.subplot(1, 4, 1)
+        ax1 = plt.subplot(1, 3+INCLUDE_RI, 1)
         for sample in noisy_profiles: # plot all noisy profiles
             ax1.plot(sample['temp'], sample['alt'], color='gray', alpha=0.2)
             if ADD_VIRTUAL_TEMPERATURE:
@@ -114,7 +115,7 @@ for file_path in file_paths[:5]: # 1,
         plt.legend(loc='upper right')
 
         # RH plot
-        ax2 = plt.subplot(1, 4, 2)
+        ax2 = plt.subplot(1, 3+INCLUDE_RI, 2)
         for sample in noisy_profiles: # plot all noisy profiles
             ax2.plot(sample['rh'], sample['alt'], color='gray', alpha=0.2)
         ax2.scatter(gdp.data['rh'], gdp.data['alt'], #label='True RH', 
@@ -139,7 +140,7 @@ for file_path in file_paths[:5]: # 1,
         plt.legend(loc='upper right')
 
         # wind speed plot
-        ax3 = plt.subplot(1, 4, 3)
+        ax3 = plt.subplot(1, 3+INCLUDE_RI, 3)
         for sample in noisy_profiles: # plot all noisy profiles
             ax3.plot(sample['wspeed'], sample['alt'], color='gray', alpha=0.2)
         ax3.scatter(gdp.data['wspeed'], gdp.data['alt'], #label='True Wind Speed', 
@@ -214,30 +215,31 @@ for file_path in file_paths[:5]: # 1,
                     )
             plt.legend(loc='upper right')
 
-        #plot Ri profile
-        ax6 = plt.subplot(1, 4, 4)
-        for sample in noisy_profiles: # plot all noisy profiles
-            ax6.plot(sample['Ri_b'], sample['alt'], color='gray', alpha=0.2)
-        ax6.scatter(data['Ri_b'], data['alt'], #label='Bulk Richardson Number', 
-                    color=map_labels_to_colors['Ri_b'], linewidth=2, zorder=5) # plot Ri profile
-        if pblh_Ri is not None: # plot PBLH line
-            ax6.axhline(pblh_Ri, color=map_labels_to_colors['pblh_Ri'], linestyle=':', linewidth=2, label=f'Ri PBLH: {pblh_Ri:.1f} m')
-        ax6.set_xlabel('Bulk Richardson Number')
-        #ax6.set_ylabel('Altitude (m)')
-        ax6.grid()
-        # Add PBLH lines and uncertainty bands
-        for label, (mean, std) in pblh_uncertainty.items():
-            if mean is not None and label in ['Ri']:
-                ax6.axhline(mean, linestyle='--', label=f'{label} MC PBLH: {mean:.1f} m', color=map_labels_to_colors['pblh_'+label])
-                ax6.fill_betweenx(
-                    y=np.array([mean - std, mean + std]),
-                    x1=ax6.get_xlim()[0],
-                    x2=ax6.get_xlim()[1],
-                    color=map_labels_to_colors['pblh_'+label],
-                    alpha=0.1,
-                    label=f'{label.upper()} MC Uncertainty: {std:.1f} m'
-                )
-        plt.legend(loc='upper right')
+        if INCLUDE_RI:
+            #plot Ri profile
+            ax6 = plt.subplot(1, 4, 4)
+            for sample in noisy_profiles: # plot all noisy profiles
+                ax6.plot(sample['Ri_b'], sample['alt'], color='gray', alpha=0.2)
+            ax6.scatter(data['Ri_b'], data['alt'], #label='Bulk Richardson Number', 
+                        color=map_labels_to_colors['Ri_b'], linewidth=2, zorder=5) # plot Ri profile
+            if pblh_Ri is not None: # plot PBLH line
+                ax6.axhline(pblh_Ri, color=map_labels_to_colors['pblh_Ri'], linestyle=':', linewidth=2, label=f'Ri PBLH: {pblh_Ri:.1f} m')
+            ax6.set_xlabel('Bulk Richardson Number')
+            #ax6.set_ylabel('Altitude (m)')
+            ax6.grid()
+            # Add PBLH lines and uncertainty bands
+            for label, (mean, std) in pblh_uncertainty.items():
+                if mean is not None and label in ['Ri']:
+                    ax6.axhline(mean, linestyle='--', label=f'{label} MC PBLH: {mean:.1f} m', color=map_labels_to_colors['pblh_'+label])
+                    ax6.fill_betweenx(
+                        y=np.array([mean - std, mean + std]),
+                        x1=ax6.get_xlim()[0],
+                        x2=ax6.get_xlim()[1],
+                        color=map_labels_to_colors['pblh_'+label],
+                        alpha=0.1,
+                        label=f'{label.upper()} MC Uncertainty: {std:.1f} m'
+                    )
+            plt.legend(loc='upper right')
 
         plt.show()
 
@@ -312,4 +314,4 @@ for file_path in file_paths[:5]: # 1,
                 plt.tight_layout()
                 plt.show()
 
-        #break # Remove this break to process all files
+        break # Remove this break to process all files

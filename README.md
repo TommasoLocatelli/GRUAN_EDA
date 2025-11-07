@@ -32,7 +32,7 @@ Just put in the "gdp" folder (or wherever you like) a GDP.nc file and import gru
 - compute PBLH
 - ...
 
-The limit is the sky, literraly.
+The limit is the sky, literally.
 
 You can find some example inside the "code_example" folder.
 
