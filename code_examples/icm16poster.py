@@ -13,19 +13,19 @@ import seaborn as sns
 import pandas as pd
 
 ADD_VIRTUAL_TEMPERATURE = False
-VIOLINS_PLOT = False
+VIOLINS_PLOT = True
 VERTICAL_PROFILE_PLOT = True
 INCLUDE_RI = False
 
-noise_functions = [gp.gaussian_noise, gp.smooth_noise]
-noise_function = noise_functions[1]  # no autocorrelation or crosscorrelation
+noise_functions = [gp.gaussian_noise, # no autocorrelation or crosscorrelation
+                   gp.smooth_noise] # some autocorrelation 
+noise_function = noise_functions[1] 
 
 folder = r'gdp\icm16' # open folder with chosen GDP files
-#folder = r'gdp\products_RS41-GDP-1_LIN_2017'
 file_paths = [
     os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.nc')
 ]
-for file_path in file_paths[:5]: # 1, 
+for file_path in file_paths[:5]: 
     file_index = file_paths.index(file_path)
     gdp = gp.read(file_path) # read GDP file
     upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3500, return_value=True) # find the PBLG upper bound for profile
@@ -88,7 +88,7 @@ for file_path in file_paths[:5]: # 1,
             ax1.plot(sample['temp'], sample['alt'], color='gray', alpha=0.2)
             if ADD_VIRTUAL_TEMPERATURE:
                 ax1.plot(sample['virtual_theta'], sample['alt'], color='gray', alpha=0.2)
-        ax1.scatter(gdp.data['temp'], gdp.data['alt'], #label='True Temperature',
+        ax1.plot(gdp.data['temp'], gdp.data['alt'], #label='True Temperature',
                     color=map_labels_to_colors['temp'], linewidth=2, zorder=5) # plot true temperature
         if ADD_VIRTUAL_TEMPERATURE:
             ax1.scatter(gdp.data['virtual_theta'], gdp.data['alt'], #label='True Virtual Potential Temperature', 
@@ -314,4 +314,4 @@ for file_path in file_paths[:5]: # 1,
                 plt.tight_layout()
                 plt.show()
 
-        break # Remove this break to process all files
+        #break # Remove this break to process all files

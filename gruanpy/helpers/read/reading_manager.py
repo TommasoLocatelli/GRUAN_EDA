@@ -4,6 +4,9 @@ from gruanpy.data_models.gdp import GDP
 import os
 
 class ReadingManager:
+    """
+    A class to read data files and obtain python gdp data object.
+    """
     def __init__(self):
         pass
 
@@ -16,14 +19,12 @@ class ReadingManager:
             {**var.attrs, 'variable': var_name} 
             for var_name, var in content.data_vars.items()
         ])
-
         gdp=GDP(global_attrs, data, variables_attrs)
         return gdp
 
     def read_cdm(self, file_path):
         _, ext = os.path.splitext(file_path)
         ext = ext.lower()
-
         if ext in ['.nc', '.netcdf']:
             return self.read(file_path)
         elif ext == '.csv':

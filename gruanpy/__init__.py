@@ -1,9 +1,9 @@
 from .helpers.download.download_manager import DownloadManager as DM
 from .helpers.read.reading_manager import ReadingManager as RM
 from .helpers.grid.gridding_manager import GriddingManager as GM
-from .helpers.analysis.analist import Analist as A
+from .helpers.analysis.analist import AnalysisManager as AM
 
-class GRUANpy(DM, RM, GM, A):
+class GRUANpy(DM, RM, GM, AM):
     """
     A helper class that inherits methods from DownloadManager, ReadingManager, and GriddingManager.
     """

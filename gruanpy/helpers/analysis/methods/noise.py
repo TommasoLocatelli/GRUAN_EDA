@@ -38,4 +38,3 @@ class NoiseMethods:
         noise = np.random.normal(loc=0, scale=std, size=data.shape)
         smoothed_noise = np.convolve(noise, np.ones(window_size)/window_size, mode='same')
         return data + smoothed_noise
-

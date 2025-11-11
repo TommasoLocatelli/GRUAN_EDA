@@ -3,6 +3,9 @@ from gruanpy.data_models.gd import GD
 from datetime import datetime
 pass
 class GriddingManager:
+    """
+    A class to grid observation in regular vertical space intervals, or temporal intervals.
+    """
     def __init__(self):
         pass
 
