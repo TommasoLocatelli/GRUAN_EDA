@@ -13,19 +13,21 @@ import seaborn as sns
 import pandas as pd
 
 ADD_VIRTUAL_TEMPERATURE = False
-VIOLINS_PLOT = True
+VIOLINS_PLOT = False
 VERTICAL_PROFILE_PLOT = True
 INCLUDE_RI = False
 
 noise_functions = [gp.gaussian_noise, # no autocorrelation or crosscorrelation
                    gp.smooth_noise] # some autocorrelation 
-noise_function = noise_functions[1] 
+noise_function = noise_functions[0] 
 
 folder = r'gdp\icm16' # open folder with chosen GDP files
+folder = r'gdp\products_RS41-GDP-1_POT_2025'
+folder = r'gdp\products_RS41-GDP-1_LIN_2017'
 file_paths = [
     os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.nc')
 ]
-for file_path in file_paths[:5]: 
+for file_path in file_paths[:]: 
     file_index = file_paths.index(file_path)
     gdp = gp.read(file_path) # read GDP file
     upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3500, return_value=True) # find the PBLG upper bound for profile
@@ -91,7 +93,7 @@ for file_path in file_paths[:5]:
         ax1.plot(gdp.data['temp'], gdp.data['alt'], #label='True Temperature',
                     color=map_labels_to_colors['temp'], linewidth=2, zorder=5) # plot true temperature
         if ADD_VIRTUAL_TEMPERATURE:
-            ax1.scatter(gdp.data['virtual_theta'], gdp.data['alt'], #label='True Virtual Potential Temperature', 
+            ax1.plot(gdp.data['virtual_theta'], gdp.data['alt'], #label='True Virtual Potential Temperature', 
                     color=map_labels_to_colors['virtual_theta'], linewidth=2, zorder=5) # plot true virtual potential temperature
         if pblh_pm is not None: # plot PBLH line
             ax1.axhline(pblh_pm, color=map_labels_to_colors['pblh_pm'], linestyle=':', linewidth=2, label=f'PM PBLH: {pblh_pm:.1f} m')
@@ -118,7 +120,7 @@ for file_path in file_paths[:5]:
         ax2 = plt.subplot(1, 3+INCLUDE_RI, 2)
         for sample in noisy_profiles: # plot all noisy profiles
             ax2.plot(sample['rh'], sample['alt'], color='gray', alpha=0.2)
-        ax2.scatter(gdp.data['rh'], gdp.data['alt'], #label='True RH', 
+        ax2.plot(gdp.data['rh'], gdp.data['alt'], #label='True RH', 
                     color=map_labels_to_colors['rh'], linewidth=2, zorder=5) # plot true RH
         if pblh_rh is not None: # plot PBLH line
             ax2.axhline(pblh_rh, color=map_labels_to_colors['pblh_rh'], linestyle=':', linewidth=2, label=f'RH PBLH: {pblh_rh:.1f} m')
@@ -143,7 +145,7 @@ for file_path in file_paths[:5]:
         ax3 = plt.subplot(1, 3+INCLUDE_RI, 3)
         for sample in noisy_profiles: # plot all noisy profiles
             ax3.plot(sample['wspeed'], sample['alt'], color='gray', alpha=0.2)
-        ax3.scatter(gdp.data['wspeed'], gdp.data['alt'], #label='True Wind Speed', 
+        ax3.plot(gdp.data['wspeed'], gdp.data['alt'], #label='True Wind Speed', 
                     color=map_labels_to_colors['wspeed'], linewidth=2, zorder=5) # plot true wind speed
         if pblh_Ri is not None: # plot PBLH line
             ax3.axhline(pblh_Ri, color=map_labels_to_colors['pblh_Ri'], linestyle=':', linewidth=2, label=f'Ri PBLH: {pblh_Ri:.1f} m')
@@ -169,7 +171,7 @@ for file_path in file_paths[:5]:
             ax4 = plt.subplot(2, 3, 4)
             for sample in noisy_profiles: # plot all noisy profiles
                 ax4.plot(sample['theta_gradient'], sample['alt'], color='gray', alpha=0.2)
-            ax4.scatter(data['theta_gradient'], data['alt'], #label='Theta Gradient', 
+            ax4.plot(data['theta_gradient'], data['alt'], #label='Theta Gradient', 
                         color=map_labels_to_colors['theta'], linewidth=2, zorder=5) # plot theta gradient
             if pblh_theta is not None: # plot PBLH line
                 ax4.axhline(pblh_theta, color=map_labels_to_colors['pblh_theta'], linestyle=':', linewidth=2, label=f'Theta PBLH: {pblh_theta:.1f} m')
@@ -194,7 +196,7 @@ for file_path in file_paths[:5]:
             ax5 = plt.subplot(2, 3, 5)
             for sample in noisy_profiles: # plot all noisy profiles
                 ax5.plot(sample['rh_gradient'], sample['alt'], color='gray', alpha=0.2)
-            ax5.scatter(data['rh_gradient'], data['alt'], #label='RH Gradient', 
+            ax5.plot(data['rh_gradient'], data['alt'], #label='RH Gradient', 
                         color=map_labels_to_colors['rh'], linewidth=2, zorder=5) # plot rh gradient
             if pblh_rh is not None: # plot PBLH line
                 ax5.axhline(pblh_rh, color=map_labels_to_colors['pblh_rh'], linestyle=':', linewidth=2, label=f'RH PBLH: {pblh_rh:.1f} m')
@@ -220,7 +222,7 @@ for file_path in file_paths[:5]:
             ax6 = plt.subplot(1, 4, 4)
             for sample in noisy_profiles: # plot all noisy profiles
                 ax6.plot(sample['Ri_b'], sample['alt'], color='gray', alpha=0.2)
-            ax6.scatter(data['Ri_b'], data['alt'], #label='Bulk Richardson Number', 
+            ax6.plot(data['Ri_b'], data['alt'], #label='Bulk Richardson Number', 
                         color=map_labels_to_colors['Ri_b'], linewidth=2, zorder=5) # plot Ri profile
             if pblh_Ri is not None: # plot PBLH line
                 ax6.axhline(pblh_Ri, color=map_labels_to_colors['pblh_Ri'], linestyle=':', linewidth=2, label=f'Ri PBLH: {pblh_Ri:.1f} m')
