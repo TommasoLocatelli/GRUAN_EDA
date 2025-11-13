@@ -17,17 +17,13 @@ VIOLINS_PLOT = False
 VERTICAL_PROFILE_PLOT = True
 INCLUDE_RI = False
 
-noise_functions = [gp.gaussian_noise, # no autocorrelation or crosscorrelation
-                   gp.smooth_noise] # some autocorrelation 
-noise_function = noise_functions[0] 
+noise_function = gp.gaussian_noise # no autocorrelation or crosscorrelation
 
 folder = r'gdp\icm16' # open folder with chosen GDP files
-folder = r'gdp\products_RS41-GDP-1_POT_2025'
-folder = r'gdp\products_RS41-GDP-1_LIN_2017'
 file_paths = [
     os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.nc')
 ]
-for file_path in file_paths[:]: 
+for file_path in file_paths[1:]: 
     file_index = file_paths.index(file_path)
     gdp = gp.read(file_path) # read GDP file
     upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3500, return_value=True) # find the PBLG upper bound for profile

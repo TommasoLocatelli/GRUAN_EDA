@@ -14,6 +14,8 @@ gdp/*
 !gdp/
 !gdp/.gitkeep
 temp/*
+!gdp/icm16/
+!gdp/icm16/**
 
 # Distribution / packaging
 .Python
