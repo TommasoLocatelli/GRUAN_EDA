@@ -23,7 +23,7 @@ folder = r'gdp\icm16' # open folder with chosen GDP files
 file_paths = [
     os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.nc')
 ]
-for file_path in file_paths[1:]: 
+for file_path in file_paths[:]: 
     file_index = file_paths.index(file_path)
     gdp = gp.read(file_path) # read GDP file
     upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3500, return_value=True) # find the PBLG upper bound for profile
@@ -91,7 +91,7 @@ for file_path in file_paths[1:]:
         if ADD_VIRTUAL_TEMPERATURE:
             ax1.plot(gdp.data['virtual_theta'], gdp.data['alt'], #label='True Virtual Potential Temperature', 
                     color=map_labels_to_colors['virtual_theta'], linewidth=2, zorder=5) # plot true virtual potential temperature
-        if pblh_pm is not None: # plot PBLH line
+        if pblh_pm is not None and False: # plot PBLH line
             ax1.axhline(pblh_pm, color=map_labels_to_colors['pblh_pm'], linestyle=':', linewidth=2, label=f'PM PBLH: {pblh_pm:.1f} m')
         if pblh_theta is not None: # plot PBLH line
             ax1.axhline(pblh_theta, color=map_labels_to_colors['pblh_theta'], linestyle=':', linewidth=2, label=f'THETA PBLH: {pblh_theta:.1f} m')
@@ -100,7 +100,7 @@ for file_path in file_paths[1:]:
         ax1.grid()
         # Add PBLH lines and uncertainty bands
         for label, (mean, std) in pblh_uncertainty.items():
-            if mean is not None and label in ['pm', 'theta']:
+            if mean is not None and label in ['theta']:#'pm', 'theta']:
                 ax1.axhline(mean, linestyle='--', label=f'{label.upper()} MC PBLH: {mean:.1f} m', color=map_labels_to_colors['pblh_'+label])
                 ax1.fill_betweenx(
                     y=np.array([mean - std, mean + std]),
@@ -110,7 +110,10 @@ for file_path in file_paths[1:]:
                     alpha=0.1,
                     label=f'{label.upper()} MC Uncertainty: {std:.1f} m'
                 )
-        plt.legend(loc='upper right')
+        handles, labels = plt.gca().get_legend_handles_labels()
+        sorted_pairs = sorted(zip(labels, handles), key=lambda pair: pair[0])
+        sorted_labels, sorted_handles = zip(*sorted_pairs)
+        plt.legend(sorted_handles, sorted_labels, loc='upper right')
 
         # RH plot
         ax2 = plt.subplot(1, 3+INCLUDE_RI, 2)
@@ -135,7 +138,10 @@ for file_path in file_paths[1:]:
                     alpha=0.1,
                     label=f'{label.upper()} MC Uncertainty: {std:.1f} m'
                 )
-        plt.legend(loc='upper right')
+        handles, labels = plt.gca().get_legend_handles_labels()
+        sorted_pairs = sorted(zip(labels, handles), key=lambda pair: pair[0])
+        sorted_labels, sorted_handles = zip(*sorted_pairs)
+        plt.legend(sorted_handles, sorted_labels, loc='upper right')
 
         # wind speed plot
         ax3 = plt.subplot(1, 3+INCLUDE_RI, 3)
@@ -144,14 +150,14 @@ for file_path in file_paths[1:]:
         ax3.plot(gdp.data['wspeed'], gdp.data['alt'], #label='True Wind Speed', 
                     color=map_labels_to_colors['wspeed'], linewidth=2, zorder=5) # plot true wind speed
         if pblh_Ri is not None: # plot PBLH line
-            ax3.axhline(pblh_Ri, color=map_labels_to_colors['pblh_Ri'], linestyle=':', linewidth=2, label=f'Ri PBLH: {pblh_Ri:.1f} m')
+            ax3.axhline(pblh_Ri, color=map_labels_to_colors['pblh_Ri'], linestyle=':', linewidth=2, label=f'RI PBLH: {pblh_Ri:.1f} m')
         ax3.set_xlabel('Wind Speed (m/s)')
         #ax3.set_ylabel('Altitude (m)')
         ax3.grid()
         # Add PBLH lines and uncertainty bands
         for label, (mean, std) in pblh_uncertainty.items():
             if mean is not None and label in ['Ri']:
-                ax3.axhline(mean, linestyle='--', label=f'{label} MC PBLH: {mean:.1f} m', color=map_labels_to_colors['pblh_'+label])
+                ax3.axhline(mean, linestyle='--', label=f'{label.upper()} MC PBLH: {mean:.1f} m', color=map_labels_to_colors['pblh_'+label])
                 ax3.fill_betweenx(
                     y=np.array([mean - std, mean + std]),
                     x1=ax3.get_xlim()[0],
@@ -160,7 +166,10 @@ for file_path in file_paths[1:]:
                     alpha=0.1,
                     label=f'{label.upper()} MC Uncertainty: {std:.1f} m'
                 )
-        plt.legend(loc='upper right')
+        handles, labels = plt.gca().get_legend_handles_labels()
+        sorted_pairs = sorted(zip(labels, handles), key=lambda pair: pair[0])
+        sorted_labels, sorted_handles = zip(*sorted_pairs)
+        plt.legend(sorted_handles, sorted_labels, loc='upper right')
 
         if False:
             # plot temp gradients
@@ -186,7 +195,10 @@ for file_path in file_paths[1:]:
                         alpha=0.1,
                         label=f'{label} MC Uncertainty: {std:.1f} m'
                     )
-            plt.legend(loc='upper right')
+            handles, labels = plt.gca().get_legend_handles_labels()
+            sorted_pairs = sorted(zip(labels, handles), key=lambda pair: pair[0])
+            sorted_labels, sorted_handles = zip(*sorted_pairs)
+            plt.legend(sorted_handles, sorted_labels, loc='upper right')
 
             #plot rh gradients
             ax5 = plt.subplot(2, 3, 5)
@@ -211,7 +223,10 @@ for file_path in file_paths[1:]:
                         alpha=0.1,
                         label=f'{label} MC Uncertainty: {std:.1f} m'
                     )
-            plt.legend(loc='upper right')
+            handles, labels = plt.gca().get_legend_handles_labels()
+            sorted_pairs = sorted(zip(labels, handles), key=lambda pair: pair[0])
+            sorted_labels, sorted_handles = zip(*sorted_pairs)
+            plt.legend(sorted_handles, sorted_labels, loc='upper right')
 
         if INCLUDE_RI:
             #plot Ri profile
@@ -221,14 +236,14 @@ for file_path in file_paths[1:]:
             ax6.plot(data['Ri_b'], data['alt'], #label='Bulk Richardson Number', 
                         color=map_labels_to_colors['Ri_b'], linewidth=2, zorder=5) # plot Ri profile
             if pblh_Ri is not None: # plot PBLH line
-                ax6.axhline(pblh_Ri, color=map_labels_to_colors['pblh_Ri'], linestyle=':', linewidth=2, label=f'Ri PBLH: {pblh_Ri:.1f} m')
+                ax6.axhline(pblh_Ri, color=map_labels_to_colors['pblh_Ri'], linestyle=':', linewidth=2, label=f'RI PBLH: {pblh_Ri:.1f} m')
             ax6.set_xlabel('Bulk Richardson Number')
             #ax6.set_ylabel('Altitude (m)')
             ax6.grid()
             # Add PBLH lines and uncertainty bands
             for label, (mean, std) in pblh_uncertainty.items():
                 if mean is not None and label in ['Ri']:
-                    ax6.axhline(mean, linestyle='--', label=f'{label} MC PBLH: {mean:.1f} m', color=map_labels_to_colors['pblh_'+label])
+                    ax6.axhline(mean, linestyle='--', label=f'{label.upper()} MC PBLH: {mean:.1f} m', color=map_labels_to_colors['pblh_'+label])
                     ax6.fill_betweenx(
                         y=np.array([mean - std, mean + std]),
                         x1=ax6.get_xlim()[0],
@@ -237,7 +252,10 @@ for file_path in file_paths[1:]:
                         alpha=0.1,
                         label=f'{label.upper()} MC Uncertainty: {std:.1f} m'
                     )
-            plt.legend(loc='upper right')
+            handles, labels = plt.gca().get_legend_handles_labels()
+            sorted_pairs = sorted(zip(labels, handles), key=lambda pair: pair[0])
+            sorted_labels, sorted_handles = zip(*sorted_pairs)
+            plt.legend(sorted_handles, sorted_labels, loc='upper right')
 
         plt.show()
 
