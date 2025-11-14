@@ -33,7 +33,7 @@ class PBLHMethods:
         # apply parcel method criterion
         data['pblh_pm'] = 0
         surface_virtual_potential_temperature = data['virtual_theta'].iloc[0]
-        index = data[(data['virtual_theta'] < surface_virtual_potential_temperature) & (data['alt'] <= self.altitude_bound)].index
+        index = data[(data['virtual_theta'] > surface_virtual_potential_temperature) & (data['alt'] <= self.altitude_bound)].index
         if not index.empty:
             pblh_index = index[0]
             data.at[pblh_index, 'pblh_pm'] = 1

@@ -1,5 +1,5 @@
 """
-Code used to generate poster for ICM16 conference 2024.
+Code used to generate poster for ICM16 conference 2025.
 Example script to analyze and visualize the uncertainty in PBLH estimation using a naive Monte Carlo approach.
 """
 import sys
@@ -12,10 +12,13 @@ from visual_config.color_map import map_labels_to_colors
 import seaborn as sns
 import pandas as pd
 
-ADD_VIRTUAL_TEMPERATURE = False
-VIOLINS_PLOT = False
-VERTICAL_PROFILE_PLOT = True
-INCLUDE_RI = False
+
+VERTICAL_PROFILE_PLOT = True # The main plot
+ADD_VIRTUAL_TEMPERATURE =  False # Add virtual temp in temp profile
+ADD_PM = True # add Parcel Method (new with respect to the poster)
+INCLUDE_RI = False # Include bulk richardon number profile
+
+VIOLINS_PLOT = False # Second plot, MC PLBH distribution over altitude
 
 noise_function = gp.gaussian_noise # no autocorrelation or crosscorrelation
 
@@ -91,7 +94,7 @@ for file_path in file_paths[:]:
         if ADD_VIRTUAL_TEMPERATURE:
             ax1.plot(gdp.data['virtual_theta'], gdp.data['alt'], #label='True Virtual Potential Temperature', 
                     color=map_labels_to_colors['virtual_theta'], linewidth=2, zorder=5) # plot true virtual potential temperature
-        if pblh_pm is not None and False: # plot PBLH line
+        if pblh_pm is not None and ADD_PM: # plot PBLH line
             ax1.axhline(pblh_pm, color=map_labels_to_colors['pblh_pm'], linestyle=':', linewidth=2, label=f'PM PBLH: {pblh_pm:.1f} m')
         if pblh_theta is not None: # plot PBLH line
             ax1.axhline(pblh_theta, color=map_labels_to_colors['pblh_theta'], linestyle=':', linewidth=2, label=f'THETA PBLH: {pblh_theta:.1f} m')
@@ -99,13 +102,18 @@ for file_path in file_paths[:]:
         ax1.set_ylabel('Altitude (m)')
         ax1.grid()
         # Add PBLH lines and uncertainty bands
+        x_bounds=[ax1.get_xlim()[0],ax1.get_xlim()[1]]
         for label, (mean, std) in pblh_uncertainty.items():
-            if mean is not None and label in ['theta']:#'pm', 'theta']:
+            if ADD_PM:
+                temperature_methods=['pm', 'theta']
+            else:
+                temperature_methods=['theta']
+            if mean is not None and label in temperature_methods:
                 ax1.axhline(mean, linestyle='--', label=f'{label.upper()} MC PBLH: {mean:.1f} m', color=map_labels_to_colors['pblh_'+label])
                 ax1.fill_betweenx(
                     y=np.array([mean - std, mean + std]),
-                    x1=ax1.get_xlim()[0],
-                    x2=ax1.get_xlim()[1],
+                    x1=x_bounds[0],
+                    x2=x_bounds[1],
                     color=map_labels_to_colors['pblh_'+label],
                     alpha=0.1,
                     label=f'{label.upper()} MC Uncertainty: {std:.1f} m'
