@@ -21,6 +21,7 @@ for file_path in file_paths[:5]:
     data=gp.parcel_method(gdp.data)
     data=gp.potential_temperature_gradient(gdp.data)
     data=gp.RH_gradient(gdp.data)
+    data=gp.specific_humidity_gradient(gdp.data)
     data=gp.bulk_richardson_number_method(gdp.data)
 
     plt.figure()
@@ -73,10 +74,11 @@ for file_path in file_paths[:5]:
     pblh_theta = gdp.data['alt'][data['pblh_theta'] == 1].iloc[0] if 'pblh_theta' in data and any(data['pblh_theta'] == 1) else None
     pblh_rh = gdp.data['alt'][data['pblh_rh'] == 1].iloc[0] if 'pblh_rh' in data and any(data['pblh_rh'] == 1) else None
     pblh_Ri = gdp.data['alt'][data['pblh_Ri'] == 1].iloc[0] if 'pblh_Ri' in data and any(data['pblh_Ri'] == 1) else None
+    pblh_q = gdp.data['alt'][data['pblh_q'] == 1].iloc[0] if 'pblh_q' in data and any(data['pblh_q'] == 1) else None
 
-    pblh_values = [pblh_pm, pblh_theta, pblh_rh, pblh_Ri]
-    pblh_labels = ['pblh_pm', 'pblh_theta', 'pblh_rh', 'pblh_Ri']
-
+    pblh_values = [pblh_pm, pblh_theta, pblh_rh, pblh_Ri, pblh_q]
+    pblh_labels = ['pblh_pm', 'pblh_theta', 'pblh_rh', 'pblh_Ri', 'pblh_q']
+    #pblh_labels = ['pblh_rh', 'pblh_q']
     for i in range(1, 7):
         plt.subplot(2, 3, i)
         for pblh, label in zip(pblh_values, pblh_labels):
@@ -93,4 +95,4 @@ for file_path in file_paths[:5]:
 
     plt.tight_layout()
     plt.show()
-    break  # Remove this break to process all files
+    #break  # Remove this break to process all files

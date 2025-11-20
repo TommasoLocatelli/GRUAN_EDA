@@ -1,5 +1,5 @@
 """
-Code used to generate poster for ICM16 conference 2025.
+Code used to generate poster plots for ICM16 conference 2025.
 Example script to analyze and visualize the uncertainty in PBLH estimation using a naive Monte Carlo approach.
 """
 import sys
@@ -12,13 +12,15 @@ from visual_config.color_map import map_labels_to_colors
 import seaborn as sns
 import pandas as pd
 
-
 VERTICAL_PROFILE_PLOT = True # The main plot
 ADD_VIRTUAL_TEMPERATURE =  False # Add virtual temp in temp profile
+ADD_SPECIFIC_HUMIDITY = True # Add specific humidity profile
 ADD_PM = True # add Parcel Method (new with respect to the poster)
+ADD_Q = True # add specific humidity method
 INCLUDE_RI = False # Include bulk richardon number profile
-
 VIOLINS_PLOT = False # Second plot, MC PLBH distribution over altitude
+
+uncertainty='_uc' # '_uc_ucor' or '_uc' choose uncertainty type
 
 noise_function = gp.gaussian_noise # no autocorrelation or crosscorrelation
 
@@ -26,7 +28,7 @@ folder = r'gdp\icm16' # open folder with chosen GDP files
 file_paths = [
     os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.nc')
 ]
-for file_path in file_paths[:]: 
+for file_path in file_paths[:]:
     file_index = file_paths.index(file_path)
     gdp = gp.read(file_path) # read GDP file
     upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3500, return_value=True) # find the PBLG upper bound for profile
@@ -39,27 +41,29 @@ for file_path in file_paths[:]:
     data = gp.parcel_method(gdp.data) # calculate PBLH using parcel method
     data = gp.potential_temperature_gradient(gdp.data, virtual=True) # calculate potential temperature gradient
     data = gp.RH_gradient(gdp.data) # calculate RH gradient
+    data = gp.specific_humidity_gradient(gdp.data) # calculate specific humidity gradient
     data = gp.bulk_richardson_number_method(gdp.data) # calculate PBLH using bulk Richardson number method
     # extract PBLH estimates
     pblh_pm = gdp.data['alt'][data['pblh_pm'] == 1].iloc[0] if 'pblh_pm' in data and any(data['pblh_pm'] == 1) else None
     pblh_theta = gdp.data['alt'][data['pblh_theta'] == 1].iloc[0] if 'pblh_theta' in data and any(data['pblh_theta'] == 1) else None 
     pblh_rh = gdp.data['alt'][data['pblh_rh'] == 1].iloc[0] if 'pblh_rh' in data and any(data['pblh_rh'] == 1) else None
+    pblh_q = gdp.data['alt'][data['pblh_q'] == 1].iloc[0] if 'pblh_q' in data and any(data['pblh_q'] == 1) else None
     pblh_Ri = gdp.data['alt'][data['pblh_Ri'] == 1].iloc[0] if 'pblh_Ri' in data and any(data['pblh_Ri'] == 1) else None
     
     # Monte Carlo simulation
     n_samples = 100
     noisy_profiles = []
-    pblh_samples = {'pm': [], 'theta': [], 'rh': [], 'Ri': []}
+    pblh_samples = {'pm': [], 'theta': [], 'rh': [], 'q': [], 'Ri': []}
     noise_coeff = 0.5 # divide by k=2 to regain the standard combined uncertainty
     for _ in range(n_samples):
         data_noisy = gdp.data.copy(deep=True) # make a copy of the data to add noise to
         data_noisy['alt'] = noise_function(data_noisy['alt'], data_noisy['alt_uc']*noise_coeff) # add noise to altitude
         data_noisy=data_noisy.sort_values('alt').reset_index(drop=True) # sort by altitude after noise addition
-        data_noisy['temp'] = noise_function(data_noisy['temp'], data_noisy['temp_uc']*noise_coeff) # add noise to temperature
-        data_noisy['rh'] = noise_function(data_noisy['rh'], data_noisy['rh_uc']*noise_coeff) # add noise to RH
+        data_noisy['temp'] = noise_function(data_noisy['temp'], data_noisy['temp'+uncertainty]*noise_coeff) # add noise to temperature
+        data_noisy['rh'] = noise_function(data_noisy['rh'], data_noisy['rh'+uncertainty]*noise_coeff) # add noise to RH
         data_noisy['press'] = noise_function(data_noisy['press'], data_noisy['press_uc']*noise_coeff) # add noise to pressure
-        data_noisy['wspeed'] = noise_function(data_noisy['wspeed'], data_noisy['wspeed_uc']*noise_coeff) # add noise to wind speed
-        data_noisy['wdir'] = noise_function(data_noisy['wdir'], data_noisy['wdir_uc']*noise_coeff) # add noise to wind direction
+        data_noisy['wspeed'] = noise_function(data_noisy['wspeed'], data_noisy['wspeed'+uncertainty]*noise_coeff) # add noise to wind speed
+        data_noisy['wdir'] = noise_function(data_noisy['wdir'], data_noisy['wdir'+uncertainty]*noise_coeff) # add noise to wind direction
         data_noisy = gp.parcel_method(data_noisy) # calculate PBLH using parcel method
         data_noisy = gp.potential_temperature_gradient(data_noisy, virtual=True) # calculate potential temperature gradient
         data_noisy = gp.RH_gradient(data_noisy) # calculate RH gradient
@@ -69,12 +73,14 @@ for file_path in file_paths[:]:
         pblh_samples['pm'].append(data_noisy['alt'][data_noisy['pblh_pm'] == 1].iloc[0] if 'pblh_pm' in data_noisy and any(data_noisy['pblh_pm'] == 1) else None)
         pblh_samples['theta'].append(data_noisy['alt'][data_noisy['pblh_theta'] == 1].iloc[0] if 'pblh_theta' in data_noisy and any(data_noisy['pblh_theta'] == 1) else None)
         pblh_samples['rh'].append(data_noisy['alt'][data_noisy['pblh_rh'] == 1].iloc[0] if 'pblh_rh' in data_noisy and any(data_noisy['pblh_rh'] == 1) else None)
+        pblh_samples['q'].append(data_noisy['alt'][data_noisy['pblh_q'] == 1].iloc[0] if 'pblh_q' in data_noisy and any(data_noisy['pblh_q'] == 1) else 0)
         pblh_samples['Ri'].append(data_noisy['alt'][data_noisy['pblh_Ri'] == 1].iloc[0] if 'pblh_Ri' in data_noisy and any(data_noisy['pblh_Ri'] == 1) else 0)
     # compute mean and stddev of PBLH estimates from Monte Carlo samples
     pblh_uncertainty = {
         'pm': (np.nanmean(pblh_samples['pm']), np.nanstd(pblh_samples['pm'])),
         'theta': (np.nanmean(pblh_samples['theta']), np.nanstd(pblh_samples['theta'])),
         'rh': (np.nanmean(pblh_samples['rh']), np.nanstd(pblh_samples['rh'])),
+        'q': (np.nanmean(pblh_samples['q']), np.nanstd(pblh_samples['q'])),
         'Ri': (np.nanmean(pblh_samples['Ri']), np.nanstd(pblh_samples['Ri'])),
     }
 
@@ -129,14 +135,26 @@ for file_path in file_paths[:]:
             ax2.plot(sample['rh'], sample['alt'], color='gray', alpha=0.2)
         ax2.plot(gdp.data['rh'], gdp.data['alt'], #label='True RH', 
                     color=map_labels_to_colors['rh'], linewidth=2, zorder=5) # plot true RH
+        if ADD_SPECIFIC_HUMIDITY:
+            ax2.plot(gdp.data['q']*10000, gdp.data['alt'], #label='True Specific Humidity', 
+                        color=map_labels_to_colors['q'], linewidth=2, zorder=5) # plot true specific humidity
+            for sample in noisy_profiles: # plot all noisy profiles
+                ax2.plot(sample['q']*10000, sample['alt'], color='gray', alpha=0.2)
         if pblh_rh is not None: # plot PBLH line
             ax2.axhline(pblh_rh, color=map_labels_to_colors['pblh_rh'], linestyle=':', linewidth=2, label=f'RH PBLH: {pblh_rh:.1f} m')
+        if ADD_Q:
+            if pblh_q is not None:
+                ax2.axhline(pblh_q, color=map_labels_to_colors['pblh_q'], linestyle=':', linewidth=2, label=f'Q PBLH: {pblh_q:.1f} m')
         ax2.set_xlabel('Relative Humidity (%)')
         #ax2.set_ylabel('Altitude (m)')
         ax2.grid()
         # Add PBLH lines and uncertainty bands
         for label, (mean, std) in pblh_uncertainty.items():
-            if mean is not None and label in ['rh']:
+            if ADD_Q:
+                humidity_methods=['rh', 'q']
+            else:
+                humidity_methods=['rh']
+            if mean is not None and label in humidity_methods:
                 ax2.axhline(mean, linestyle='--', label=f'{label.upper()} MC PBLH: {mean:.1f} m', color=map_labels_to_colors['pblh_'+label])
                 ax2.fill_betweenx(
                     y=np.array([mean - std, mean + std]),
