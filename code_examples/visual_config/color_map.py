@@ -11,7 +11,7 @@ map_labels_to_colors = {
     'virtual_theta_uc': "#EB5035",
     'rh': "#2C3993",
     'rh_uc': 'lightskyblue',
-    'q': "#124D5F",
+    'q': "#125F20",
     'es': "#1A785C",
     'es_uc': "#47EEBC",
     'e': "#A41A8F",
@@ -29,6 +29,6 @@ map_labels_to_colors = {
     'pblh_pm': "#C71251CF",
     'pblh_theta': "#C7A012",
     'pblh_rh': "#2C3993",
-    'pblh_q': "#125F4D",
+    'pblh_q': "#125F18",
     'pblh_Ri': "#7E3395",
 }

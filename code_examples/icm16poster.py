@@ -11,9 +11,10 @@ from gruanpy import gruanpy as gp
 from visual_config.color_map import map_labels_to_colors
 import seaborn as sns
 import pandas as pd
+from tqdm import tqdm
 
 VERTICAL_PROFILE_PLOT = True # The main plot
-ADD_VIRTUAL_TEMPERATURE =  False # Add virtual temp in temp profile
+ADD_VIRTUAL_TEMPERATURE =  True # Add virtual temp in temp profile
 ADD_SPECIFIC_HUMIDITY = True # Add specific humidity profile
 ADD_PM = True # add Parcel Method (new with respect to the poster)
 ADD_Q = True # add specific humidity method
@@ -51,11 +52,11 @@ for file_path in file_paths[:]:
     pblh_Ri = gdp.data['alt'][data['pblh_Ri'] == 1].iloc[0] if 'pblh_Ri' in data and any(data['pblh_Ri'] == 1) else None
     
     # Monte Carlo simulation
-    n_samples = 100
+    n_samples = 10
     noisy_profiles = []
     pblh_samples = {'pm': [], 'theta': [], 'rh': [], 'q': [], 'Ri': []}
     noise_coeff = 0.5 # divide by k=2 to regain the standard combined uncertainty
-    for _ in range(n_samples):
+    for _ in tqdm(range(n_samples)):
         data_noisy = gdp.data.copy(deep=True) # make a copy of the data to add noise to
         data_noisy['alt'] = noise_function(data_noisy['alt'], data_noisy['alt_uc']*noise_coeff) # add noise to altitude
         data_noisy=data_noisy.sort_values('alt').reset_index(drop=True) # sort by altitude after noise addition
@@ -77,11 +78,11 @@ for file_path in file_paths[:]:
         pblh_samples['Ri'].append(data_noisy['alt'][data_noisy['pblh_Ri'] == 1].iloc[0] if 'pblh_Ri' in data_noisy and any(data_noisy['pblh_Ri'] == 1) else 0)
     # compute mean and stddev of PBLH estimates from Monte Carlo samples
     pblh_uncertainty = {
-        'pm': (np.nanmean(pblh_samples['pm']), np.nanstd(pblh_samples['pm'])),
-        'theta': (np.nanmean(pblh_samples['theta']), np.nanstd(pblh_samples['theta'])),
-        'rh': (np.nanmean(pblh_samples['rh']), np.nanstd(pblh_samples['rh'])),
-        'q': (np.nanmean(pblh_samples['q']), np.nanstd(pblh_samples['q'])),
-        'Ri': (np.nanmean(pblh_samples['Ri']), np.nanstd(pblh_samples['Ri'])),
+        'pm': (np.nanmean(pblh_samples['pm']), np.nanstd(pblh_samples['pm'], ddof=1)),
+        'theta': (np.nanmean(pblh_samples['theta']), np.nanstd(pblh_samples['theta'],ddof=1)),
+        'rh': (np.nanmean(pblh_samples['rh']), np.nanstd(pblh_samples['rh'], ddof=1)),
+        'q': (np.nanmean(pblh_samples['q']), np.nanstd(pblh_samples['q'], ddof=1)),
+        'Ri': (np.nanmean(pblh_samples['Ri']), np.nanstd(pblh_samples['Ri'], ddof=1)),
     }
 
     if VERTICAL_PROFILE_PLOT:
@@ -356,4 +357,4 @@ for file_path in file_paths[:]:
                 plt.tight_layout()
                 plt.show()
 
-        #break # Remove this break to process all files
+    break # Remove this break to process all files
