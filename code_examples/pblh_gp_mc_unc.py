@@ -1,5 +1,5 @@
 """
-How M affects PBLH Uncertainty Estimates
+Use a gaussian process to add noise to profiles and perform Monte Carlo simulation to estimate PBLH uncertainties.
 """
 import sys
 import os
@@ -12,23 +12,13 @@ import seaborn as sns
 import pandas as pd
 from tqdm import tqdm
 
-VERTICAL_PROFILE_PLOT = True # The main plot
-ADD_VIRTUAL_TEMPERATURE =  True # Add virtual temp in temp profile
-ADD_SPECIFIC_HUMIDITY = True # Add specific humidity profile
-ADD_PM = True # add Parcel Method (new with respect to the poster)
-ADD_Q = True # add specific humidity method
-INCLUDE_RI = False # Include bulk richardon number profile
-M = 1000 # number of Monte Carlo samples
+M=10 # number of Monte Carlo samples
 
-uncertainty='_uc' # '_uc_ucor' or '_uc' choose uncertainty type
-
-noise_function = gp.gaussian_noise # no autocorrelation or crosscorrelation
-
-folder = r'gdp\products_RS41-GDP-1_LIN_2017' # open folder with chosen GDP files
+folder = r'gdp\icm16' # open folder with chosen GDP files
 file_paths = [
     os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.nc')
 ]
-for file_path in file_paths[:10]:
+for file_path in file_paths[:]:
     file_index = file_paths.index(file_path)
     gdp = gp.read(file_path) # read GDP file
     upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3500, return_value=True) # find the PBLG upper bound for profile
@@ -53,16 +43,20 @@ for file_path in file_paths[:10]:
     # Monte Carlo simulation
     noisy_profiles = []
     pblh_samples = {'pm': [], 'theta': [], 'rh': [], 'q': [], 'Ri': []}
-    noise_coeff = 0.5 # divide by k=2 to regain the standard combined uncertainty
     for _ in tqdm(range(M)):
         data_noisy = gdp.data.copy(deep=True) # make a copy of the data to add noise to
-        data_noisy['alt'] = noise_function(data_noisy['alt'], data_noisy['alt_uc']*noise_coeff) # add noise to altitude
-        data_noisy=data_noisy.sort_values('alt').reset_index(drop=True) # sort by altitude after noise addition
-        data_noisy['temp'] = noise_function(data_noisy['temp'], data_noisy['temp'+uncertainty]*noise_coeff) # add noise to temperature
-        data_noisy['rh'] = noise_function(data_noisy['rh'], data_noisy['rh'+uncertainty]*noise_coeff) # add noise to RH
-        data_noisy['press'] = noise_function(data_noisy['press'], data_noisy['press_uc']*noise_coeff) # add noise to pressure
-        data_noisy['wspeed'] = noise_function(data_noisy['wspeed'], data_noisy['wspeed'+uncertainty]*noise_coeff) # add noise to wind speed
-        data_noisy['wdir'] = noise_function(data_noisy['wdir'], data_noisy['wdir'+uncertainty]*noise_coeff) # add noise to wind direction
+        for var in ['temp']: ### Temperature is the only variable with Spatially Correlated uncertainty in RS-41 ###
+            Z=gp.uncertainty_matrix(data_noisy, variable_clmn=var) # create uncertainty matrix for variable
+            try:
+                # Cholesky decomposition method
+                noise = gp.gp_noise(data_noisy, Z, method='cholesky')  # generate correlated noise
+                data_noisy[var] += noise # add noise to variable
+            except Exception as e:
+                print(f"Cholesky decomposition failed for variable {var} due to {e}. Falling back to SVD method.")
+                # SVD method
+                noise = gp.gp_noise(data_noisy, Z, method='svd')  # generate correlated noise
+                data_noisy[var] += noise # add noise to variable
+
         data_noisy = gp.parcel_method(data_noisy) # calculate PBLH using parcel method
         data_noisy = gp.potential_temperature_gradient(data_noisy, virtual=True) # calculate potential temperature gradient
         data_noisy = gp.RH_gradient(data_noisy) # calculate RH gradient
@@ -74,33 +68,24 @@ for file_path in file_paths[:10]:
         pblh_samples['rh'].append(data_noisy['alt'][data_noisy['pblh_rh'] == 1].iloc[0] if 'pblh_rh' in data_noisy and any(data_noisy['pblh_rh'] == 1) else None)
         pblh_samples['q'].append(data_noisy['alt'][data_noisy['pblh_q'] == 1].iloc[0] if 'pblh_q' in data_noisy and any(data_noisy['pblh_q'] == 1) else 0)
         pblh_samples['Ri'].append(data_noisy['alt'][data_noisy['pblh_Ri'] == 1].iloc[0] if 'pblh_Ri' in data_noisy and any(data_noisy['pblh_Ri'] == 1) else 0)
+    # compute mean and stddev of PBLH estimates from Monte Carlo samples
+    pblh_uncertainty = {
+        'pm': (np.nanmean(pblh_samples['pm']), np.nanstd(pblh_samples['pm'], ddof=1)),
+        'theta': (np.nanmean(pblh_samples['theta']), np.nanstd(pblh_samples['theta'],ddof=1)),
+        'rh': (np.nanmean(pblh_samples['rh']), np.nanstd(pblh_samples['rh'], ddof=1)),
+        'q': (np.nanmean(pblh_samples['q']), np.nanstd(pblh_samples['q'], ddof=1)),
+        'Ri': (np.nanmean(pblh_samples['Ri']), np.nanstd(pblh_samples['Ri'], ddof=1)),
+    }
 
-    # compute mean and stddev of PBLH estimates with increasing M from Monte Carlo samples
-    increasing_M_results = []
-    for M in range(1, M+1):
-        pblh_unc = {
-            'pm': (np.nanmean(pblh_samples['pm'][:M]), np.nanstd(pblh_samples['pm'][:M], ddof=1)),
-            'theta': (np.nanmean(pblh_samples['theta'][:M]), np.nanstd(pblh_samples['theta'][:M],ddof=1)),
-            'rh': (np.nanmean(pblh_samples['rh'][:M]), np.nanstd(pblh_samples['rh'][:M], ddof=1)),
-            'q': (np.nanmean(pblh_samples['q'][:M]), np.nanstd(pblh_samples['q'][:M], ddof=1)),
-            'Ri': (np.nanmean(pblh_samples['Ri'][:M]), np.nanstd(pblh_samples['Ri'][:M], ddof=1)),
-        }
-        increasing_M_results.append(pblh_unc)
-    methods = ['pm', 'theta', 'rh', 'q', 'Ri']
-    plt.figure(figsize=(10, 12))
-
-    for method in methods:
-        plbhs=[result[method][0] for result in increasing_M_results]
-        uncs=[result[method][1] for result in increasing_M_results]
-        plt.plot(range(1, M+1), plbhs, label=f'{method} method mean PBLH', color=map_labels_to_colors['pblh_'+method])
-        plt.fill_between(range(1, M+1), np.array(plbhs) - np.array(uncs), np.array(plbhs) + np.array(uncs), alpha=0.3, 
-                        label=f'{method} method uncertainty', color=map_labels_to_colors['pblh_'+method])
-
-    plt.xlabel('Number of Monte Carlo Samples (M)')
-    plt.ylabel('PBLH Estimate and Uncertainty (m)')
-    plt.title(f'Convergence of PBLH Estimates and Uncertainties with Increasing M\nLocation: {where}, Time: {when}')
-    plt.legend()
-    plt.grid()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(gdp.data['temp'], gdp.data['alt'], 'k-', linewidth=2, label='Original')
+    for i, profile in enumerate(noisy_profiles):
+        ax.plot(profile['temp'], profile['alt'], alpha=0.8, linewidth=0.5)
+    ax.set_xlabel('Temperature (K)')
+    ax.set_ylabel('Altitude (m)')
+    ax.set_title(f'Temperature Profiles - {where} ({when})')
+    ax.legend(['Original'] + [f'MC Sample {i+1}' for i in range(min(5, len(noisy_profiles)))])
+    ax.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.show()
 
