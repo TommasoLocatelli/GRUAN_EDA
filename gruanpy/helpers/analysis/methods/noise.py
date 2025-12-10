@@ -39,7 +39,7 @@ class NoiseMethods:
         smoothed_noise = np.convolve(noise, np.ones(window_size)/window_size, mode='same')
         return data + smoothed_noise
     
-    def uncertainty_matrix(self, data, variable_clmn='temp', var_unc_uncor='_uc_ucor', var_unc_corr='_uc_scor', k=2):
+    def uncertainty_matrix(self, data, variable_clmn='temp', var_unc='_uc', var_unc_corr='_uc_scor', k=2):
         """
         Create a covariance/uncertainty matrix for a given variable
         considering both uncorrelated and correlated uncertainties.
@@ -48,13 +48,13 @@ class NoiseMethods:
         """
         n = len(data)
         cov_matrix = np.zeros((n, n))
-        uncorrelated_unc = data[variable_clmn+var_unc_uncor].values
+        unc = data[variable_clmn+var_unc].values
         correlated_unc = data[variable_clmn+var_unc_corr].values
 
         for i in range(n):
             for j in range(n):
                 if i == j:
-                    cov_matrix[i, j] = (uncorrelated_unc[i]/k) ** 2
+                    cov_matrix[i, j] = (unc[i]/k) ** 2
                 else:
                     cov_matrix[i, j] = (correlated_unc[i]/k) * (correlated_unc[j]/k)
         return cov_matrix    

@@ -32,7 +32,7 @@ file_paths = [
 for file_path in file_paths[:]:
     file_index = file_paths.index(file_path)
     gdp = gp.read(file_path) # read GDP file
-    upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3500, return_value=True) # find the PBLG upper bound for profile
+    upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3500, return_value=True) # find the PBLH upper bound for profile
     gdp.data = gdp.data[gdp.data['alt'] <= upper_bound]  # Limit to first 3.5 km
     where = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Site.Name']['Value'].values[0] # location
     when = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Measurement.StartTime']['Value'].values[0] # time

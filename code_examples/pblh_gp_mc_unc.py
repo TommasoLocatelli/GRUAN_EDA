@@ -86,6 +86,29 @@ for file_path in file_paths[:]:
     ax.set_title(f'Temperature Profiles - {where} ({when})')
     ax.legend(['Original'] + [f'MC Sample {i+1}' for i in range(min(5, len(noisy_profiles)))])
     ax.grid(True, alpha=0.3)
+
+    if pblh_pm is not None: # plot PBLH line
+        ax.axhline(pblh_pm, color=map_labels_to_colors['pblh_pm'], linestyle=':', linewidth=2, label=f'PM PBLH: {pblh_pm:.1f} m')
+
+    if pblh_theta is not None: # plot PBLH line
+        ax.axhline(pblh_theta, color=map_labels_to_colors['pblh_theta'], linestyle=':', linewidth=2, label=f'THETA PBLH: {pblh_theta:.1f} m')
+    ax.set_xlabel('Temperature (K)')
+    ax.set_ylabel('Altitude (m)')
+    ax.grid()
+    # Add PBLH lines and uncertainty bands
+    x_bounds=[ax.get_xlim()[0],ax.get_xlim()[1]]
+    for label, (mean, std) in pblh_uncertainty.items():
+        temperature_methods=['pm', 'theta']
+        if mean is not None and label in temperature_methods:
+            ax.axhline(mean, linestyle='--', label=f'{label.upper()} MC PBLH: {mean:.1f} m', color=map_labels_to_colors['pblh_'+label])
+            ax.fill_betweenx(
+                y=np.array([mean - std*10, mean + std*10]),
+                x1=x_bounds[0],
+                x2=x_bounds[1],
+                color=map_labels_to_colors['pblh_'+label],
+                alpha=0.1,
+                label=f'{label.upper()} MC Uncertainty: {std:.1f} m'
+            )
     plt.tight_layout()
     plt.show()
 
