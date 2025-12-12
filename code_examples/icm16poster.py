@@ -56,8 +56,11 @@ for file_path in file_paths[:]:
     noisy_profiles = []
     pblh_samples = {'pm': [], 'theta': [], 'rh': [], 'q': [], 'Ri': []}
     noise_coeff = 0.5 # divide by k=2 to regain the standard combined uncertainty
+    input_vars = ['alt', 'temp', 'rh', 'press', 'wspeed', 'wdir']
+    input_vars_uc = [var + '_uc' for var in input_vars]
+    input_vars += input_vars_uc
     for _ in tqdm(range(n_samples)):
-        data_noisy = gdp.data.copy(deep=True) # make a copy of the data to add noise to
+        data_noisy = gdp.data[input_vars].copy(deep=True) # make a copy of the data to add noise to
         data_noisy['alt'] = noise_function(data_noisy['alt'], data_noisy['alt_uc']*noise_coeff) # add noise to altitude
         data_noisy=data_noisy.sort_values('alt').reset_index(drop=True) # sort by altitude after noise addition
         data_noisy['temp'] = noise_function(data_noisy['temp'], data_noisy['temp'+uncertainty]*noise_coeff) # add noise to temperature
@@ -68,6 +71,7 @@ for file_path in file_paths[:]:
         data_noisy = gp.parcel_method(data_noisy) # calculate PBLH using parcel method
         data_noisy = gp.potential_temperature_gradient(data_noisy, virtual=True) # calculate potential temperature gradient
         data_noisy = gp.RH_gradient(data_noisy) # calculate RH gradient
+        data_noisy = gp.specific_humidity_gradient(data_noisy) # calculate specific humidity gradient
         data_noisy = gp.bulk_richardson_number_method(data_noisy) # calculate PBLH using bulk Richardson number method
         noisy_profiles.append(data_noisy) # store noisy profile
         # extract PBLH estimates from noisy profile
