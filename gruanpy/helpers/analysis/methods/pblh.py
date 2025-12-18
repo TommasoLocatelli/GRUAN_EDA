@@ -135,3 +135,15 @@ class PBLHMethods:
             pblh_index = index[0]
             data.at[pblh_index, 'pblh_Ri'] = 1
         return data
+
+    def apply_pblh_methods(self, data):
+        data = self.parcel_method(data) # calculate PBLH using parcel method
+        data = self.potential_temperature_gradient(data, virtual=True) # calculate potential temperature gradient
+        data = self.RH_gradient(data) # calculate RH gradient
+        data = self.specific_humidity_gradient(data) # calculate specific humidity gradient
+        data = self.bulk_richardson_number_method(data) # calculate gradient Richardson number
+        return data
+
+    def pblh_values(self, data):
+        pblh_methods = ['pblh_pm', 'pblh_theta', 'pblh_rh', 'pblh_q', 'pblh_Ri']
+        return tuple(data['alt'][data[method] == 1].iloc[0] if method in data.columns and (data[method] == 1).any() else None for method in pblh_methods)
