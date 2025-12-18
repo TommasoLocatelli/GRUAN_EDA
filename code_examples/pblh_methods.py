@@ -5,7 +5,7 @@ import sys
 import os
 import matplotlib.pyplot as plt
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from gruanpy import gruanpy as gp
+import gruanpy as gp
 from visual_config.color_map import map_labels_to_colors
 
 folder = r'gdp\products_RS41-GDP-1_POT_2025'

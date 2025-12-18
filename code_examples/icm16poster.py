@@ -7,7 +7,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from gruanpy import gruanpy as gp
+import gruanpy as gp
 from visual_config.color_map import map_labels_to_colors
 import seaborn as sns
 import pandas as pd

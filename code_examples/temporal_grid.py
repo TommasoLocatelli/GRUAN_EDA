@@ -5,7 +5,7 @@ Some bugs still need to be fixed.
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from gruanpy import gruanpy as gp
+import gruanpy as gp
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 

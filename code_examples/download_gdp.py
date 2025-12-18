@@ -6,7 +6,7 @@ It allows the user to navigate through directories and download files interactiv
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from gruanpy import gruanpy as gp
+import gruanpy as gp
 
 dir_path=r'pub/data/gruan/processing'
 
