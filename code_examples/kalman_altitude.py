@@ -12,7 +12,7 @@ file_paths = [
 ]
 for file_path in file_paths[:1]:
     gdp = gp.read(file_path) # read GDP file
-    data = gdp.data.head(50).sort_values('time')
+    data = gdp.data.head(500).sort_values('time')
     
     # Extract altitude and its uncertainty data
     start = data['time'].values[0]
@@ -23,27 +23,28 @@ for file_path in file_paths[:1]:
     altitude_unc = data['alt_uc'].values
     altitude_var = (altitude_unc * 0.5)**2  # variance of altitude measurements
     finite_diff_velocity = np.diff(altitude) / np.diff(seconds)
-    finite_diff_velocity_unc = np.sqrt(altitude_var[1:50] + altitude_var[:-1])
+    finite_diff_velocity_unc = np.sqrt(altitude_var[1:500] + altitude_var[:-1])
     # Plot observation and uncertainties
-    plt.figure(figsize=(10, 6))
-    plt.errorbar(seconds, altitude, yerr=altitude_unc, fmt='.', alpha=0.5, label='Observations', color='#1f77b4')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Altitude (m)')
-    plt.title('Altitude Observations with Uncertainties')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.show()
+    if False:
+        plt.figure(figsize=(10, 6))
+        plt.errorbar(seconds, altitude, yerr=altitude_unc, fmt='.', alpha=0.5, label='Observations', color='#1f77b4')
+        plt.xlabel('Time (s)')
+        plt.ylabel('Altitude (m)')
+        plt.title('Altitude Observations with Uncertainties')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.show()
 
     # Kalman filter - local level model
-    # State vector: [altitude, velocity]
+    # State vector: x_t =[altitude_t, velocity_t]
     # State transition: x_t = A * x_{t-1} + w_t
     # Measurement: y_t = H * x_t + v_t
     dt = 1.0  # time step (1 second)
     A = np.array([[1, dt], [0, 1]])  # state transition matrix
     H = np.array([[1, 0]])  # measurement matrix
-    Q = np.array([[1, 0], [0, 1]]) * 0.1  # process noise covariance
-    R = np.array([[1]]) * 0.5  # measurement noise covariance
-    R = np.mean(altitude_var* 0.5)  # measurement noise covariance (based on altitude uncertainty)
+    Q = np.array([[1, 0], [0, 1]]) * 1  # process noise covariance (How to estimate this? MLE?)
+    #R = np.array([[1]]) * 0.5  # measurement noise covariance
+    #R = np.mean(altitude_var* 0.5)  # measurement noise covariance (based on altitude uncertainty)
     R = [np.array([[var]])* 0.5 for var in altitude_var]  # measurement noise covariance (time-varying)
     x_est = np.array([[altitude[0]], [finite_diff_velocity[0]]])  # initial state estimate
     P_est = np.eye(2)  # initial estimate covariance
@@ -71,7 +72,7 @@ for file_path in file_paths[:1]:
     # Plot results
     plt.figure(figsize=(10, 6))
     plt.errorbar(seconds, altitude, yerr=altitude_unc, fmt='.', alpha=0.5, label='Observations', color='#1f77b4')
-    plt.errorbar(seconds, x_estimates[:, 0], yerr=np.sqrt(P_estimates[:, 0, 0]), label='Kalman Filter Estimate', color='#ff7f0e')
+    plt.errorbar(seconds, x_estimates[:, 0], yerr=np.sqrt(P_estimates[:, 0, 0]**0.5*0.5), label='Kalman Filter Estimate', color='#ff7f0e')
     plt.xlabel('Time (s)')
     plt.ylabel('Altitude (m)')
     plt.title('Kalman Filter Altitude Estimation')
@@ -82,7 +83,7 @@ for file_path in file_paths[:1]:
     # Plot velocity estimates
     plt.figure(figsize=(10, 6))
     plt.errorbar(seconds[1:], finite_diff_velocity, yerr=finite_diff_velocity_unc, label='Finite Difference Velocity', color='#1f77b4')
-    plt.errorbar(seconds, x_estimates[:, 1], yerr=np.sqrt(P_estimates[:, 1, 1]), label='Kalman Filter Velocity Estimate', color='#ff7f0e')
+    plt.errorbar(seconds, x_estimates[:, 1], yerr=np.sqrt(P_estimates[:, 1, 1]**0.5*0.5), label='Kalman Filter Velocity Estimate', color='#ff7f0e')
     plt.xlabel('Time (s)')
     plt.ylabel('Velocity (m/s)')
     plt.title('Kalman Filter Velocity Estimation')
@@ -102,7 +103,7 @@ for file_path in file_paths[:1]:
     # Plot smoothed estimates
     plt.figure(figsize=(10, 6))
     plt.errorbar(seconds, altitude, yerr=altitude_unc, fmt='.', alpha=0.5, label='Observations', color='#1f77b4')
-    plt.errorbar(seconds, x_smooth[:, 0], yerr=np.sqrt(P_smooth[:, 0, 0]), label='Kalman Smoother Estimate', color='#2ca02c')
+    plt.errorbar(seconds, x_smooth[:, 0], yerr=np.sqrt(P_smooth[:, 0, 0]**0.5*0.5), label='Kalman Smoother Estimate', color='#2ca02c')
     plt.xlabel('Time (s)')
     plt.ylabel('Altitude (m)')
     plt.title('Kalman Smoother Altitude Estimation')
@@ -112,7 +113,7 @@ for file_path in file_paths[:1]:
 
     plt.figure(figsize=(10, 6))
     plt.errorbar(seconds[1:], finite_diff_velocity, yerr=finite_diff_velocity_unc, label='Finite Difference Velocity', color='#1f77b4')
-    plt.errorbar(seconds, x_smooth[:, 1], yerr=np.sqrt(P_smooth[:, 1, 1]), label='Kalman Smoother Velocity Estimate', color='#2ca02c')
+    plt.errorbar(seconds, x_smooth[:, 1], yerr=np.sqrt(P_smooth[:, 1, 1]**0.5*0.5), label='Kalman Smoother Velocity Estimate', color='#2ca02c')
     plt.xlabel('Time (s)')
     plt.ylabel('Velocity (m/s)')
     plt.title('Kalman Smoother Velocity Estimation')
@@ -123,8 +124,8 @@ for file_path in file_paths[:1]:
     # compare estimates
     plt.figure(figsize=(10, 6))
     plt.errorbar(seconds, altitude, yerr=altitude_unc, fmt='.', alpha=0.5, label='Observations', color='#1f77b4')
-    plt.errorbar(seconds, x_estimates[:, 0], yerr=np.sqrt(P_estimates[:, 0, 0]), label='Kalman Filter Estimate', color='#ff7f0e')
-    plt.errorbar(seconds, x_smooth[:, 0], yerr=np.sqrt(P_smooth[:, 0, 0]), label='Kalman Smoother Estimate', color='#2ca02c')
+    plt.errorbar(seconds, x_estimates[:, 0], yerr=np.sqrt(P_estimates[:, 0, 0]**0.5*0.5), label='Kalman Filter Estimate', color='#ff7f0e')
+    plt.errorbar(seconds, x_smooth[:, 0], yerr=np.sqrt(P_smooth[:, 0, 0]**0.5*0.5), label='Kalman Smoother Estimate', color='#2ca02c')
     plt.xlabel('Time (s)')
     plt.ylabel('Altitude (m)')
     plt.title('Kalman Filter vs Smoother Altitude Estimation')
@@ -134,8 +135,8 @@ for file_path in file_paths[:1]:
 
     plt.figure(figsize=(10, 6))
     plt.errorbar(seconds[1:], finite_diff_velocity, yerr=finite_diff_velocity_unc, label='Finite Difference Velocity', color='#1f77b4')
-    plt.errorbar(seconds, x_estimates[:, 1], yerr=np.sqrt(P_estimates[:, 1, 1]), label='Kalman Filter Velocity Estimate', color='#ff7f0e')
-    plt.errorbar(seconds, x_smooth[:, 1], yerr=np.sqrt(P_smooth[:, 1, 1]), label='Kalman Smoother Velocity Estimate', color='#2ca02c')
+    plt.errorbar(seconds, x_estimates[:, 1], yerr=np.sqrt(P_estimates[:, 1, 1]**0.5*0.5), label='Kalman Filter Velocity Estimate', color='#ff7f0e')
+    plt.errorbar(seconds, x_smooth[:, 1], yerr=np.sqrt(P_smooth[:, 1, 1]**0.5*0.5), label='Kalman Smoother Velocity Estimate', color='#2ca02c')
     plt.xlabel('Time (s)')
     plt.ylabel('Velocity (m/s)')
     plt.title('Kalman Filter vs Smoother Velocity Estimation')
