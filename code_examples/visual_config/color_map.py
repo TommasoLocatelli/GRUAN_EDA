@@ -1,6 +1,8 @@
 # Trying to maintain consistency across plots in various code_example scripts
 
 map_labels_to_colors = {
+    'alt': "#1A6478",
+    'alt_uc': "#47B5D3",
     'temp': "#781E1A",
     'temp_uc': 'lightcoral',
     'virtual_temp': 'gold',
