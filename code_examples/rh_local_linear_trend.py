@@ -1,0 +1,332 @@
+import sys
+import os
+import matplotlib.pyplot as plt
+import numpy as np
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import gruanpy as gp
+import pandas as pd
+from code_examples.visual_config.color_map import map_labels_to_colors
+from matplotlib.patches import Ellipse
+import statsmodels.api as sm
+
+gdp=gp.read(r'gdp\icm16\LIN-RS-01_2_RS41-GDP_001_20170303T120000_1-004-002.nc')
+upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3000, return_value=True) # find the PBLH upper bound for profile
+data = gdp.data[gdp.data['alt'] <= upper_bound]  # Limit to first 3.5 km
+where = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Site.Name']['Value'].values[0] # location
+when = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Measurement.StartTime']['Value'].values[0] # time
+when=when[0:10]+' '+when[11:19]
+
+start = data['time'].values[0]
+time = data['time'].values
+seconds = (time - start) / np.timedelta64(1, 's')
+seconds = seconds.astype(float)
+
+altitude = data['alt'].values
+altitude_unc = data['alt_uc'].values
+altitude_var = (altitude_unc * 0.5)**2  # variance of altitude measurements
+
+rh = data['rh'].values
+rh_unc = data['rh_uc'].values
+rh_var = (rh_unc * 0.5)**2  # variance of rh measurements
+
+# tune the measurement variance to see more effect of the model
+coef = 1
+if coef != 1:
+    altitude_var *= coef
+    altitude_unc = np.sqrt(altitude_var) * 2
+    rh_var *= coef
+    rh_unc = np.sqrt(rh_var) * 2
+
+class LocalLinearTrend(sm.tsa.statespace.MLEModel):
+    def __init__(self, endog, alt_measurement_var, rh_measurement_var):
+        # Model order
+        k_states = 4 # The dimension of the unobserved state process
+        k_posdef = 4 # The dimension of a guaranteed positive definite covariance matrix describing the shocks in the transition equation.
+
+        # Store fixed measurement variance sequence if provided
+        self.alt_measurement_var = np.asarray(alt_measurement_var)
+        self.rh_measurement_var = np.asarray(rh_measurement_var)
+
+        # Initialize the statespace
+        super(LocalLinearTrend, self).__init__(
+            endog, # The observed time-series process
+            k_states=k_states,
+            k_posdef=k_posdef,
+            initialization="approximate_diffuse",
+            loglikelihood_burn=k_states,
+        )
+
+        # Initialize the matrices
+        self.ssm["design"] = np.array([[1, 0, 0, 0], [0, 0, 1, 0]]) # The design matrix maps the state space to the observed data
+        self.ssm["transition"] = np.array([[1, 1, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]]) # The transition matrix defines how the state evolves over time
+        self.ssm["selection"] = np.eye(k_states) # The selection matrix maps the shocks to the state space
+
+        # Use time-varying observation covariance 
+        self.ssm["obs_cov"] = np.zeros((2, 2, self.nobs))
+
+        # Cache some indices
+        self._state_cov_idx = ("state_cov",) + np.diag_indices(k_posdef)
+
+    @property
+    def param_names(self):
+        return ["alt_sigma2.level", "alt_sigma2.trend", "rh_sigma2.level", "rh_sigma2.trend"]
+
+    @property
+    def start_params(self):
+        return [np.std(self.endog)] * 4
+
+    def transform_params(self, unconstrained):
+        return unconstrained**2
+
+    def untransform_params(self, constrained):
+        return constrained**0.5
+
+    def update(self, params, *args, **kwargs):
+        params = super(LocalLinearTrend, self).update(params, *args, **kwargs)
+
+        self.ssm["obs_cov", 0, 0, :] = self.alt_measurement_var
+        self.ssm["obs_cov", 1, 1, :] = self.rh_measurement_var # check
+        state_params = params
+
+        # State covariance
+        self.ssm[self._state_cov_idx] = state_params
+
+
+# Setup the model
+mod = LocalLinearTrend(endog=np.column_stack([altitude, rh]), alt_measurement_var=altitude_var, rh_measurement_var=rh_var)
+
+# Fit it using MLE with a fixed sequence of measurement variances
+res = mod.fit(method='lbfgs',
+            maxiter=50,
+            full_output=1,
+            disp=5)
+print(res.summary())
+
+# Smoothed values
+smoothed_altitude = res.smoothed_state[0]
+smoothed_alt_vel = res.smoothed_state[1]
+smoothed_rh = res.smoothed_state[2]
+smoothed_rh_vel = res.smoothed_state[3]
+smoother_altitude_unc = np.sqrt(res.smoothed_state_cov[0, 0, :])*2
+smoother_alt_vel_unc = np.sqrt(res.smoothed_state_cov[1, 1, :])*2
+smoother_rh_unc = np.sqrt(res.smoothed_state_cov[2, 2, :])*2
+smoother_rh_vel_unc = np.sqrt(res.smoothed_state_cov[3, 3, :])*2
+smoothed_grad_rh = smoothed_rh_vel / smoothed_alt_vel
+smoothed_grad_rh_unc = np.sqrt((smoother_rh_vel_unc / smoothed_alt_vel)**2 + (smoothed_rh_vel * smoother_alt_vel_unc / smoothed_alt_vel**2)**2)*2 # Propagated uncertainty
+
+# Compute finite difference velocity and uncertainty
+diff_alt = np.diff(altitude)
+diff_time = np.diff(seconds)
+diff_rh = np.diff(rh)
+diff_ratio_alt = diff_alt / diff_time
+diff_ratio_rh = diff_rh / diff_time
+diff_grad_rh = diff_rh / diff_alt
+diff_ratio_alt_unc = np.sqrt(altitude_var[1:] + (altitude_var[:-1]))*2 / diff_time # Propagated uncertainty
+diff_ratio_rh_unc = np.sqrt(rh_var[1:] + (rh_var[:-1]))*2 / diff_time # Propagated uncertainty
+diff_grad_rh_unc = np.sqrt(rh_var[1:] + (rh_var[:-1]) + (diff_rh/diff_alt)**2 * (altitude_var[1:] + altitude_var[:-1]))*2 / diff_alt # Propagated uncertainty
+
+# Create simulation smoother objects
+sim = mod.simulation_smoother() # default method is KFS; (method='cfa')  # can specify CFA method
+
+nsimulations = 50
+simulations = []
+for i in range(nsimulations):
+    sim.simulate()
+    sim_alt=sim.simulated_state[0]
+    sim_alt_vel=sim.simulated_state[1]
+    sim_rh=sim.simulated_state[2]
+    sim_rh_vel=sim.simulated_state[3]
+    sim_grad_rh = sim_rh_vel / sim_alt_vel
+    simulations.append((sim_alt, sim_alt_vel, sim_rh, sim_rh_vel, sim_grad_rh))
+
+pblh_rh = altitude[np.argmin(diff_grad_rh)]
+sm_pblh_rh = smoothed_altitude[np.argmin(smoothed_grad_rh)]
+simulations_pblh_rh = [sim_alt[np.argmin(sim_grad_rh)] for sim_alt, sim_alt_vel, sim_rh, sim_rh_vel, sim_grad_rh in simulations]
+simulations_pblh_rh_avg = np.mean(simulations_pblh_rh)
+simulations_pblh_rh_unc = np.std(simulations_pblh_rh)*2
+print(f'PBLH (RH Gradient): {pblh_rh:.1f} m')
+print(f'PBLH (Smoothed RH Gradient): {sm_pblh_rh:.1f} m')
+print(f'PBLH (Simulated RH Gradient): {simulations_pblh_rh_avg:.1f} m ± {simulations_pblh_rh_unc:.1f} m')
+
+# Plots: 
+# - original and smoothed single variables
+# - original and smoothed vertical profile with pblh estimates
+# - pblh histogram from simulations with original and smoothed pblh estimates overlaid
+
+plt.figure(figsize=(10, 12))
+plt.suptitle(f'RS41-GDP: {where}, {when}'#, {file_index}'
+            , fontsize=20)
+
+plt.subplot(2, 3, 1)
+plt.scatter(seconds, altitude, marker='o', s=4, linestyle='-', label='Observed altitude', color=map_labels_to_colors['alt'])
+plt.fill_between(
+    seconds,
+    altitude - altitude_unc,
+    altitude + altitude_unc,
+    color=map_labels_to_colors['alt_uc'],
+    alpha=0.3,
+    label='Altitude uncertainty',
+)
+plt.scatter(seconds, smoothed_altitude, marker='o', s=4, label='Smoothed altitude', color=map_labels_to_colors['temp'])
+plt.fill_between(
+    seconds,
+    smoothed_altitude - smoother_altitude_unc,
+    smoothed_altitude + smoother_altitude_unc,
+    color=map_labels_to_colors['temp_uc'],
+    alpha=0.3,
+    label='Smoothed altitude uncertainty',
+)
+for i in range(nsimulations):
+    plt.plot(seconds, simulations[i][0], color='gray', alpha=0.2, label='Simulated altitude' if i == 0 else None)
+plt.xlabel('Seconds since start')
+plt.ylabel('Altitude (m)')
+plt.title('Observed vs Smoothed Altitude')
+plt.legend()
+plt.grid(True)
+
+plt.subplot(2, 3, 2)
+plt.scatter(seconds, rh, marker='o', s=4, linestyle='-', label='Observed RH', color=map_labels_to_colors['rh'])
+plt.fill_between(
+    seconds,
+    rh - rh_unc,
+    rh + rh_unc,
+    color=map_labels_to_colors['rh_uc'],
+    alpha=0.3,
+    label='RH uncertainty',
+)
+plt.scatter(seconds, smoothed_rh, marker='o', s=4, label='Smoothed RH', color=map_labels_to_colors['wspeed'])
+plt.fill_between(
+    seconds,
+    smoothed_rh - smoother_rh_unc,
+    smoothed_rh + smoother_rh_unc,
+    color=map_labels_to_colors['wspeed_uc'],
+    alpha=0.3,
+    label='Smoothed RH uncertainty',
+)
+for i in range(nsimulations):
+    plt.plot(seconds, simulations[i][2], color='gray', alpha=0.2, label='Simulated RH' if i == 0 else None)
+plt.xlabel('Seconds since start')
+plt.ylabel('RH (%)')
+plt.title('Observed RH')
+plt.legend()
+plt.grid(True)
+
+plt.subplot(2, 3, 3)
+
+plt.scatter(seconds[:-1], diff_grad_rh, marker='o', s=4, label='Finite difference RH gradient', color=map_labels_to_colors['rh'])
+plt.fill_between(
+    seconds[:-1],
+    diff_grad_rh - diff_grad_rh_unc,
+    diff_grad_rh + diff_grad_rh_unc,
+    color=map_labels_to_colors['rh_uc'],
+    alpha=0.3,
+    label='Finite difference RH gradient uncertainty',
+)
+plt.scatter(seconds, smoothed_grad_rh, marker='o', s=4, label='Smoothed RH gradient', color=map_labels_to_colors['wspeed'])
+plt.fill_between(
+    seconds,
+    smoothed_grad_rh - smoothed_grad_rh_unc,
+    smoothed_grad_rh + smoothed_grad_rh_unc,
+    color=map_labels_to_colors['wspeed_uc'],
+    alpha=0.3,
+    label='Smoothed RH gradient uncertainty',
+)
+for i in range(nsimulations):
+    plt.plot(seconds, simulations[i][4], color='gray', alpha=0.2, label='Simulated RH gradient' if i == 0 else None)
+plt.xlabel('Seconds since start')
+plt.ylabel('RH Gradient (%/m)')
+plt.title('Finite Difference vs Smoothed RH Gradient')
+plt.legend()
+plt.grid(True)
+
+plt.subplot(2, 3, 4)
+plt.scatter(seconds[:-1], diff_ratio_alt, marker='o', s=4, label='Finite difference altitude velocity', color=map_labels_to_colors['alt'])
+plt.fill_between(
+    seconds[:-1],
+    diff_ratio_alt - diff_ratio_alt_unc,
+    diff_ratio_alt + diff_ratio_alt_unc,
+    color=map_labels_to_colors['alt_uc'],
+    alpha=0.3,
+    label='Finite difference altitude velocity uncertainty',
+)
+plt.scatter(seconds, smoothed_alt_vel, marker='o', s=4, label='Smoothed altitude velocity', color=map_labels_to_colors['temp'])
+plt.fill_between(
+    seconds,
+    smoothed_alt_vel - smoother_alt_vel_unc,
+    smoothed_alt_vel + smoother_alt_vel_unc,
+    color=map_labels_to_colors['temp_uc'],
+    alpha=0.3,
+    label='Smoothed altitude velocity uncertainty',
+)
+for i in range(nsimulations):
+    plt.plot(seconds, simulations[i][1], color='gray', alpha=0.2, label='Simulated altitude velocity' if i == 0 else None)
+plt.xlabel('Seconds since start')
+plt.ylabel('Altitude Velocity (m/s)')
+plt.title('Finite Difference vs Smoothed Altitude Velocity')
+plt.legend()
+plt.grid(True)
+
+plt.subplot(2, 3, 5)
+plt.scatter(seconds[:-1], diff_ratio_rh, marker='o', s=4, label='Finite difference RH velocity', color=map_labels_to_colors['rh'])
+plt.fill_between(
+    seconds[:-1],
+    diff_ratio_rh - diff_ratio_rh_unc,
+    diff_ratio_rh + diff_ratio_rh_unc,
+    color=map_labels_to_colors['rh_uc'],
+    alpha=0.3,
+    label='Finite difference RH velocity uncertainty',
+)
+plt.scatter(seconds, smoothed_rh_vel, marker='o', s=4, label='Smoothed RH velocity', color=map_labels_to_colors['wspeed'])
+plt.fill_between(
+    seconds,
+    smoothed_rh_vel - smoother_rh_vel_unc,
+    smoothed_rh_vel + smoother_rh_vel_unc,
+    color=map_labels_to_colors['wspeed_uc'],
+    alpha=0.3,
+    label='Smoothed RH velocity uncertainty',
+)
+for i in range(nsimulations):
+    plt.plot(seconds, simulations[i][3], color='gray', alpha=0.2, label='Simulated RH velocity' if i == 0 else None)
+plt.xlabel('Seconds since start')
+plt.ylabel('RH Velocity (%/s)')
+plt.title('Finite Difference vs Smoothed RH Velocity')
+plt.legend()
+plt.grid(True)
+
+plt.subplot(2, 3, 6)
+plt.plot(rh, altitude, label='Observed Vertical Profile', color=map_labels_to_colors['rh'])
+plt.plot(smoothed_rh, smoothed_altitude, label='Smoothed Vertical Profile', color=map_labels_to_colors['wspeed'])
+if pblh_rh is not None:
+    plt.axhline(pblh_rh, color=map_labels_to_colors['rh'], linestyle='--', label=f'PBLH (RH Gradient): {pblh_rh:.1f} m')
+if sm_pblh_rh is not None:
+    plt.axhline(sm_pblh_rh, color=map_labels_to_colors['wspeed'], linestyle='--', label=f'PBLH (Smoothed RH Gradient): {sm_pblh_rh:.1f} m')
+if simulations_pblh_rh_avg is not None:
+    plt.axhline(simulations_pblh_rh_avg, color='gray', linestyle='--', label=f'PBLH (Simulated RH Gradient): {simulations_pblh_rh_avg:.1f} m ± {simulations_pblh_rh_unc:.1f} m')
+if simulations_pblh_rh_unc is not None:
+    plt.fill_betweenx(
+        y=[simulations_pblh_rh_avg - simulations_pblh_rh_unc, simulations_pblh_rh_avg + simulations_pblh_rh_unc],
+        x1=0,
+        x2=max(rh),
+        color='gray',
+        alpha=0.3,
+        label='Simulated PBLH uncertainty',
+    )
+for i in range(nsimulations):
+    plt.plot(simulations[i][2], simulations[i][0], color='gray', alpha=0.2, label='Simulated Vertical Profile' if i == 0 else None)
+plt.xlabel('Relative Humidity (%)')
+plt.ylabel('Altitude (m)')
+plt.title('Vertical Profile with PBLH Estimates')
+#plt.legend()
+plt.show()
+
+plt.figure(figsize=(10, 6))
+plt.hist(simulations_pblh_rh, bins=10, alpha=0.7, color='steelblue', edgecolor='black', label='Simulated PBLH')
+plt.axvline(pblh_rh, color=map_labels_to_colors['rh'], linestyle='--', linewidth=2, label=f'PBLH (RH Gradient): {pblh_rh:.1f} m')
+plt.axvline(sm_pblh_rh, color=map_labels_to_colors['wspeed'], linestyle='--', linewidth=2, label=f'PBLH (Smoothed RH Gradient): {sm_pblh_rh:.1f} m')
+plt.axvline(simulations_pblh_rh_avg, color='gray', linestyle='-', linewidth=2, label=f'PBLH (Simulated Mean): {simulations_pblh_rh_avg:.1f} m ± {simulations_pblh_rh_unc:.1f} m')
+plt.xlabel('PBLH (m)')
+plt.ylabel('Count')
+plt.title('PBLH Simulations Histogram')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
