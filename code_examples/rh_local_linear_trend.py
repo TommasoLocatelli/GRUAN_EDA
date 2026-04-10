@@ -128,7 +128,7 @@ diff_grad_rh_unc = np.sqrt(rh_var[1:] + (rh_var[:-1]) + (diff_rh/diff_alt)**2 * 
 # Create simulation smoother objects
 sim = mod.simulation_smoother() # default method is KFS; (method='cfa')  # can specify CFA method
 
-nsimulations = 50
+nsimulations = 100
 simulations = []
 for i in range(nsimulations):
     sim.simulate()
@@ -148,16 +148,15 @@ print(f'PBLH (RH Gradient): {pblh_rh:.1f} m')
 print(f'PBLH (Smoothed RH Gradient): {sm_pblh_rh:.1f} m')
 print(f'PBLH (Simulated RH Gradient): {simulations_pblh_rh_avg:.1f} m ± {simulations_pblh_rh_unc:.1f} m')
 
-# Plots: 
-# - original and smoothed single variables
-# - original and smoothed vertical profile with pblh estimates
-# - pblh histogram from simulations with original and smoothed pblh estimates overlaid
+# Lots of Plots
+ 
+# PLOT 1
 
 plt.figure(figsize=(10, 12))
 plt.suptitle(f'RS41-GDP: {where}, {when}'#, {file_index}'
             , fontsize=20)
 
-plt.subplot(2, 3, 1)
+plt.subplot(1, 2, 1)
 plt.scatter(seconds, altitude, marker='o', s=4, linestyle='-', label='Observed altitude', color=map_labels_to_colors['alt'])
 plt.fill_between(
     seconds,
@@ -184,7 +183,44 @@ plt.title('Observed vs Smoothed Altitude')
 plt.legend()
 plt.grid(True)
 
-plt.subplot(2, 3, 2)
+plt.subplot(1, 2, 2)
+
+plt.scatter(seconds[:-1], diff_ratio_alt, marker='o', s=4, label='Finite difference altitude velocity', color=map_labels_to_colors['alt'])
+plt.fill_between(
+    seconds[:-1],
+    diff_ratio_alt - diff_ratio_alt_unc,
+    diff_ratio_alt + diff_ratio_alt_unc,
+    color=map_labels_to_colors['alt_uc'],
+    alpha=0.3,
+    label='Finite difference altitude velocity uncertainty',
+)
+plt.scatter(seconds, smoothed_alt_vel, marker='o', s=4, label='Smoothed altitude velocity', color=map_labels_to_colors['temp'])
+plt.fill_between(
+    seconds,
+    smoothed_alt_vel - smoother_alt_vel_unc,
+    smoothed_alt_vel + smoother_alt_vel_unc,
+    color=map_labels_to_colors['temp_uc'],
+    alpha=0.3,
+    label='Smoothed altitude velocity uncertainty',
+)
+for i in range(nsimulations):
+    plt.plot(seconds, simulations[i][1], color='gray', alpha=0.2, label='Simulated altitude velocity' if i == 0 else None)
+plt.xlabel('Seconds since start')
+plt.ylabel('Altitude Velocity (m/s)')
+plt.title('Finite Difference vs Smoothed Altitude Velocity')
+plt.legend()
+plt.grid(True)
+
+plt.show()
+
+# PLOT 2
+
+plt.figure(figsize=(10, 12))
+plt.suptitle(f'RS41-GDP: {where}, {when}'#, {file_index}'
+            , fontsize=20)
+
+plt.subplot(1, 2, 1)
+
 plt.scatter(seconds, rh, marker='o', s=4, linestyle='-', label='Observed RH', color=map_labels_to_colors['rh'])
 plt.fill_between(
     seconds,
@@ -211,7 +247,65 @@ plt.title('Observed RH')
 plt.legend()
 plt.grid(True)
 
-plt.subplot(2, 3, 3)
+plt.subplot(1, 2, 2)
+
+
+plt.scatter(seconds[:-1], diff_ratio_rh, marker='o', s=4, label='Finite difference RH velocity', color=map_labels_to_colors['rh'])
+plt.fill_between(
+    seconds[:-1],
+    diff_ratio_rh - diff_ratio_rh_unc,
+    diff_ratio_rh + diff_ratio_rh_unc,
+    color=map_labels_to_colors['rh_uc'],
+    alpha=0.3,
+    label='Finite difference RH velocity uncertainty',
+)
+plt.scatter(seconds, smoothed_rh_vel, marker='o', s=4, label='Smoothed RH velocity', color=map_labels_to_colors['wspeed'])
+plt.fill_between(
+    seconds,
+    smoothed_rh_vel - smoother_rh_vel_unc,
+    smoothed_rh_vel + smoother_rh_vel_unc,
+    color=map_labels_to_colors['wspeed_uc'],
+    alpha=0.3,
+    label='Smoothed RH velocity uncertainty',
+)
+for i in range(nsimulations):
+    plt.plot(seconds, simulations[i][3], color='gray', alpha=0.2, label='Simulated RH velocity' if i == 0 else None)
+plt.xlabel('Seconds since start')
+plt.ylabel('RH Velocity (%/s)')
+plt.title('Finite Difference vs Smoothed RH Velocity')
+plt.legend()
+plt.grid(True)
+
+
+plt.show()
+
+# PLOT 3
+
+plt.figure(figsize=(10, 12))
+plt.suptitle(f'RS41-GDP: {where}, {when}'#, {file_index}'
+            , fontsize=20)
+
+plt.subplot(1, 2, 1)
+
+plt.plot(rh, altitude, label='Observed Vertical Profile', color=map_labels_to_colors['rh'])
+plt.plot(smoothed_rh, smoothed_altitude, label='Smoothed Vertical Profile', color=map_labels_to_colors['wspeed'])
+for i in range(nsimulations):
+    plt.plot(simulations[i][2], simulations[i][0], color='gray', alpha=0.2, label='Simulated Vertical Profile' if i == 0 else None)
+plt.fill_betweenx(
+    altitude,
+    rh - rh_unc,
+    rh + rh_unc,
+    color=map_labels_to_colors['rh_uc'],
+    alpha=0.3,
+    label='RH uncertainty',
+)
+plt.xlabel('Relative Humidity (%)')
+plt.ylabel('Altitude (m)')
+plt.title('Vertical Profile with PBLH Estimates')
+plt.legend()
+plt.grid(True)
+
+plt.subplot(1, 2, 2)
 
 plt.scatter(seconds[:-1], diff_grad_rh, marker='o', s=4, label='Finite difference RH gradient', color=map_labels_to_colors['rh'])
 plt.fill_between(
@@ -239,62 +333,18 @@ plt.title('Finite Difference vs Smoothed RH Gradient')
 plt.legend()
 plt.grid(True)
 
-plt.subplot(2, 3, 4)
-plt.scatter(seconds[:-1], diff_ratio_alt, marker='o', s=4, label='Finite difference altitude velocity', color=map_labels_to_colors['alt'])
-plt.fill_between(
-    seconds[:-1],
-    diff_ratio_alt - diff_ratio_alt_unc,
-    diff_ratio_alt + diff_ratio_alt_unc,
-    color=map_labels_to_colors['alt_uc'],
-    alpha=0.3,
-    label='Finite difference altitude velocity uncertainty',
-)
-plt.scatter(seconds, smoothed_alt_vel, marker='o', s=4, label='Smoothed altitude velocity', color=map_labels_to_colors['temp'])
-plt.fill_between(
-    seconds,
-    smoothed_alt_vel - smoother_alt_vel_unc,
-    smoothed_alt_vel + smoother_alt_vel_unc,
-    color=map_labels_to_colors['temp_uc'],
-    alpha=0.3,
-    label='Smoothed altitude velocity uncertainty',
-)
-for i in range(nsimulations):
-    plt.plot(seconds, simulations[i][1], color='gray', alpha=0.2, label='Simulated altitude velocity' if i == 0 else None)
-plt.xlabel('Seconds since start')
-plt.ylabel('Altitude Velocity (m/s)')
-plt.title('Finite Difference vs Smoothed Altitude Velocity')
-plt.legend()
-plt.grid(True)
+plt.show()
 
-plt.subplot(2, 3, 5)
-plt.scatter(seconds[:-1], diff_ratio_rh, marker='o', s=4, label='Finite difference RH velocity', color=map_labels_to_colors['rh'])
-plt.fill_between(
-    seconds[:-1],
-    diff_ratio_rh - diff_ratio_rh_unc,
-    diff_ratio_rh + diff_ratio_rh_unc,
-    color=map_labels_to_colors['rh_uc'],
-    alpha=0.3,
-    label='Finite difference RH velocity uncertainty',
-)
-plt.scatter(seconds, smoothed_rh_vel, marker='o', s=4, label='Smoothed RH velocity', color=map_labels_to_colors['wspeed'])
-plt.fill_between(
-    seconds,
-    smoothed_rh_vel - smoother_rh_vel_unc,
-    smoothed_rh_vel + smoother_rh_vel_unc,
-    color=map_labels_to_colors['wspeed_uc'],
-    alpha=0.3,
-    label='Smoothed RH velocity uncertainty',
-)
-for i in range(nsimulations):
-    plt.plot(seconds, simulations[i][3], color='gray', alpha=0.2, label='Simulated RH velocity' if i == 0 else None)
-plt.xlabel('Seconds since start')
-plt.ylabel('RH Velocity (%/s)')
-plt.title('Finite Difference vs Smoothed RH Velocity')
-plt.legend()
-plt.grid(True)
+# PLOT 4
 
-plt.subplot(2, 3, 6)
+plt.figure(figsize=(10, 12))
+plt.suptitle(f'RS41-GDP: {where}, {when}'#, {file_index}'
+            , fontsize=20)
+
+plt.subplot(1, 2, 1)
+
 plt.plot(rh, altitude, label='Observed Vertical Profile', color=map_labels_to_colors['rh'])
+
 plt.plot(smoothed_rh, smoothed_altitude, label='Smoothed Vertical Profile', color=map_labels_to_colors['wspeed'])
 if pblh_rh is not None:
     plt.axhline(pblh_rh, color=map_labels_to_colors['rh'], linestyle='--', label=f'PBLH (RH Gradient): {pblh_rh:.1f} m')
@@ -306,27 +356,38 @@ if simulations_pblh_rh_unc is not None:
     plt.fill_betweenx(
         y=[simulations_pblh_rh_avg - simulations_pblh_rh_unc, simulations_pblh_rh_avg + simulations_pblh_rh_unc],
         x1=0,
-        x2=max(rh),
+        x2=100,
         color='gray',
-        alpha=0.3,
+        alpha=0.1,
         label='Simulated PBLH uncertainty',
     )
+plt.fill_betweenx(
+    altitude,
+    rh - rh_unc,
+    rh + rh_unc,
+    color=map_labels_to_colors['rh_uc'],
+    alpha=0.3,
+    label='RH uncertainty',
+)
 for i in range(nsimulations):
     plt.plot(simulations[i][2], simulations[i][0], color='gray', alpha=0.2, label='Simulated Vertical Profile' if i == 0 else None)
 plt.xlabel('Relative Humidity (%)')
 plt.ylabel('Altitude (m)')
 plt.title('Vertical Profile with PBLH Estimates')
-#plt.legend()
-plt.show()
+plt.legend(loc='upper left')
+plt.grid(True)
 
-plt.figure(figsize=(10, 6))
+plt.subplot(1, 2, 2)
+
 plt.hist(simulations_pblh_rh, bins=10, alpha=0.7, color='steelblue', edgecolor='black', label='Simulated PBLH')
 plt.axvline(pblh_rh, color=map_labels_to_colors['rh'], linestyle='--', linewidth=2, label=f'PBLH (RH Gradient): {pblh_rh:.1f} m')
 plt.axvline(sm_pblh_rh, color=map_labels_to_colors['wspeed'], linestyle='--', linewidth=2, label=f'PBLH (Smoothed RH Gradient): {sm_pblh_rh:.1f} m')
 plt.axvline(simulations_pblh_rh_avg, color='gray', linestyle='-', linewidth=2, label=f'PBLH (Simulated Mean): {simulations_pblh_rh_avg:.1f} m ± {simulations_pblh_rh_unc:.1f} m')
 plt.xlabel('PBLH (m)')
 plt.ylabel('Count')
+plt.ylim(top=50)
 plt.title('PBLH Simulations Histogram')
-plt.legend()
+plt.legend(loc='upper left')
 plt.grid(True, alpha=0.3)
+
 plt.show()
