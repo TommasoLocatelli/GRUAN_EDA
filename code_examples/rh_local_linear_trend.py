@@ -9,7 +9,11 @@ from code_examples.visual_config.color_map import map_labels_to_colors
 from matplotlib.patches import Ellipse
 import statsmodels.api as sm
 
-gdp=gp.read(r'gdp\icm16\LIN-RS-01_2_RS41-GDP_001_20170303T120000_1-004-002.nc')
+paths = [
+    r'gdp\icm16\LIN-RS-01_2_RS41-GDP_001_20170303T120000_1-004-002.nc',
+    r'gdp\icm16\POT-RS-01_2_RS41-GDP_001_20250319T135500_1-000-001.nc'
+]
+gdp=gp.read(paths[0])
 upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3000, return_value=True) # find the PBLH upper bound for profile
 data = gdp.data[gdp.data['alt'] <= upper_bound]  # Limit to first 3.5 km
 where = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Site.Name']['Value'].values[0] # location
