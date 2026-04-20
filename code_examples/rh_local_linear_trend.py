@@ -132,7 +132,7 @@ diff_grad_rh_unc = np.sqrt(rh_var[1:] + (rh_var[:-1]) + (diff_rh/diff_alt)**2 * 
 # Create simulation smoother objects
 sim = mod.simulation_smoother() # default method is KFS; (method='cfa')  # can specify CFA method
 
-nsimulations = 100
+nsimulations = 1000
 simulations = []
 for i in range(nsimulations):
     sim.simulate()
