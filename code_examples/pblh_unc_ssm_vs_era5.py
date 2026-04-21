@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from code_examples.visual_config.color_map import map_labels_to_colors
 FOLDER = r'gdp\products_RS41-GDP-1_PAY_2024'
 FOLDER = r'gdp\products_RS41-GDP-1_TEN_2024'
+FOLDER = r'gdp\products_RS41-GDP-1_SOD_2024'
 
 def pblh_preproc(gdp):
     upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3500, return_value=True) # find the PBLH upper bound for profile
