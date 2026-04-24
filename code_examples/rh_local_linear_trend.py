@@ -103,8 +103,7 @@ print(f'PBLH (Simulated RH Gradient): {simulations_pblh_rh_avg:.1f} m ± {simula
 # PLOT 1
 
 plt.figure(figsize=(10, 12))
-plt.suptitl
-e(f'RS41-GDP: {where}, {when}'#, {file_index}'
+plt.suptitle(f'RS41-GDP: {where}, {when}'#, {file_index}'
             , fontsize=20)
 
 plt.subplot(1, 2, 1)

@@ -32,7 +32,7 @@ measurements_unc =np.column_stack([data[name+'_uc'].values for name in measureme
 # Extract measurement variances
 measurement_var = (measurements_unc * 0.5)**2
 # tune the measurement variance to see more effect of the model
-coef = 1000
+coef = 1
 if coef != 1:
     measurement_var *= coef
     measurements_unc = (measurement_var**0.5)*2
@@ -90,8 +90,8 @@ plt.suptitle(f'RS41-GDP: {where}, {when}'#, {file_index}'
             , fontsize=20)
 
 # Scatter plot for temperature vs altitude
-plt.scatter(data['temp'], data['alt'], label='Original', alpha=0.5, s=1)
-plt.scatter(smoothed_data['temp'], smoothed_data['alt'], label='Smoothed', alpha=0.5, s=1)
+plt.scatter(data['temp'], data['alt'], label='Original', alpha=0.5, s=2)
+plt.scatter(smoothed_data['temp'], smoothed_data['alt'], label='Smoothed', alpha=0.5, s=2)
 for sim in simulations:
     plt.plot(sim['temp'], sim['alt'], alpha=0.2, color='gray')
 plt.legend()
