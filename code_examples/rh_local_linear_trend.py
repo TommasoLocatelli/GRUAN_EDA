@@ -12,9 +12,11 @@ from ssm.local_trend import RHLocalLinearTrend
 
 paths = [
     r'gdp\icm16\LIN-RS-01_2_RS41-GDP_001_20170303T120000_1-004-002.nc',
-    r'gdp\icm16\POT-RS-01_2_RS41-GDP_001_20250319T135500_1-000-001.nc'
+    r'gdp\icm16\POT-RS-01_2_RS41-GDP_001_20250319T135500_1-000-001.nc',
+    r'gdp\products_RS41-GDP-1_PAY_2024\PAY-RS-01_2_RS41-GDP_001_20240109T120000_1-002-001.nc',
+    r'gdp\products_RS41-GDP-1_TEN_2024\TEN-RS-01_2_RS41-GDP_001_20240103T110000_1-000-001.nc'
 ]
-gdp=gp.read(paths[0])
+gdp=gp.read(paths[-1])
 upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3000, return_value=True) # find the PBLH upper bound for profile
 data = gdp.data[gdp.data['alt'] <= upper_bound]  # Limit to first 3.5 km
 where = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Site.Name']['Value'].values[0] # location
@@ -78,7 +80,7 @@ diff_grad_rh_unc = np.sqrt(rh_var[1:] + (rh_var[:-1]) + (diff_rh/diff_alt)**2 * 
 # Create simulation smoother objects
 sim = mod.simulation_smoother() # default method is KFS; (method='cfa')  # can specify CFA method
 
-nsimulations = 1000
+nsimulations = 100
 simulations = []
 for i in range(nsimulations):
     sim.simulate()
@@ -100,7 +102,116 @@ print(f'PBLH (Simulated RH Gradient): {simulations_pblh_rh_avg:.1f} m ± {simula
 
 # Lots of Plots
  
-# PLOT 1
+plt.figure(figsize=(10, 12))
+plt.suptitle(f'RS41-GDP: {where}, {when}'#, {file_index}'
+            , fontsize=20)
+
+plt.subplot(1, 3, 1)
+
+LOWER_LIMIT=300#180#150
+UPPER_LIMIT=400#500#230#310
+
+plt.scatter(rh[LOWER_LIMIT:UPPER_LIMIT], altitude[LOWER_LIMIT:UPPER_LIMIT], label='Observed Vertical Profile', color=map_labels_to_colors['rh'],
+            marker='o', s=4)
+plt.fill_betweenx(
+    altitude[LOWER_LIMIT:UPPER_LIMIT],
+    rh[LOWER_LIMIT:UPPER_LIMIT] - rh_unc[LOWER_LIMIT:UPPER_LIMIT],
+    rh[LOWER_LIMIT:UPPER_LIMIT] + rh_unc[LOWER_LIMIT:UPPER_LIMIT],
+    color=map_labels_to_colors['rh_uc'],
+    alpha=0.3,
+    label='Measurement uncertainty',
+)
+plt.plot(smoothed_rh[LOWER_LIMIT:UPPER_LIMIT], smoothed_altitude[LOWER_LIMIT:UPPER_LIMIT], label='Smoothed Vertical Profile', color=map_labels_to_colors['wspeed'],
+            #marker='o', s=4
+            )
+plt.fill_betweenx(
+    smoothed_altitude[LOWER_LIMIT:UPPER_LIMIT],
+    smoothed_rh[LOWER_LIMIT:UPPER_LIMIT] - smoother_rh_unc[LOWER_LIMIT:UPPER_LIMIT],
+    smoothed_rh[LOWER_LIMIT:UPPER_LIMIT] + smoother_rh_unc[LOWER_LIMIT:UPPER_LIMIT],
+    color=map_labels_to_colors['wspeed_uc'],
+    alpha=0.3,
+    label='Smoothed uncertainty',
+)
+if pblh_rh is not None:
+    plt.axhline(pblh_rh, color=map_labels_to_colors['rh'], linestyle='--', 
+    label=f'PBLH (Observation): {pblh_rh:.1f} m'
+    )
+if sm_pblh_rh is not None:
+    plt.axhline(sm_pblh_rh, color=map_labels_to_colors['wspeed'], linestyle=':', 
+    label=f'PBLH (Smoothed): {sm_pblh_rh:.1f} m'
+    )
+if simulations_pblh_rh_avg is not None:
+    plt.axhline(simulations_pblh_rh_avg, color='gray', linestyle='--', 
+    label=f'PBLH (MCM): {simulations_pblh_rh_avg:.1f} m ± {simulations_pblh_rh_unc:.1f} m'
+    )
+if simulations_pblh_rh_unc is not None:
+    plt.fill_betweenx(
+        y=[simulations_pblh_rh_avg - simulations_pblh_rh_unc, simulations_pblh_rh_avg + simulations_pblh_rh_unc],
+        x1=0,
+        x2=100,#120,
+        color='gray',
+        alpha=0.2,
+        label=f'MCM PBLH uncertainty: {simulations_pblh_rh_unc:.1f} m',
+    )
+
+#for i in range(nsimulations):
+#    plt.plot(simulations[i][2][LOWER_LIMIT:UPPER_LIMIT], simulations[i][0][LOWER_LIMIT:UPPER_LIMIT], color='gray', alpha=0.05, label='Simulated Vertical Profile' if i == 0 else None, zorder=1)
+plt.xlabel('Relative Humidity (%)')
+plt.ylabel('Altitude (m)')
+plt.title('RH Vertical Profile with PBLH Estimates')
+plt.legend(loc='upper left')
+plt.grid(True)
+#plt.xlim(18,80)
+#plt.xlim(60,110)
+plt.xlim(25,55)
+plt.subplot(1, 3, 2)
+
+plt.scatter(diff_grad_rh[LOWER_LIMIT:UPPER_LIMIT], altitude[LOWER_LIMIT:UPPER_LIMIT], marker='o', s=4, label='Finite difference RH gradient', color=map_labels_to_colors['rh'])
+plt.fill_betweenx(
+    altitude[LOWER_LIMIT:UPPER_LIMIT],
+    diff_grad_rh[LOWER_LIMIT:UPPER_LIMIT] - diff_grad_rh_unc[LOWER_LIMIT:UPPER_LIMIT],
+    diff_grad_rh[LOWER_LIMIT:UPPER_LIMIT] + diff_grad_rh_unc[LOWER_LIMIT:UPPER_LIMIT],
+    color=map_labels_to_colors['rh_uc'],
+    alpha=0.3,
+    label='Finite difference RH gradient uncertainty',
+)
+plt.plot(smoothed_grad_rh[LOWER_LIMIT:UPPER_LIMIT], smoothed_altitude[LOWER_LIMIT:UPPER_LIMIT], label='Smoothed RH gradient', color=map_labels_to_colors['wspeed'], 
+        #marker='o', s=4
+        )
+plt.fill_betweenx(
+    smoothed_altitude[LOWER_LIMIT:UPPER_LIMIT],
+    smoothed_grad_rh[LOWER_LIMIT:UPPER_LIMIT] - smoothed_grad_rh_unc[LOWER_LIMIT:UPPER_LIMIT],
+    smoothed_grad_rh[LOWER_LIMIT:UPPER_LIMIT] + smoothed_grad_rh_unc[LOWER_LIMIT:UPPER_LIMIT],
+    color=map_labels_to_colors['wspeed_uc'],
+    alpha=0.3,
+    label='Smoothed RH gradient uncertainty',
+)
+for i in range(nsimulations):
+    plt.plot(simulations[i][4][LOWER_LIMIT:UPPER_LIMIT], simulations[i][0][LOWER_LIMIT:UPPER_LIMIT], color='gray', alpha=0.1, label='Simulated RH gradient' if i == 0 else None, zorder=1)
+plt.xlabel('RH Gradient (%/m)')
+plt.ylabel('Altitude (m)')
+plt.title('Finite Difference vs Smoothed RH Gradient')
+plt.legend(loc='upper left')
+plt.grid(True)
+#plt.xlim(-1.5, 1.5)
+#plt.xlim(-2, 2)
+
+plt.subplot(1, 3, 3)
+
+plt.hist(simulations_pblh_rh, bins=10, alpha=0.7, color='steelblue', edgecolor='black', label='MCM PBLH counts')
+plt.axvline(pblh_rh, color=map_labels_to_colors['rh'], linestyle='--', linewidth=2, label=f'PBLH (Observations): {pblh_rh:.1f} m')
+plt.axvline(sm_pblh_rh, color=map_labels_to_colors['wspeed'], linestyle=':', linewidth=2, label=f'PBLH (Smoothed): {sm_pblh_rh:.1f} m')
+plt.axvline(simulations_pblh_rh_avg, color='gray', linestyle='--', linewidth=2, label=f'PBLH (MCM): {simulations_pblh_rh_avg:.1f} m ± {simulations_pblh_rh_unc:.1f} m')
+plt.xlabel('PBLH (m)')
+plt.ylabel('Count')
+plt.ylim(top=nsimulations)
+plt.title('MCM PBLH Histogram')
+plt.legend(loc='upper left')
+plt.grid(True, alpha=0.3)
+
+plt.show()
+
+raise
 
 plt.figure(figsize=(10, 12))
 plt.suptitle(f'RS41-GDP: {where}, {when}'#, {file_index}'
