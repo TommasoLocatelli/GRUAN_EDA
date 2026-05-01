@@ -4,19 +4,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import gruanpy as gp
-import pandas as pd
 from code_examples.visual_config.color_map import map_labels_to_colors
-from matplotlib.patches import Ellipse
-import statsmodels.api as sm
 from ssm.local_trend import RHLocalLinearTrend
 
-paths = [
+example_paths = [
     r'gdp\icm16\LIN-RS-01_2_RS41-GDP_001_20170303T120000_1-004-002.nc',
     r'gdp\icm16\POT-RS-01_2_RS41-GDP_001_20250319T135500_1-000-001.nc',
     r'gdp\products_RS41-GDP-1_PAY_2024\PAY-RS-01_2_RS41-GDP_001_20240109T120000_1-002-001.nc',
     r'gdp\products_RS41-GDP-1_TEN_2024\TEN-RS-01_2_RS41-GDP_001_20240103T110000_1-000-001.nc'
 ]
-gdp=gp.read(paths[-1])
+
+folder = r'gdp\products_RS41-GDP-1_POT-RS-01_2024'
+paths = [os.path.join(folder, file) for file in os.listdir(folder) if file.endswith('.nc') and file[34:36] in ['11', '12']]
+gdp=gp.read(example_paths[0])
 upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3000, return_value=True) # find the PBLH upper bound for profile
 data = gdp.data[gdp.data['alt'] <= upper_bound]  # Limit to first 3.5 km
 where = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Site.Name']['Value'].values[0] # location
@@ -108,8 +108,9 @@ plt.suptitle(f'RS41-GDP: {where}, {when}'#, {file_index}'
 
 plt.subplot(1, 3, 1)
 
-LOWER_LIMIT=300#180#150
-UPPER_LIMIT=400#500#230#310
+LOWER_LIMIT=150#300#180#150
+UPPER_LIMIT=350#400#500#230#310
+FONTE_SIZE=12
 
 plt.scatter(rh[LOWER_LIMIT:UPPER_LIMIT], altitude[LOWER_LIMIT:UPPER_LIMIT], label='Observed Vertical Profile', color=map_labels_to_colors['rh'],
             marker='o', s=4)
@@ -134,15 +135,15 @@ plt.fill_betweenx(
 )
 if pblh_rh is not None:
     plt.axhline(pblh_rh, color=map_labels_to_colors['rh'], linestyle='--', 
-    label=f'PBLH (Observation): {pblh_rh:.1f} m'
+    label=f'Finite Difference PBLH {pblh_rh:.1f} m'
     )
 if sm_pblh_rh is not None:
     plt.axhline(sm_pblh_rh, color=map_labels_to_colors['wspeed'], linestyle=':', 
-    label=f'PBLH (Smoothed): {sm_pblh_rh:.1f} m'
+    label=f'Smoothed PBLH {sm_pblh_rh:.1f} m'
     )
 if simulations_pblh_rh_avg is not None:
     plt.axhline(simulations_pblh_rh_avg, color='gray', linestyle='--', 
-    label=f'PBLH (MCM): {simulations_pblh_rh_avg:.1f} m ± {simulations_pblh_rh_unc:.1f} m'
+    label=f'MCM PBLH {simulations_pblh_rh_avg:.1f} m'
     )
 if simulations_pblh_rh_unc is not None:
     plt.fill_betweenx(
@@ -158,24 +159,24 @@ if simulations_pblh_rh_unc is not None:
 #    plt.plot(simulations[i][2][LOWER_LIMIT:UPPER_LIMIT], simulations[i][0][LOWER_LIMIT:UPPER_LIMIT], color='gray', alpha=0.05, label='Simulated Vertical Profile' if i == 0 else None, zorder=1)
 plt.xlabel('Relative Humidity (%)')
 plt.ylabel('Altitude (m)')
-plt.title('RH Vertical Profile with PBLH Estimates')
-plt.legend(loc='upper left')
+plt.title('RH Vertical Profile with PBLH Estimates', fontsize=FONTE_SIZE)
+plt.legend(loc='upper left', fontsize=FONTE_SIZE, framealpha=1)
 plt.grid(True)
-#plt.xlim(18,80)
+plt.xlim(18,80)
 #plt.xlim(60,110)
-plt.xlim(25,55)
+#plt.xlim(35,80)
 plt.subplot(1, 3, 2)
 
-plt.scatter(diff_grad_rh[LOWER_LIMIT:UPPER_LIMIT], altitude[LOWER_LIMIT:UPPER_LIMIT], marker='o', s=4, label='Finite difference RH gradient', color=map_labels_to_colors['rh'])
+plt.scatter(diff_grad_rh[LOWER_LIMIT:UPPER_LIMIT], altitude[LOWER_LIMIT:UPPER_LIMIT], marker='o', s=4, label='Finite difference gradient', color=map_labels_to_colors['rh'])
 plt.fill_betweenx(
     altitude[LOWER_LIMIT:UPPER_LIMIT],
     diff_grad_rh[LOWER_LIMIT:UPPER_LIMIT] - diff_grad_rh_unc[LOWER_LIMIT:UPPER_LIMIT],
     diff_grad_rh[LOWER_LIMIT:UPPER_LIMIT] + diff_grad_rh_unc[LOWER_LIMIT:UPPER_LIMIT],
     color=map_labels_to_colors['rh_uc'],
     alpha=0.3,
-    label='Finite difference RH gradient uncertainty',
+    label='Finite difference gradient uncertainty',
 )
-plt.plot(smoothed_grad_rh[LOWER_LIMIT:UPPER_LIMIT], smoothed_altitude[LOWER_LIMIT:UPPER_LIMIT], label='Smoothed RH gradient', color=map_labels_to_colors['wspeed'], 
+plt.plot(smoothed_grad_rh[LOWER_LIMIT:UPPER_LIMIT], smoothed_altitude[LOWER_LIMIT:UPPER_LIMIT], label='Smoothed gradient', color=map_labels_to_colors['wspeed'], 
         #marker='o', s=4
         )
 plt.fill_betweenx(
@@ -184,29 +185,29 @@ plt.fill_betweenx(
     smoothed_grad_rh[LOWER_LIMIT:UPPER_LIMIT] + smoothed_grad_rh_unc[LOWER_LIMIT:UPPER_LIMIT],
     color=map_labels_to_colors['wspeed_uc'],
     alpha=0.3,
-    label='Smoothed RH gradient uncertainty',
+    label='Smoothed gradient uncertainty',
 )
-for i in range(nsimulations):
-    plt.plot(simulations[i][4][LOWER_LIMIT:UPPER_LIMIT], simulations[i][0][LOWER_LIMIT:UPPER_LIMIT], color='gray', alpha=0.1, label='Simulated RH gradient' if i == 0 else None, zorder=1)
+#for i in range(nsimulations):
+#    plt.plot(simulations[i][4][LOWER_LIMIT:UPPER_LIMIT], simulations[i][0][LOWER_LIMIT:UPPER_LIMIT], color='gray', alpha=0.1, label='Simulated gradient' if i == 0 else None, zorder=1)
 plt.xlabel('RH Gradient (%/m)')
 plt.ylabel('Altitude (m)')
-plt.title('Finite Difference vs Smoothed RH Gradient')
-plt.legend(loc='upper left')
+plt.title('Finite Difference vs Smoothed RH Gradient', fontsize=FONTE_SIZE)
+plt.legend(loc='upper left', framealpha=1, fontsize=FONTE_SIZE)
 plt.grid(True)
-#plt.xlim(-1.5, 1.5)
-#plt.xlim(-2, 2)
+plt.xlim(-1.5, 1.5)
+#plt.xlim(-3, 2)
 
 plt.subplot(1, 3, 3)
 
 plt.hist(simulations_pblh_rh, bins=10, alpha=0.7, color='steelblue', edgecolor='black', label='MCM PBLH counts')
-plt.axvline(pblh_rh, color=map_labels_to_colors['rh'], linestyle='--', linewidth=2, label=f'PBLH (Observations): {pblh_rh:.1f} m')
-plt.axvline(sm_pblh_rh, color=map_labels_to_colors['wspeed'], linestyle=':', linewidth=2, label=f'PBLH (Smoothed): {sm_pblh_rh:.1f} m')
-plt.axvline(simulations_pblh_rh_avg, color='gray', linestyle='--', linewidth=2, label=f'PBLH (MCM): {simulations_pblh_rh_avg:.1f} m ± {simulations_pblh_rh_unc:.1f} m')
+plt.axvline(pblh_rh, color=map_labels_to_colors['rh'], linestyle='--', linewidth=2, label=f'Finite Difference PBLH: {pblh_rh:.1f} m')
+plt.axvline(sm_pblh_rh, color=map_labels_to_colors['wspeed'], linestyle=':', linewidth=2, label=f'Smoothed PBLH: {sm_pblh_rh:.1f} m')
+plt.axvline(simulations_pblh_rh_avg, color='gray', linestyle='--', linewidth=2, label=f'MCM PBLH: {simulations_pblh_rh_avg:.1f} m ± {simulations_pblh_rh_unc:.1f} m')
 plt.xlabel('PBLH (m)')
 plt.ylabel('Count')
 plt.ylim(top=nsimulations)
-plt.title('MCM PBLH Histogram')
-plt.legend(loc='upper left')
+plt.title('MCM PBLH Histogram', fontsize=FONTE_SIZE)
+plt.legend(loc='upper left', fontsize=FONTE_SIZE, framealpha=1)
 plt.grid(True, alpha=0.3)
 
 plt.show()
@@ -241,7 +242,7 @@ for i in range(nsimulations):
 plt.xlabel('Seconds since start')
 plt.ylabel('Altitude (m)')
 plt.title('Observed vs Smoothed Altitude')
-plt.legend()
+plt.legend(framealpha=1)
 plt.grid(True)
 
 plt.subplot(1, 2, 2)
