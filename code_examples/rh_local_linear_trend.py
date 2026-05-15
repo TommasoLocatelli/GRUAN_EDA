@@ -16,7 +16,7 @@ example_paths = [
 
 folder = r'gdp\products_RS41-GDP-1_POT-RS-01_2024'
 paths = [os.path.join(folder, file) for file in os.listdir(folder) if file.endswith('.nc') and file[34:36] in ['11', '12']]
-gdp=gp.read(example_paths[0])
+gdp=gp.read(example_paths[2])
 upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3000, return_value=True) # find the PBLH upper bound for profile
 data = gdp.data[gdp.data['alt'] <= upper_bound]  # Limit to first 3.5 km
 where = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Site.Name']['Value'].values[0] # location
@@ -108,8 +108,8 @@ plt.suptitle(f'RS41-GDP: {where}, {when}'#, {file_index}'
 
 plt.subplot(1, 3, 1)
 
-LOWER_LIMIT=150#300#180#150
-UPPER_LIMIT=350#400#500#230#310
+LOWER_LIMIT=0#150#300#180#150
+UPPER_LIMIT=500#350#400#500#230#310
 FONTE_SIZE=12
 
 plt.scatter(rh[LOWER_LIMIT:UPPER_LIMIT], altitude[LOWER_LIMIT:UPPER_LIMIT], label='Observed Vertical Profile', color=map_labels_to_colors['rh'],
@@ -162,7 +162,7 @@ plt.ylabel('Altitude (m)')
 plt.title('RH Vertical Profile with PBLH Estimates', fontsize=FONTE_SIZE)
 plt.legend(loc='upper left', fontsize=FONTE_SIZE, framealpha=1)
 plt.grid(True)
-plt.xlim(18,80)
+#plt.xlim(18,80)
 #plt.xlim(60,110)
 #plt.xlim(35,80)
 plt.subplot(1, 3, 2)
