@@ -99,6 +99,26 @@ class Formulas:
         thv = T * (self.p0 / p) ** (CNST.Poisson_exponent) * (1 + 0.61 * r)
         return thv
     
+    def virtual_potential_temperature_uncertainty(self, T, p, r, T_uc, p_uc, r_uc, p0=1000.0):
+        """Calculate the uncertainty in virtual potential temperature.
+        Parameters:
+        T (float or array-like): Temperature in Kelvin.
+        p (float or array-like): Pressure in hPa.
+        r (float or array-like): Mixing ratio in kg/kg.
+        T_uc (float or array-like): Uncertainty in temperature in Kelvin.
+        p_uc (float or array-like): Uncertainty in pressure in hPa.
+        r_uc (float or array-like): Uncertainty in mixing ratio in kg/kg.
+        p0 (float): Reference pressure in hPa. Default is 1000 hPa.
+        Returns:
+        float or array-like: Uncertainty in virtual potential temperature in Kelvin.
+        """
+        dthv_dT = (p0 / p) ** (CNST.Poisson_exponent) * (1 + 0.61 * r)
+        dthv_dp = - ((CNST.Poisson_exponent) * T * ((p0 / p) ** (CNST.Poisson_exponent)) * (1 + 0.61 * r)) / p
+        dthv_dr = 0.61 * T * (p0 / p) ** (CNST.Poisson_exponent)
+        
+        thv_uc = np.sqrt((dthv_dT * T_uc)**2 + (dthv_dp * p_uc)**2 + (dthv_dr * r_uc)**2)
+        return thv_uc
+    
     def virtual_potential_temperature_inverse(self, thv, p, r):
         """Calculate the temperature from virtual potential temperature.
         Parameters:
@@ -110,6 +130,26 @@ class Formulas:
         """
         T = thv / ((self.p0 / p) ** (CNST.Poisson_exponent) * (1 + 0.61 * r))
         return T
+    
+    def virtual_potential_temperature_inverse_uncertainty(self, thv, p, r, thv_uc, p_uc, r_uc, p0=1000.0):
+        """Calculate the uncertainty in temperature from virtual potential temperature.
+        Parameters:
+        thv (float or array-like): Virtual potential temperature in Kelvin.
+        p (float or array-like): Pressure in hPa.
+        r (float or array-like): Mixing ratio in kg/kg.
+        thv_uc (float or array-like): Uncertainty in virtual potential temperature in Kelvin.
+        p_uc (float or array-like): Uncertainty in pressure in hPa.
+        r_uc (float or array-like): Uncertainty in mixing ratio in kg/kg.
+        p0 (float): Reference pressure in hPa. Default is 1000 hPa.
+        Returns:
+        float or array-like: Uncertainty in temperature in Kelvin.
+        """
+        dT_dthv = (p0 / p) ** (CNST.Poisson_exponent) * (1 + 0.61 * r)
+        dT_dp = - ((CNST.Poisson_exponent) * thv * ((p0 / p) ** (CNST.Poisson_exponent)) * (1 + 0.61 * r)) / p
+        dT_dr = -0.61 * thv * (p0 / p) ** (CNST.Poisson_exponent)
+        
+        T_uc = np.sqrt((dT_dthv * thv_uc)**2 + (dT_dp * p_uc)**2 + (dT_dr * r_uc)**2)
+        return T_uc
         
 
     def tetens_equation(self, T):

@@ -9,7 +9,7 @@ import warnings
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 import gruanpy as gp
 
-def prep_ekf(path, upper_bound=3000):
+def prep_ekf(path, upper_bound=3000, Q_scale=1000):
 
     gdp=gp.read(path)
     upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=upper_bound, return_value=True) # find the PBLH upper bound for profile
@@ -58,7 +58,7 @@ def prep_ekf(path, upper_bound=3000):
     Phi[V_S, LV_S] = 1
 
     # innovation w_t are iid zero mean normal vectors with covariance matrix Q
-    Q = eye(12) * 1000 # process noise covariance matrix
+    Q = eye(12) * Q_scale # process noise covariance matrix
 
     # ============================================================
     # NONLINEAR MEASUREMENT FUNCTION A(s_t)
@@ -66,7 +66,7 @@ def prep_ekf(path, upper_bound=3000):
     # ============================================================
 
     p0 = 1000.0     # reference pressure
-    kappa = gp.POISSON_EXPONENT
+    kappa = gp.Poisson_exponent
 
     def A(s):
         # ensure we work with Python scalars not 1-element arrays to avoid

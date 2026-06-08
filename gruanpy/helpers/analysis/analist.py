@@ -9,4 +9,7 @@ class AnalysisManager(CNST, FM, PBLHMethods, NoiseMethods):
     Inherits from Formulas and PBLHMethods to provide a comprehensive set of analytical tools.
     """
     def __init__(self):
-        pass
+        CNST.__init__(self)
+        FM.__init__(self)
+        PBLHMethods.__init__(self)
+        NoiseMethods.__init__(self)

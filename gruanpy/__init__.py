@@ -8,6 +8,12 @@ class GRUANpy(DownloadManager, ReadingManager, GriddingManager, AnalysisManager)
     """
     A helper class that inherits methods from DownloadManager, ReadingManager, and GriddingManager.
     """
+    def __init__(self):
+        DownloadManager.__init__(self)
+        ReadingManager.__init__(self)
+        GriddingManager.__init__(self)
+        AnalysisManager.__init__(self)
+        
     def info(self):
         """
         Print the information about GRUANpy.

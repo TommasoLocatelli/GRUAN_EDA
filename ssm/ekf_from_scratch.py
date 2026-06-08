@@ -191,8 +191,8 @@ class ExtendedKalmanFilter:
         )
 
         # guards against negative estimates
-        for i in range(self.s_upd.shape[0]):
-            if self.s_upd[i] < 0:
+        for i in range(self.s_upd.shape[0]-4): # only apply to first p-4 components, assuming last 4 are u, Lu, v, Lv which can be negative
+            if self.s_upd[i] < 0 and i not in [1, 3, 6]: # allow negative for state components that represent differences (L_*)
                 self.s_upd[i] = 1e-3
                 warnings.warn(
                     f"Negative state estimate at index {i} corrected to 1e-3."
