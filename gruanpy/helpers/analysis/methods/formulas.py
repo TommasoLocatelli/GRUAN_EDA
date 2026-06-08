@@ -86,6 +86,31 @@ class Formulas:
         dtheta_dp = - ((CNST.Poisson_exponent) * T * ((p0 / p) ** (CNST.Poisson_exponent))) / p
         theta_uc = np.sqrt((dtheta_dT * T_uc)**2 + (dtheta_dp * p_uc)**2)
         return theta_uc
+    
+    def virtual_potential_temperature(self, T, p, r):
+        """Calculate the virtual potential temperature.
+        Parameters:
+        T (float or array-like): Temperature in Kelvin.
+        p (float or array-like): Pressure in hPa.
+        r (float or array-like): Mixing ratio in kg/kg.
+        Returns:
+        float or array-like: Virtual potential temperature in Kelvin.
+        """
+        thv = T * (self.p0 / p) ** (CNST.Poisson_exponent) * (1 + 0.61 * r)
+        return thv
+    
+    def virtual_potential_temperature_inverse(self, thv, p, r):
+        """Calculate the temperature from virtual potential temperature.
+        Parameters:
+        thv (float or array-like): Virtual potential temperature in Kelvin.
+        p (float or array-like): Pressure in hPa.
+        r (float or array-like): Mixing ratio in kg/kg.
+        Returns:
+        float or array-like: Temperature in Kelvin.
+        """
+        T = thv / ((self.p0 / p) ** (CNST.Poisson_exponent) * (1 + 0.61 * r))
+        return T
+        
 
     def tetens_equation(self, T):
         """Calculate the saturation vapor pressure using Tetens equation.

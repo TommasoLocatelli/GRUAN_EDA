@@ -14,3 +14,4 @@ class Constants:
         self.DRY_ADIABATIC_LAPSE_RATE = 9.8  # K/km Dry adiabatic lapse rate
         self.G0 = 9.80665  # m/s² Averaged gravity
         self.RIC = 0.25  # Dimensionless Richardson critical number for turbulence
+        self.p0 = 1000.0  # hPa Reference pressure for potential temperature calculations
