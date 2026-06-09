@@ -319,6 +319,11 @@ class ExtendedKalmanFilter:
             )
         self.lag_one_cov_hist = P_cross
 
+        self.smooth_s = self.smooth_s_hist
+        self.smooth_p = self.smooth_p_hist
+        self.smooth_gains = self.smooth_gains_hist
+        self.lag_one_cov = self.lag_one_cov_hist
+
         return self.smooth_s_hist, self.smooth_p_hist, self.lag_one_cov_hist
 
     def smooth(self):
@@ -340,13 +345,16 @@ class ExtendedKalmanFilter:
 
     def data_likelihood(self):
 
+        if self.s_pred_hist is None or self.p_pred_hist is None:
+            self.filter()
+
         ll = 0.0
 
         for t in range(self.n):
 
-            x_pred = self.filter_s_pred[t]      # (p,1)
-            P_pred = self.filter_p_pred[t]      # (p,p)
-            R = self.R[t]                       # (q,q)
+            x_pred = self.s_pred_hist[t]      # (p,1)
+            P_pred = self.p_pred_hist[t]      # (p,p)
+            R = self.R[t]                     # (q,q)
 
             # -----------------------------------------------------
             # EKF measurement prediction
@@ -545,7 +553,7 @@ class ExtendedKalmanFilter:
 
             self.EM_s0.append(self.s_0.copy())
 
-            self.EM_P0.append(self.p_0.copy())
+            self.EM_P0.append(self.P_0.copy())
 
             if verbose:
 

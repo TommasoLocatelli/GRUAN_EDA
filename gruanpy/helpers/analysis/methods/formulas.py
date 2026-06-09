@@ -144,10 +144,13 @@ class Formulas:
         Returns:
         float or array-like: Uncertainty in temperature in Kelvin.
         """
-        dT_dthv = (p0 / p) ** (CNST.Poisson_exponent) * (1 + 0.61 * r)
-        dT_dp = - ((CNST.Poisson_exponent) * thv * ((p0 / p) ** (CNST.Poisson_exponent)) * (1 + 0.61 * r)) / p
-        dT_dr = -0.61 * thv * (p0 / p) ** (CNST.Poisson_exponent)
-        
+        factor_p = (p / p0) ** (CNST.Poisson_exponent)
+        factor_r = 1.0 / (1.0 + 0.61 * r)
+
+        dT_dthv = factor_p * factor_r
+        dT_dp = thv * factor_r * CNST.Poisson_exponent * (p / p0) ** (CNST.Poisson_exponent - 1) / p0
+        dT_dr = -0.61 * thv * factor_p * (factor_r ** 2)
+
         T_uc = np.sqrt((dT_dthv * thv_uc)**2 + (dT_dp * p_uc)**2 + (dT_dr * r_uc)**2)
         return T_uc
         

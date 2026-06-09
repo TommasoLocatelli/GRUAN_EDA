@@ -5,11 +5,11 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import gruanpy as gp
+from ssm.ekf_from_scratch_standardize import normalize_ekf_inputs
 
-def prep_ekf(path, upper_bound=3000, Q_scale=1000):
+def prep_ekf(path, upper_bound=3000, Q_scale=1000,  normalize_method=None):
 
     gdp=gp.read(path)
     upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=upper_bound, return_value=True) # find the PBLH upper bound for profile
@@ -39,6 +39,21 @@ def prep_ekf(path, upper_bound=3000, Q_scale=1000):
 
     obs, meas_var = observations(data)
 
+    if normalize_method:
+        obs_arr = np.vstack([o.reshape(-1) for o in obs])
+        meas_var_arr = np.vstack([m.reshape(-1) for m in meas_var])
+        obs_arr, meas_var_arr, params = normalize_ekf_inputs(obs_arr, meas_var_arr, method=normalize_method)
+        obs = [arr.reshape(-1, 1) for arr in obs_arr]
+        meas_var = [arr.reshape(-1, 1) for arr in meas_var_arr]
+    else:
+        params = None
+
+    # Check for NaN values in obs and meas_var
+    obs_has_nan = any(np.isnan(o).any() for o in obs)
+    meas_var_has_nan = any(np.isnan(m).any() for m in meas_var)
+    if obs_has_nan or meas_var_has_nan:
+        warnings.warn("obs or meas_var contains NaN values")
+    
     # obs vector
     # x_t = [z_t, Lz_t, T_t, p_t, RH_t, r_t, u_t, v_t]
     # obs indexes
@@ -144,6 +159,6 @@ def prep_ekf(path, upper_bound=3000, Q_scale=1000):
             obs[1][7] - obs[0][7]]).reshape(-1, 1)
 
     # initial error covariance matrix
-    P_0 = eye(12) * 1 
+    P_0 = eye(12) * 1
 
-    return obs, meas_var, Phi, Q, A, J_A, s_0, P_0
+    return obs, meas_var, Phi, Q, A, J_A, s_0, P_0, params
