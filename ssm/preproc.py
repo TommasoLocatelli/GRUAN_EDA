@@ -1,70 +1,90 @@
+# ssm_preprocess.py
+from __future__ import annotations
+import logging
+from pathlib import Path
+from typing import Tuple
 import numpy as np
-import os
-import sys
-import warnings
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import gruanpy as gp
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
+
+# Try to import gruanpy; raise a clear error if unavailable
+try:
+    import gruanpy as gp
+except Exception as exc:  # pragma: no cover - import-time guard
+    raise ImportError("gruanpy is required by ssm_preprocess.py. Install it or provide a mock for tests.") from exc
 
 
-def preprocess_profile(path, upper_bound=3000):
+def _safe_column(data, name: str) -> np.ndarray:
+    """Return column values as 1D float ndarray; raise KeyError if missing."""
+    if name not in data.columns:
+        raise KeyError(f"Column '{name}' not found in input data")
+    return np.asarray(data[name].values, dtype=float)
+
+
+def _uncertainty_to_variance(uncertainty: np.ndarray) -> np.ndarray:
+    """
+    Convert reported uncertainty to variance.
+    The original code used (unc * 0.5)**2; keep that behavior but document it.
+    """
+    return (np.asarray(uncertainty, dtype=float) * 0.5) ** 2
+
+
+def load_gdp(path: str | Path):
+    """Load a GRUAN GDP file using gruanpy.read and return the object."""
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"GDP file not found: {path}")
+    return gp.read(str(path))
+
+
+def preprocess_profile(path: str | Path, upper_bound: float = 3000.0) -> Tuple[np.ndarray, np.ndarray]:
     """
     Preprocess a GRUAN GDP file and return:
-        obs       : ndarray (n, 8)
-        meas_var  : ndarray (n, 8)
+        obs      : ndarray (n, 8)
+        meas_var : ndarray (n, 8)
 
-    No normalization, no model components.
-    Only raw observations and measurement variances.
+    Observations order: [z, Lz, T, p, RH, r, u, v]
+    Measurement variances follow the same order.
+
+    Notes:
+    - This function intentionally does not normalize data or build model components.
+    - It warns (but does not raise) if NaNs are present so callers can decide how to handle them.
     """
+    gdp = load_gdp(path)
 
-    # ---------------------------------------------------------
-    # Load GRUAN GDP file
-    # ---------------------------------------------------------
-    gdp = gp.read(path)
-
-    # determine PBLH upper bound
-    upper_bound = gp._find_upper_bound(
-        gdp.data[['alt']],
-        upper_bound=upper_bound,
-        return_value=True
-    )
+    # determine PBLH upper bound using gruanpy helper
+    upper_bound_val = gp._find_upper_bound(gdp.data[['alt']], upper_bound=upper_bound, return_value=True)
 
     # restrict to first part of profile
-    data = gdp.data[gdp.data['alt'] <= upper_bound]
+    data = gdp.data[gdp.data['alt'] <= upper_bound_val]
 
-    # ---------------------------------------------------------
-    # Extract observations
-    # ---------------------------------------------------------
-    z   = data['alt'].values
-    Lz  = data['vspeed'].values
-    T   = data['temp'].values
-    p   = data['press'].values
-    RH  = data['rh'].values
-    r   = data['wvmr_mass'].values
-    u   = data['wzon'].values
-    v   = data['wmeri'].values
+    # extract observations (1D arrays)
+    z   = _safe_column(data, 'alt')
+    Lz  = _safe_column(data, 'vspeed')
+    T   = _safe_column(data, 'temp')
+    p   = _safe_column(data, 'press')
+    RH  = _safe_column(data, 'rh')
+    r   = _safe_column(data, 'wvmr_mass')
+    u   = _safe_column(data, 'wzon')
+    v   = _safe_column(data, 'wmeri')
 
-    # ---------------------------------------------------------
-    # Extract variances (convert uncertainties to variances)
-    # ---------------------------------------------------------
-    z_var  = (data['alt_gph_uc'].values * 0.5)**2
-    Lz_var = (data['vspeed_uc'].values * 0.5)**2
-    T_var  = (data['temp_uc'].values * 0.5)**2
-    p_var  = (data['press_uc'].values * 0.5)**2
-    RH_var = (data['rh_uc'].values * 0.5)**2
-    r_var  = (data['wvmr_mass_uc'].values * 0.5)**2
-    u_var  = (data['wzon_uc'].values * 0.5)**2
-    v_var  = (data['wmeri_uc'].values * 0.5)**2
+    # extract uncertainties and convert to variances
+    z_var  = _uncertainty_to_variance(_safe_column(data, 'alt_gph_uc'))
+    Lz_var = _uncertainty_to_variance(_safe_column(data, 'vspeed_uc'))
+    T_var  = _uncertainty_to_variance(_safe_column(data, 'temp_uc'))
+    p_var  = _uncertainty_to_variance(_safe_column(data, 'press_uc'))
+    RH_var = _uncertainty_to_variance(_safe_column(data, 'rh_uc'))
+    r_var  = _uncertainty_to_variance(_safe_column(data, 'wvmr_mass_uc'))
+    u_var  = _uncertainty_to_variance(_safe_column(data, 'wzon_uc'))
+    v_var  = _uncertainty_to_variance(_safe_column(data, 'wmeri_uc'))
 
-    # ---------------------------------------------------------
-    # Build ndarray (n, 8)
-    # ---------------------------------------------------------
+    # stack into arrays (n, 8)
     obs = np.column_stack([z, Lz, T, p, RH, r, u, v])
     meas_var = np.column_stack([z_var, Lz_var, T_var, p_var, RH_var, r_var, u_var, v_var])
 
-    # ---------------------------------------------------------
-    # NaN check
-    # ---------------------------------------------------------
+    # NaN check: warn but return arrays so caller can handle missing data
     if np.isnan(obs).any() or np.isnan(meas_var).any():
-        warnings.warn("obs or meas_var contains NaN values")
+        logger.warning("obs or meas_var contains NaN values; caller should handle missing data")
 
     return obs, meas_var
