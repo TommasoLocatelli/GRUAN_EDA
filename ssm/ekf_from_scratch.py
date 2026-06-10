@@ -581,3 +581,66 @@ class ExtendedKalmanFilter:
             self.EM_s0,
             self.EM_P0,
         )
+    
+    def simulate_states(self):
+        """
+        Simulation smoother (Durbin & Koopman).
+        Generates a sample from p(s_0:n | y_1:n).
+        """
+
+        if self.smooth_s is None or self.smooth_p is None:
+            raise RuntimeError("Run smooth() before simulating states.")
+
+        n = self.n
+        p = self.p
+
+        states = np.zeros((n, p, 1))
+
+        # --- 1. Sample final state from smoothed posterior ---
+        mean_T = self.smooth_s[-1].reshape(p)
+        cov_T  = self.smooth_p[-1]
+        states[-1] = np.random.multivariate_normal(mean_T, cov_T).reshape(p, 1)
+
+        # --- 2. Backward sampling ---
+        for t in range(n-2, -1, -1):
+
+            P_tT   = self.smooth_p[t]
+            P_tp1T = self.smooth_p[t+1]
+            P_pred_next = self.p_pred_hist[t+1]
+
+            # RTS gain
+            J_t = P_tT @ self.Phi.T @ np.linalg.inv(P_pred_next)
+
+            # conditional mean
+            mean = self.smooth_s[t] + J_t @ (states[t+1] - self.smooth_s[t+1])
+
+            # conditional covariance
+            cov = P_tT - J_t @ P_tp1T @ J_t.T
+
+            # sample
+            states[t] = np.random.multivariate_normal(
+                mean.reshape(p),
+                cov
+            ).reshape(p, 1)
+
+        return states
+
+    def simulate_observations(self, states):
+        """
+        Simulate observations conditionally on simulated states.
+        """
+
+        n = self.n
+        q = self.q
+
+        obs_sim = np.zeros((n, q, 1))
+
+        for t in range(n):
+            mean = np.asarray(self.A(states[t])).reshape(q, 1)
+            noise = np.random.multivariate_normal(
+                np.zeros(q),
+                self.R[t]
+            ).reshape(q, 1)
+            obs_sim[t] = mean + noise
+
+        return obs_sim

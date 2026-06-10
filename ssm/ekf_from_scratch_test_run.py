@@ -8,7 +8,7 @@ import warnings
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import gruanpy as gp
 from ssm.ekf_from_scratch import ExtendedKalmanFilter
-from ssm.ekf_from_scratch_test_prep import prep_ekf
+from ssm.ekf_prep import prep_ekf
 
 example_paths = [
     r'gdp\icm16\LIN-RS-01_2_RS41-GDP_001_20170303T120000_1-004-002.nc',
@@ -145,7 +145,7 @@ if False:
     plt.show()
 
 # test EM algorithm run
-if True:
+if False:
     EM_log_likelihoods, EM_Q, EM_s_0, EM_p_0=kf.EM_algorithm(max_iter=100, tol=1, verbose=True)
 
     plt.figure(figsize=(8, 4))
@@ -271,5 +271,67 @@ if True:
         ax.set_title(f"State Component {vars[i]}")
         ax.grid(True)
         ax.legend()
+    plt.tight_layout()
+    plt.show()
+
+# test simulazioni
+if True:
+    EM_log_likelihoods, EM_Q, EM_s_0, EM_p_0=kf.EM_algorithm(max_iter=100, tol=1, verbose=True)
+    kf = ExtendedKalmanFilter(Phi, EM_Q[-1], A, J_A, EM_s_0[-1], EM_p_0[-1], obs, meas_var)
+    smooth_s, smooth_p, _, _ = kf.smooth()
+    sim_states = kf.simulate_states()
+    sim_obs = kf.simulate_observations(sim_states)
+
+    # --- PLOT SMOOTHED STATE VS SIMULATED STATE ---
+
+    smooth_s_hist = smooth_s.reshape(kf.n, kf.p)
+    sim_states_hist = sim_states.reshape(kf.n, kf.p)
+
+    time = np.arange(kf.n)
+
+    state_names = ['z', 'Lz', 'Thv', 'LThv', 'p', 'RH', 'LRH', 'r', 'u', 'Lu', 'v', 'Lv']
+
+    n_panels = kf.p
+    cols = 4
+    rows = int(np.ceil(n_panels / cols))
+
+    fig, axes = plt.subplots(rows, cols, figsize=(20, 12))
+    axes = axes.flatten()
+
+    for i in range(n_panels):
+        ax = axes[i]
+        ax.plot(time, smooth_s_hist[:, i], label="Smoothed", color="orange", alpha=0.8)
+        ax.plot(time, sim_states_hist[:, i], label="Simulated", color="blue", alpha=0.6)
+        ax.set_title(state_names[i])
+        ax.grid(True)
+        ax.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+    # --- PLOT OBSERVED VS SIMULATED OBSERVATIONS ---
+
+    obs_arr = np.array(obs).reshape(kf.n, kf.q)
+    sim_obs_arr = sim_obs.reshape(kf.n, kf.q)
+
+    time = np.arange(kf.n)
+
+    obs_names = ['z', 'Lz', 'T', 'p', 'RH', 'r', 'u', 'v']
+
+    n_panels = kf.q
+    cols = 4
+    rows = 2
+
+    fig, axes = plt.subplots(rows, cols, figsize=(18, 8))
+    axes = axes.flatten()
+
+    for i in range(n_panels):
+        ax = axes[i]
+        ax.plot(time, obs_arr[:, i], label="Observed", color="blue", alpha=0.7)
+        ax.plot(time, sim_obs_arr[:, i], label="Simulated", color="orange", alpha=0.7)
+        ax.set_title(obs_names[i])
+        ax.grid(True)
+        ax.legend()
+
     plt.tight_layout()
     plt.show()

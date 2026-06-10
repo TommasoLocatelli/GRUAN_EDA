@@ -7,7 +7,7 @@ import numpy as np
 import warnings
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import gruanpy as gp
-from ssm.ekf_from_scratch_standardize import normalize_ekf_inputs
+from ssm.ekf_standardize import normalize_ekf_inputs
 
 def prep_ekf(path, upper_bound=3000, Q_scale=1000,  normalize_method=None):
 
