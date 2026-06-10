@@ -11,21 +11,6 @@ import gruanpy as gp
 # ============================================================
 
 def standardize_obs(obs, meas_var, eps=1e-9):
-    """
-    Min–max standardization of observations and measurement variances.
-
-    Parameters
-    ----------
-    obs : ndarray (n,8)
-    meas_var : ndarray (n,8)
-
-    Returns
-    -------
-    obs_std : ndarray (n,8)
-    meas_var_std : ndarray (n,8)
-    params : dict with min, max, range
-    """
-
     obs = np.asarray(obs)
     meas_var = np.asarray(meas_var)
 
@@ -36,12 +21,7 @@ def standardize_obs(obs, meas_var, eps=1e-9):
     obs_std = (obs - o_min) / rng
     meas_var_std = meas_var / (rng**2)
 
-    params = {
-        "min": o_min,
-        "max": o_max,
-        "range": rng
-    }
-
+    params = {"min": o_min, "max": o_max, "range": rng}
     return obs_std, meas_var_std, params
 
 
@@ -50,41 +30,27 @@ def standardize_obs(obs, meas_var, eps=1e-9):
 # ============================================================
 
 def denormalize_obs(obs_std, params):
-    """
-    Undo min–max standardization.
-
-    Parameters
-    ----------
-    obs_std : ndarray (n,8)
-    params : dict with min, max, range
-
-    Returns
-    -------
-    obs_phys : ndarray (n,8)
-    """
-
     o_min = params["min"]
     rng = params["range"]
-
     return obs_std * rng + o_min
 
 
 # ============================================================
-# 3. DENORMALIZATION OF STATES (INCLUDING THv)
+# 3. RECONSTRUCT PHYSICAL STATES FROM DENORMALIZED OBS
 # ============================================================
 
-def denormalize_states(states_std, obs_phys):
+def reconstruct_physical_states(states, obs_phys):
     """
-    Denormalize physical state components using denormalized observations.
-    Recompute theta_v physically from T, p, r.
+    Replace the observed components of the state vector with
+    denormalized observations and recompute theta_v physically.
     """
 
-    states_phys = states_std.copy()
+    states_phys = states.copy()
 
     # extract physical obs
-    T = obs_phys[:, T_I]
-    p = obs_phys[:, P_I]
-    r = obs_phys[:, R_I]
+    T = np.maximum(obs_phys[:, T_I], 0.1)
+    p = np.maximum(obs_phys[:, P_I], 1.0)
+    r = np.maximum(obs_phys[:, R_I], 0.0)
 
     # recompute theta_v
     thv_phys = np.array([
@@ -108,4 +74,3 @@ def denormalize_states(states_std, obs_phys):
     # LThv_S, LRH_S, LU_S, LV_S
 
     return states_phys
-

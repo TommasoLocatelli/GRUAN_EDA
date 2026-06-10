@@ -29,7 +29,10 @@ def preprocess_profile(path, upper_bound=3000):
     )
 
     # restrict to first part of profile
-    data = gdp.data[gdp.data['alt'] <= upper_bound]
+    data = gdp.data[gdp.data['alt'] <= upper_bound].copy()
+
+    # ensure sorted by altitude
+    data = data.sort_values("alt")
 
     # ---------------------------------------------------------
     # Extract observations
@@ -46,7 +49,7 @@ def preprocess_profile(path, upper_bound=3000):
     # ---------------------------------------------------------
     # Extract variances (convert uncertainties to variances)
     # ---------------------------------------------------------
-    z_var  = (data['alt_gph_uc'].values * 0.5)**2
+    z_var  = (data['alt_uc'].values * 0.5)**2
     Lz_var = (data['vspeed_uc'].values * 0.5)**2
     T_var  = (data['temp_uc'].values * 0.5)**2
     p_var  = (data['press_uc'].values * 0.5)**2
@@ -58,8 +61,8 @@ def preprocess_profile(path, upper_bound=3000):
     # ---------------------------------------------------------
     # Build ndarray (n, 8)
     # ---------------------------------------------------------
-    obs = np.column_stack([z, Lz, T, p, RH, r, u, v])
-    meas_var = np.column_stack([z_var, Lz_var, T_var, p_var, RH_var, r_var, u_var, v_var])
+    obs = np.column_stack([z, Lz, T, p, RH, r, u, v]).astype(np.float64)
+    meas_var = np.column_stack([z_var, Lz_var, T_var, p_var, RH_var, r_var, u_var, v_var]).astype(np.float64)
 
     # ---------------------------------------------------------
     # NaN check

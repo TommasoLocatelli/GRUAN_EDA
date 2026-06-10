@@ -1,97 +1,140 @@
 import numpy as np
-from numpy import eye, array, asarray
-import sys
 import os
+import sys
 import matplotlib.pyplot as plt
-import warnings
 
+# project imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from ssm.preproc import preprocess_profile
+from ssm.ssm_model import PHI, A, J_A
+from ssm.ssm_model import (
+    Z_I, LZ_I, T_I, P_I, RH_I, R_I, U_I, V_I,
+    Z_S, LZ_S, Thv_S, LThv_S, P_S, RH_S, LRH_S, R_S, U_S, LU_S, V_S, LV_S
+)
+from ssm.guess_starting_values import guess_initial_state
+from ssm.ekf import ExtendedKalmanFilter
+from ssm.em_ekf import EKF_EM   # <-- import your EM wrapper
 import gruanpy as gp
-from ssm.ekf_from_scratch import ExtendedKalmanFilter
-from ssm.ekf_prep import prep_ekf
-from ssm.ekf_standardize import denormalize_and_recompute_thv
+
 
 example_paths = [
-    r'gdp\icm16\LIN-RS-01_2_RS41-GDP_001_20170303T120000_1-004-002.nc',
-    r'gdp\icm16\POT-RS-01_2_RS41-GDP_001_20250319T135500_1-000-001.nc',
-    r'gdp\products_RS41-GDP-1_PAY_2024\PAY-RS-01_2_RS41-GDP_001_20240109T120000_1-002-001.nc',
-    r'gdp\products_RS41-GDP-1_TEN_2024\TEN-RS-01_2_RS41-GDP_001_20240103T110000_1-000-001.nc'
+    r"gdp\icm16\LIN-RS-01_2_RS41-GDP_001_20170303T120000_1-004-002.nc",
+    r"gdp\icm16\POT-RS-01_2_RS41-GDP_001_20250319T135500_1-000-001.nc",
+    r"gdp\products_RS41-GDP-1_PAY_2024\PAY-RS-01_2_RS41-GDP_001_20240109T120000_1-002-001.nc",
+    r"gdp\products_RS41-GDP-1_TEN_2024\TEN-RS-01_2_RS41-GDP_001_20240103T110000_1-000-001.nc",
 ]
 
-obs, meas_var, Phi, Q, A, J_A, s_0, P_0 , scales_params= prep_ekf(example_paths[0], upper_bound=3000, 
-                                                   Q_scale=1000, 
-                                                   normalize_method='minmax')
+path = example_paths[0]
 
-meas_unc = np.sqrt(meas_var)*2
+# ---------------------------------------------------------
+# 1. preprocess: obs, meas_var (PHYSICAL, n,8)
+# ---------------------------------------------------------
+obs, meas_var = preprocess_profile(path, upper_bound=3000)
 
-kf = ExtendedKalmanFilter(Phi, Q, A, J_A, s_0, P_0, obs, meas_var)
+# measurement uncertainty (95% CI)
+meas_unc_95 = 2 * np.sqrt(meas_var)
 
-# obs vector
-# x_t = [z_t, Lz_t, T_t, p_t, RH_t, r_t, u_t, v_t]
-# obs indexes
-Z_I, LZ_I, T_I, P_I, RH_I, R_I, U_I, V_I = range(8)
+# ---------------------------------------------------------
+# 2. initial state and covariance (PHYSICAL)
+# ---------------------------------------------------------
+s0, P0 = guess_initial_state(obs, meas_var)
 
-# state vector
-# s_t = [z_t, Lz_t, Thv_t, LThv_t, p_t, RH_t, LRH_t, r_t, u_t, Lu_t, v_t, Lv_t]
-# state indexes
-Z_S, LZ_S, Thv_S, LThv_S, P_S, RH_S, LRH_S, R_S, U_S, LU_S, V_S, LV_S = range(12)
+# ---------------------------------------------------------
+# 3. initial process noise (PHYSICAL)
+# ---------------------------------------------------------
+Q_scale = 1e3
+Q0 = np.eye(len(s0)) * Q_scale
+
+# ---------------------------------------------------------
+# 4. EM algorithm on Q, s0, P0
+# ---------------------------------------------------------
+state_min = np.full(12, -np.inf)
+state_max = np.full(12,  np.inf)
+
+state_min[P_S] = 1e-3      # p > 0
+state_min[R_S] = 1e-8      # r > 0
+state_min[RH_S] = 0.0      # RH >= 0 (in %)
+state_max[RH_S] = 100.0    # RH <= 100 (in %)
+
+kf = ExtendedKalmanFilter(
+    PHI, Q0, A, J_A, s0, P0, obs, meas_var,
+    state_min=state_min,
+    state_max=state_max,
+)
 
 
-# test EM algorithm run
+em = EKF_EM(kf)   # <-- wrap the EKF
 
-EM_log_likelihoods, EM_Q, EM_s_0, EM_p_0=kf.EM_algorithm(max_iter=100, tol=1, verbose=True)
+EM_log_likelihoods, EM_Q, EM_s0, EM_P0 = em.EM_algorithm(
+    max_iter=100,
+    tol=1e-3,
+    verbose=True
+)
 
 plt.figure(figsize=(8, 4))
 plt.plot(np.arange(1, len(EM_log_likelihoods) + 1), EM_log_likelihoods, linewidth=1)
-plt.title('EM log-likelihood vs iteration')
-plt.xlabel('EM iteration')
-plt.ylabel('Log-likelihood')
+plt.title("EM log-likelihood vs iteration")
+plt.xlabel("EM iteration")
+plt.ylabel("Log-likelihood")
 plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-kf = ExtendedKalmanFilter(Phi, EM_Q[-1], A, J_A, EM_s_0[-1], EM_p_0[-1], obs, meas_var)
+# prendi gli ultimi parametri stimati
+Q_em  = EM_Q[-1]
+s0_em = EM_s0[-1]
+P0_em = EM_P0[-1]
+
+# ---------------------------------------------------------
+# 5. EKF + RTS smoother with EM-estimated parameters
+# ---------------------------------------------------------
+kf = ExtendedKalmanFilter(
+    PHI, Q_em, A, J_A, s0_em, P0_em, obs, meas_var,
+    state_min=state_min,
+    state_max=state_max,
+)
+
+kf.filter()
 smooth_s_hist, smooth_p_hist, smooth_gains_hist, lag_one_cov_hist = kf.smooth()
 
-smoothed_obs = array([A(smooth_s_hist[i]) for i in range(len(smooth_s_hist))])
-smoothed_states_var = array([np.diag(smooth_p_hist[i]) for i in range(len(smooth_p_hist))])
+# ---------------------------------------------------------
+# 6. map smoothed states to observation space (PHYSICAL)
+# ---------------------------------------------------------
+smoothed_obs = np.vstack([A(smooth_s_hist[t]) for t in range(len(smooth_s_hist))])
+
+smoothed_states_var = np.array([np.diag(smooth_p_hist[t]) for t in range(len(smooth_p_hist))])
 smoothed_states_unc = np.sqrt(smoothed_states_var)
 
-thv = smooth_s_hist[:, Thv_S].reshape(-1)
-p   = smooth_s_hist[:, P_S].reshape(-1)
-r   = smooth_s_hist[:, R_S].reshape(-1)
+# ---------------------------------------------------------
+# 7. propagate θv uncertainty to T uncertainty
+# ---------------------------------------------------------
+thv = smooth_s_hist[:, Thv_S]
+p_phys = smooth_s_hist[:, P_S]
+r_phys = smooth_s_hist[:, R_S]
 
-thv_uc = smoothed_states_unc[:, Thv_S].reshape(-1)
-p_uc   = smoothed_states_unc[:, P_S].reshape(-1)
-r_uc   = smoothed_states_unc[:, R_S].reshape(-1)
+thv_uc = smoothed_states_unc[:, Thv_S]
+p_uc = smoothed_states_unc[:, P_S]
+r_uc = smoothed_states_unc[:, R_S]
+
 smoothed_temp_unc = gp.virtual_potential_temperature_inverse_uncertainty(
-    thv, p, r,thv_uc, p_uc, r_uc).reshape(-1)
+    thv, p_phys, r_phys, thv_uc, p_uc, r_uc
+)
 
-smoothed_measurement_unc = array([
-    [smoothed_states_unc[i][Z_S], smoothed_states_unc[i][LZ_S], smoothed_temp_unc[i], smoothed_states_unc[i][P_S],
-        smoothed_states_unc[i][RH_S], smoothed_states_unc[i][R_S], smoothed_states_unc[i][U_S], smoothed_states_unc[i][V_S]]
-    for i in range(len(smoothed_states_unc))
+smoothed_measurement_unc = np.column_stack([
+    2 * smoothed_states_unc[:, Z_S],
+    2 * smoothed_states_unc[:, LZ_S],
+    2 * smoothed_temp_unc,
+    2 * smoothed_states_unc[:, P_S],
+    2 * smoothed_states_unc[:, RH_S],
+    2 * smoothed_states_unc[:, R_S],
+    2 * smoothed_states_unc[:, U_S],
+    2 * smoothed_states_unc[:, V_S],
 ])
 
-smoothed_measurement_unc *= 2
-
-# convert obs to array (n, q)
-obs_arr = np.array(obs).reshape(len(obs), -1)
-
-if scales_params is not None:
-    z_params = scales_params.get("z", {})
-    other_params = scales_params.get("other", {})
-    obs_arr[:, Z_I] = obs_arr[:, Z_I] * z_params.get("range", 1) + z_params.get("min", 0)
-    obs_arr[:, LZ_I] = obs_arr[:, LZ_I] * z_params.get("range", 1)
-    obs_arr[:, [T_I, P_I, RH_I, R_I, U_I, V_I]] = obs_arr[:, [T_I, P_I, RH_I, R_I, U_I, V_I]] * other_params.get("range", 1) + other_params.get("min", 0)
-    smoothed_obs[:, Z_I] = smoothed_obs[:, Z_I] * z_params.get("range", 1) + z_params.get("min", 0)
-    smoothed_obs[:, LZ_I] = smoothed_obs[:, LZ_I] * z_params.get("range", 1)
-    smoothed_obs[:, [T_I, P_I, RH_I, R_I, U_I, V_I]] = smoothed_obs[:, [T_I, P_I, RH_I, R_I, U_I, V_I]] * other_params.get("range", 1) + other_params.get("min", 0)
-    smoothed_measurement_unc[:, Z_I] = smoothed_measurement_unc[:, Z_I] * z_params.get("range", 1)
-    smoothed_measurement_unc[:, LZ_I] = smoothed_measurement_unc[:, LZ_I] * z_params.get("range", 1)
-    smoothed_measurement_unc[:, [T_I, P_I, RH_I, R_I, U_I, V_I]] = smoothed_measurement_unc[:, [T_I, P_I, RH_I, R_I, U_I, V_I]] * other_params.get("range", 1)
-
-# number of panels
+# ---------------------------------------------------------
+# 8. plotting: OBSERVATIONS vs EM-SMOOTHED
+# ---------------------------------------------------------
 n_panels = 8
 cols = 4
 rows = 2
@@ -99,74 +142,64 @@ rows = 2
 fig, axes = plt.subplots(rows, cols, figsize=(18, 8))
 axes = axes.flatten()
 
-time = np.arange(len(obs))
+time = np.arange(obs.shape[0])
+vars = ["z", "Lz", "T", "p", "RH", "r", "u", "v"]
 
-vars=['z', 'Lz', 'T', 'p', 'RH', 'r', 'u', 'v']
 for i in range(n_panels):
     ax = axes[i]
-    ax.plot(time, obs_arr[:, i], label="Observation", color="blue", alpha=0.6)
-    ax.fill_between(time, obs_arr[:, i].flatten() - np.array(meas_unc)[:, i].flatten(),
-                    obs_arr[:, i].flatten() + np.array(meas_unc)[:, i].flatten(), color='lightblue', alpha=0.2, label='Measurement Uncertainty')
-    ax.plot(time, smoothed_obs[:, i], label="Smoothed", color="green", alpha=0.6)
-    ax.fill_between(time, smoothed_obs[:, i].flatten() - np.array(smoothed_measurement_unc)[:, i].flatten(),
-                    smoothed_obs[:, i].flatten() + np.array(smoothed_measurement_unc)[:, i].flatten(), color='lightgreen', alpha=0.2, label='Smoothing Uncertainty')
+
+    ax.plot(time, obs[:, i], label="Observation", color="blue", alpha=0.6)
+    ax.fill_between(
+        time,
+        obs[:, i] - meas_unc_95[:, i],
+        obs[:, i] + meas_unc_95[:, i],
+        color="lightblue",
+        alpha=0.2,
+        label="Measurement 95% CI",
+    )
+
+    ax.plot(time, smoothed_obs[:, i], label="EM-smoothed", color="green", alpha=0.6)
+    ax.fill_between(
+        time,
+        smoothed_obs[:, i] - smoothed_measurement_unc[:, i],
+        smoothed_obs[:, i] + smoothed_measurement_unc[:, i],
+        color="lightgreen",
+        alpha=0.2,
+        label="Smoothing 95% CI",
+    )
+
     ax.set_title(f"Component {vars[i]}")
     ax.grid(True)
     ax.legend()
+
 plt.tight_layout()
 plt.show()
-# denormalizza osservazioni e ricalcola theta_v fisica nello stato
-obs_arr, smooth_s_hist = denormalize_and_recompute_thv(
-    obs_arr,
-    scales_params,
-    smooth_s_hist
-)
 
-n_panels = 4
-cols = 2
-rows = 2
+# ---------------------------------------------------------
+# 9. plotting: SMOOTHED STATE COMPONENTS (12 variables)
+# ---------------------------------------------------------
+state_vars = ["z", "Lz", "θv", "Lθv", "p", "RH", "LRH", "r", "u", "Lu", "v", "Lv"]
 
-fig, axes = plt.subplots(rows, cols, figsize=(12, 6))
-axes = axes.flatten()
+fig2, axes2 = plt.subplots(3, 4, figsize=(20, 10))
+axes2 = axes2.flatten()
 
-vars = ['Thv', 'LThv', 'LRH', 'Lu / Lv']
-state_indices = [Thv_S, LThv_S, LRH_S, (LU_S, LV_S)]
+state_unc_95 = 2 * smoothed_states_unc
 
-for i in range(n_panels):
-    ax = axes[i]
-    if i < 3:
-        idx = state_indices[i]
-        state_series = smooth_s_hist[:, idx]
-        state_unc = smoothed_states_unc[:, idx]
-        ax.plot(time, state_series, label="Smoothed State", color="green", alpha=0.6)
-        ax.fill_between(
-            time,
-            state_series.flatten() - state_unc.flatten() * 2,
-            state_series.flatten() + state_unc.flatten() * 2,
-            color='lightgreen', alpha=0.2, label='Smoothed State Uncertainty'
-        )
-    else:
-        idx_u, idx_v = state_indices[i]
-        state_series_u = smooth_s_hist[:, idx_u]
-        state_unc_u = smoothed_states_unc[:, idx_u]
-        state_series_v = smooth_s_hist[:, idx_v]
-        state_unc_v = smoothed_states_unc[:, idx_v]
+for i in range(12):
+    ax = axes2[i]
 
-        ax.plot(time, state_series_u, label="Smoothed Lu", color="green", alpha=0.6)
-        ax.fill_between(
-            time,
-            state_series_u.flatten() - state_unc_u.flatten() * 2,
-            state_series_u.flatten() + state_unc_u.flatten() * 2,
-            color='lightgreen', alpha=0.2
-        )
-        ax.plot(time, state_series_v, label="Smoothed Lv", color="darkgreen", alpha=0.6)
-        ax.fill_between(
-            time,
-            state_series_v.flatten() - state_unc_v.flatten() * 2,
-            state_series_v.flatten() + state_unc_v.flatten() * 2,
-            color='palegreen', alpha=0.2
-        )
-    ax.set_title(f"State Component {vars[i]}")
+    ax.plot(time, smooth_s_hist[:, i], color="orange", alpha=0.8, label="Smoothed state")
+
+    ax.fill_between(
+        time,
+        smooth_s_hist[:, i] - state_unc_95[:, i],
+        smooth_s_hist[:, i] + state_unc_95[:, i],
+        color="salmon",
+        alpha=0.2,
+        label="95% CI"
+    )
+
+    ax.set_title(state_vars[i])
     ax.grid(True)
     ax.legend()
 

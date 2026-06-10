@@ -9,24 +9,6 @@ from ssm.ssm_model import (
 
 
 def guess_initial_state(obs, meas_var):
-    """
-    Guess initial state s0 and covariance P0 from observations.
-
-    Parameters
-    ----------
-    obs : ndarray (n,8)
-        Observations [z, Lz, T, p, RH, r, u, v]
-    meas_var : ndarray (n,8)
-        Measurement variances
-
-    Returns
-    -------
-    s0 : ndarray (12,)
-        Initial state estimate
-    P0 : ndarray (12,12)
-        Initial covariance estimate
-    """
-
     n = obs.shape[0]
     if n < 2:
         raise ValueError("Need at least 2 observations to estimate trends.")
@@ -37,11 +19,20 @@ def guess_initial_state(obs, meas_var):
     o0 = obs[0]
     o1 = obs[1]
 
+    # enforce physical constraints
+    T0 = max(o0[T_I], 0.1)
+    p0 = max(o0[P_I], 1.0)
+    r0 = max(o0[R_I], 0.0)
+
+    T1 = max(o1[T_I], 0.1)
+    p1 = max(o1[P_I], 1.0)
+    r1 = max(o1[R_I], 0.0)
+
     # ---------------------------------------------------------
     # Compute theta_v and its trend
     # ---------------------------------------------------------
-    thv0 = gp.virtual_potential_temperature(o0[T_I], o0[P_I], o0[R_I])
-    thv1 = gp.virtual_potential_temperature(o1[T_I], o1[P_I], o1[R_I])
+    thv0 = gp.virtual_potential_temperature(T0, p0, r0)
+    thv1 = gp.virtual_potential_temperature(T1, p1, r1)
     Lthv0 = thv1 - thv0
 
     # ---------------------------------------------------------
@@ -77,17 +68,13 @@ def guess_initial_state(obs, meas_var):
     P0[V_S, V_S]   = meas_var[0, V_I]
 
     # ---------------------------------------------------------
-    # Propagate variance to theta_v using forward derivatives
+    # Propagate variance to theta_v using correct derivatives
     # ---------------------------------------------------------
-    T0 = o0[T_I]
-    p0 = o0[P_I]
-    r0 = o0[R_I]
-
     A = (gp.p0 / p0) ** gp.Poisson_exponent
     B = (1.0 + 0.61 * r0)
 
     dthv_dT = A * B
-    dthv_dp = -gp.Poisson_exponent * T0 * A * B / p0
+    dthv_dp = -gp.Poisson_exponent * (thv0 / p0)
     dthv_dr = 0.61 * T0 * A
 
     thv_var = (
@@ -98,7 +85,7 @@ def guess_initial_state(obs, meas_var):
 
     P0[Thv_S, Thv_S] = thv_var
 
-    # trend variances: set to moderate values
+    # trend variances
     P0[LThv_S, LThv_S] = 1.0
     P0[LRH_S,  LRH_S]  = 1.0
     P0[LU_S,   LU_S]   = 1.0
