@@ -12,8 +12,7 @@ def preprocess_profile(path, upper_bound=3000):
         obs       : ndarray (n, 8)
         meas_var  : ndarray (n, 8)
 
-    No normalization, no model components.
-    Only raw observations and measurement variances.
+    r is converted from ppm to kg/kg.
     """
 
     # ---------------------------------------------------------
@@ -42,7 +41,11 @@ def preprocess_profile(path, upper_bound=3000):
     T   = data['temp'].values
     p   = data['press'].values
     RH  = data['rh'].values
-    r   = data['wvmr_mass'].values
+
+    # r in GRUAN is in ppm → convert to kg/kg
+    r_ppm = data['wvmr_mass'].values
+    r = r_ppm * 1e-6
+
     u   = data['wzon'].values
     v   = data['wmeri'].values
 
@@ -54,7 +57,11 @@ def preprocess_profile(path, upper_bound=3000):
     T_var  = (data['temp_uc'].values * 0.5)**2
     p_var  = (data['press_uc'].values * 0.5)**2
     RH_var = (data['rh_uc'].values * 0.5)**2
-    r_var  = (data['wvmr_mass_uc'].values * 0.5)**2
+
+    # r uncertainty also in ppm → convert to kg/kg
+    r_ppm_uc = data['wvmr_mass_uc'].values
+    r_var = (r_ppm_uc * 1e-6 * 0.5)**2
+
     u_var  = (data['wzon_uc'].values * 0.5)**2
     v_var  = (data['wmeri_uc'].values * 0.5)**2
 

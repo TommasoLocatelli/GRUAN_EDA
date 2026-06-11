@@ -14,16 +14,27 @@ def standardize_obs(obs, meas_var, eps=1e-9):
     obs = np.asarray(obs)
     meas_var = np.asarray(meas_var)
 
+    # min–max standard per tutte le variabili
     o_min = obs.min(axis=0)
     o_max = obs.max(axis=0)
     rng = o_max - o_min + eps
+
+    # --- CORREZIONE: forzare stesso scaling per z e Lz ---
+    z_min = o_min[Z_I]
+    z_max = o_max[Z_I]
+    z_rng = z_max - z_min + eps
+
+    o_min[Z_I]  = z_min
+    o_min[LZ_I] = z_min
+    rng[Z_I]    = z_rng
+    rng[LZ_I]   = z_rng
+    # -----------------------------------------------------
 
     obs_std = (obs - o_min) / rng
     meas_var_std = meas_var / (rng**2)
 
     params = {"min": o_min, "max": o_max, "range": rng}
     return obs_std, meas_var_std, params
-
 
 # ============================================================
 # 2. DENORMALIZATION OF OBSERVATIONS

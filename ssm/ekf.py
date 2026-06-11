@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Callable, Optional
-
+from ssm.standardize import standardize_obs, denormalize_obs, reconstruct_physical_states
 
 class ExtendedKalmanFilter:
     def __init__(
@@ -17,6 +17,7 @@ class ExtendedKalmanFilter:
         use_pinv: bool = False,
         state_min: Optional[np.ndarray] = None,
         state_max: Optional[np.ndarray] = None,
+        standardize: bool = False,
     ):
         # -----------------------------------------------------
         # dimensions
@@ -39,6 +40,7 @@ class ExtendedKalmanFilter:
         # -----------------------------------------------------
         # observations
         # -----------------------------------------------------
+        
         self.obs = obs.reshape(self.n, self.q)
 
         # measurement noise covariance R_t (n,q,q)

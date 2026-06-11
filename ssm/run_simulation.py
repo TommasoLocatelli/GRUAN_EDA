@@ -16,6 +16,7 @@ from ssm.guess_starting_values import guess_initial_state
 from ssm.ekf import ExtendedKalmanFilter
 from ssm.em_ekf import EKF_EM
 import gruanpy as gp
+from ssm.standardize import standardize_obs, denormalize_obs, reconstruct_physical_states
 
 
 example_paths = [
@@ -31,6 +32,8 @@ path = example_paths[0]
 # 1. preprocess: obs, meas_var (PHYSICAL)
 # ---------------------------------------------------------
 obs, meas_var = preprocess_profile(path, upper_bound=3000)
+
+obs, meas_var, _ = standardize_obs(obs, meas_var)
 meas_unc_95 = 2 * np.sqrt(meas_var)
 
 # ---------------------------------------------------------
@@ -53,7 +56,7 @@ state_max = np.full(12,  np.inf)
 state_min[P_S] = 1e-3
 state_min[R_S] = 1e-8
 state_min[RH_S] = 0.0
-state_max[RH_S] = 100.0
+state_max[RH_S] = 120.0
 
 kf = ExtendedKalmanFilter(
     PHI, Q0, A, J_A, s0, P0, obs, meas_var,
