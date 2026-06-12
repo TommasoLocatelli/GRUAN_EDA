@@ -96,12 +96,27 @@ class ExtendedKalmanFilter:
     # ---------------------------------------------------------
     # constraints
     # ---------------------------------------------------------
-    def _apply_state_constraints(self, s: np.ndarray) -> np.ndarray:
+    def _apply_state_constraints_old(self, s: np.ndarray) -> np.ndarray:
         s_clamped = s.copy()
         if self.state_min is not None:
             s_clamped = np.maximum(s_clamped, self.state_min)
         if self.state_max is not None:
             s_clamped = np.minimum(s_clamped, self.state_max)
+        return s_clamped
+    
+    def _apply_state_constraints(self, s: np.ndarray) -> np.ndarray:
+        s_clamped = s.copy()
+
+        if self.state_min is not None:
+            for i in range(len(s_clamped)):
+                if self.state_min[i] is not None:
+                    s_clamped[i] = max(s_clamped[i], self.state_min[i])
+
+        if self.state_max is not None:
+            for i in range(len(s_clamped)):
+                if self.state_max[i] is not None:
+                    s_clamped[i] = min(s_clamped[i], self.state_max[i])
+
         return s_clamped
 
     # ---------------------------------------------------------

@@ -33,7 +33,7 @@ path = example_paths[0]
 # ---------------------------------------------------------
 obs, meas_var = preprocess_profile(path, upper_bound=3000)
 
-obs, meas_var, _ = standardize_obs(obs, meas_var)
+#obs, meas_var, _ = standardize_obs(obs, meas_var)
 meas_unc_95 = 2 * np.sqrt(meas_var)
 
 # ---------------------------------------------------------

@@ -47,14 +47,15 @@ s0, P0 = guess_initial_state(obs, meas_var)
 # ---------------------------------------------------------
 # 3. initial process noise (PHYSICAL)
 # ---------------------------------------------------------
-Q_scale = 1e3
+Q_scale = 1e1
 Q0 = np.eye(len(s0)) * Q_scale
+Q0[LThv_S, LThv_S] *= 1e3 ### LThv sempre positiva?!
 
 # ---------------------------------------------------------
 # 4. EM algorithm on Q, s0, P0
 # ---------------------------------------------------------
-state_min = np.full(12, -np.inf)
-state_max = np.full(12,  np.inf)
+state_min = np.full(12, -1e12)
+state_max = np.full(12,  1e12)
 
 state_min[P_S] = 1e-3      # p > 0
 state_min[R_S] = 1e-8      # r > 0
