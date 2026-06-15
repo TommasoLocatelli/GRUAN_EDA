@@ -60,14 +60,13 @@ state_max = np.full(12,  1e12)
 state_min[P_S] = 1e-3      # p > 0
 state_min[R_S] = 1e-8      # r > 0
 state_min[RH_S] = 0.0      # RH >= 0 (in %)
-state_max[RH_S] = 120.0    # RH <= 100 (in %)
+state_max[RH_S] = 120.0    # RH <= 120 (in %)
 
 kf = ExtendedKalmanFilter(
     PHI, Q0, A, J_A, s0, P0, obs, meas_var,
     state_min=state_min,
     state_max=state_max,
 )
-
 
 em = EKF_EM(kf)   # <-- wrap the EKF
 
