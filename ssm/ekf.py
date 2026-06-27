@@ -269,62 +269,214 @@ class ExtendedKalmanFilter:
         return s_smooth, P_smooth, J_smooth, lag_one_cov
 
     # ---------------------------------------------------------
-    # simulation smoother (state simulation)
+    # full simulation smoother (disturbances + states)
     # ---------------------------------------------------------
-    def simulate_states(self):
+    def simulation_smoothing(self, seed: Optional[int] = None):
+        """
+        Approximate Durbin-Koopman simulation smoother.
+
+        Returns
+        -------
+        eps_sim : (n,q)
+            Simulated observation disturbances
+        eta_sim : (n-1,p)
+            Simulated state disturbances
+        alpha_sim : (n,p)
+            Simulated states
+        y_sim : (n,q)
+            Simulated observations
+        """
+        if seed is not None:
+            np.random.seed(seed)
+
+        if not self._filtered:
+            self.filter()
+
         if not self._smoothed:
-            raise RuntimeError("Run smooth() first.")
+            self.smooth()
 
-        n, p = self.n, self.p
-        states = np.zeros((n, p))
-        I = np.eye(p)
+        n, p, q = self.n, self.p, self.q
 
-        # sample final state
-        Pn = 0.5 * (self.smooth_p_hist[-1] + self.smooth_p_hist[-1].T)
-        Pn += self.jitter * I
-        states[-1] = np.random.multivariate_normal(
-            self.smooth_s_hist[-1],
-            Pn,
-        )
+        # -----------------------------------------------------
+        # Allocate outputs
+        # -----------------------------------------------------
+        eps_sim = np.zeros((n, q))
+        eta_sim = np.zeros((n - 1, p))
+        alpha_sim = np.zeros((n, p))
 
-        for t in range(n - 2, -1, -1):
-            P_t = self.smooth_p_hist[t]
-            P_tp1 = self.smooth_p_hist[t + 1]
-            P_pred_next = self.p_pred_hist[t + 1]
+        # -----------------------------------------------------
+        # Backward recursion arrays
+        # -----------------------------------------------------
+        r_tilde = np.zeros((n + 1, p))
+        N_tilde = np.zeros((n + 1, p, p))
 
-            P_pred_next = 0.5 * (P_pred_next + P_pred_next.T)
-            P_pred_next += self.jitter * I
-
-            if self.use_pinv:
-                inv_Ppred = np.linalg.pinv(P_pred_next)
-            else:
-                inv_Ppred = np.linalg.inv(P_pred_next)
-
-            J = P_t @ self.Phi.T @ inv_Ppred
-
-            mean = self.smooth_s_hist[t] + J @ (states[t + 1] - self.smooth_s_hist[t + 1])
-
-            cov = P_t - J @ P_tp1 @ J.T
-            cov = 0.5 * (cov + cov.T)
-            cov += self.jitter * I
-
-            states[t] = np.random.multivariate_normal(mean, cov)
-
-        return states
-
-    # ---------------------------------------------------------
-    # simulate observations
-    # ---------------------------------------------------------
-    def simulate_observations(self, states: np.ndarray):
-        n, q = self.n, self.q
-        obs_sim = np.zeros((n, q))
+        # -----------------------------------------------------
+        # Precompute quantities
+        # -----------------------------------------------------
+        v = np.zeros((n, q))
+        F = np.zeros((n, q, q))
+        K = self.gains_hist.copy()
+        L = np.zeros((n, p, p))
 
         for t in range(n):
-            mean = self.A(states[t])
-            noise = np.random.multivariate_normal(np.zeros(q), self.R[t])
-            obs_sim[t] = mean + noise
 
-        return obs_sim
+            J_t = self.J(self.s_pred_hist[t])
+
+            y_pred = self.A(self.s_pred_hist[t]).reshape(q)
+
+            v[t] = self.obs[t] - y_pred
+
+            F[t] = (
+                J_t
+                @ self.p_pred_hist[t]
+                @ J_t.T
+                + self.R[t]
+            )
+
+            F[t] = 0.5 * (F[t] + F[t].T)
+            F[t] += self.jitter * np.eye(q)
+
+            L[t] = self.Phi - K[t] @ J_t
+
+        # -----------------------------------------------------
+        # Backward disturbance recursion
+        # -----------------------------------------------------
+        for t in reversed(range(n)):
+
+            if self.use_pinv:
+                F_inv = np.linalg.pinv(F[t])
+            else:
+                F_inv = np.linalg.inv(F[t])
+
+            J_t = self.J(self.s_pred_hist[t])
+            H_t = self.R[t]
+
+            W_t = (
+                F_inv @ J_t
+                - K[t].T @ N_tilde[t + 1] @ L[t]
+            ).T @ H_t
+
+            D_t = (
+                F_inv
+                + K[t].T @ N_tilde[t + 1] @ K[t]
+            )
+
+            C_t = H_t - H_t @ D_t @ H_t
+
+            # numerical stabilization
+            C_t = 0.5 * (C_t + C_t.T)
+            C_t += self.jitter * np.eye(q)
+
+            eigvals, eigvecs = np.linalg.eigh(C_t)
+            eigvals = np.maximum(eigvals, 0.0)
+            C_t = eigvecs @ np.diag(eigvals) @ eigvecs.T
+
+            d_t = np.random.multivariate_normal(
+                mean=np.zeros(q),
+                cov=C_t,
+            )
+
+            if self.use_pinv:
+                C_inv_d = np.linalg.pinv(C_t) @ d_t
+            else:
+                C_inv_d = np.linalg.pinv(C_t) @ d_t
+
+            r_tilde[t] = (
+                J_t.T @ F_inv @ v[t]
+                - W_t @ C_inv_d
+                + L[t].T @ r_tilde[t + 1]
+            )
+
+            if self.use_pinv:
+                C_inv_WT = np.linalg.pinv(C_t) @ W_t.T
+            else:
+                C_inv_WT = np.linalg.pinv(C_t) @ W_t.T
+
+            N_tilde[t] = (
+                J_t.T @ F_inv @ J_t
+                + W_t @ C_inv_WT
+                + L[t].T @ N_tilde[t + 1] @ L[t]
+            )
+
+            N_tilde[t] = 0.5 * (
+                N_tilde[t] + N_tilde[t].T
+            )
+
+            eps_sim[t] = (
+                d_t
+                + H_t
+                @ (
+                    F_inv @ v[t]
+                    - K[t].T @ r_tilde[t + 1]
+                )
+            )
+
+        # -----------------------------------------------------
+        # Simulate state disturbances
+        # -----------------------------------------------------
+        for t in range(n - 1):
+
+            C_eta = (
+                self.Q
+                - self.Q @ N_tilde[t + 1] @ self.Q
+            )
+
+            C_eta = 0.5 * (C_eta + C_eta.T)
+            C_eta += self.jitter * np.eye(p)
+
+            eigvals, eigvecs = np.linalg.eigh(C_eta)
+            eigvals = np.maximum(eigvals, 0.0)
+            C_eta = eigvecs @ np.diag(eigvals) @ eigvecs.T
+
+            d_t = np.random.multivariate_normal(
+                mean=np.zeros(p),
+                cov=C_eta,
+            )
+
+            eta_sim[t] = (
+                d_t
+                + self.Q @ r_tilde[t + 1]
+            )
+
+        # -----------------------------------------------------
+        # Simulate states
+        # -----------------------------------------------------
+        P0 = 0.5 * (self.P_0 + self.P_0.T)
+        P0 += self.jitter * np.eye(p)
+
+        alpha_sim[0] = (
+            self.s_0
+            + np.random.multivariate_normal(
+                mean=np.zeros(p),
+                cov=P0,
+            )
+        )
+
+        for t in range(n - 1):
+
+            alpha_sim[t + 1] = (
+                self.Phi @ alpha_sim[t]
+                + eta_sim[t]
+            )
+
+        # -----------------------------------------------------
+        # Simulate observations
+        # -----------------------------------------------------
+        y_sim = np.zeros((n, q))
+
+        for t in range(n):
+
+            y_sim[t] = (
+                self.A(alpha_sim[t]).reshape(q)
+                + eps_sim[t]
+            )
+
+        return (
+            eps_sim,
+            eta_sim,
+            alpha_sim,
+            y_sim,
+        )
 
     # ---------------------------------------------------------
     # data likelihood

@@ -100,8 +100,7 @@ smooth_s_hist, smooth_p_hist, smooth_gains_hist, lag_one_cov_hist = kf_em.smooth
 # ---------------------------------------------------------
 # 6. simulate from EM-estimated model
 # ---------------------------------------------------------
-sim_states = kf_em.simulate_states()          # shape (n, 12)
-sim_obs = kf_em.simulate_observations(sim_states)  # shape (n, 8)
+eps_sim, eta_sim, state_sim, obs_sim = kf_em.simulation_smoothing(seed=42)   
 
 time = np.arange(obs.shape[0])
 
@@ -116,7 +115,7 @@ axes = axes.flatten()
 for i in range(12):
     ax = axes[i]
     ax.plot(time, smooth_s_hist[:, i], label="Smoothed", color="orange", alpha=0.8)
-    ax.plot(time, sim_states[:, i], label="Simulated", color="blue", alpha=0.6)
+    ax.plot(time, state_sim[:, i], label="Simulated", color="blue", alpha=0.6)
     ax.set_title(state_names[i])
     ax.grid(True)
     ax.legend()
@@ -135,7 +134,7 @@ axes = axes.flatten()
 for i in range(8):
     ax = axes[i]
     ax.plot(time, obs[:, i], label="Observed", color="blue", alpha=0.7)
-    ax.plot(time, sim_obs[:, i], label="Simulated", color="orange", alpha=0.7)
+    ax.plot(time, obs_sim[:, i], label="Simulated", color="orange", alpha=0.7)
     ax.set_title(obs_names[i])
     ax.grid(True)
     ax.legend()

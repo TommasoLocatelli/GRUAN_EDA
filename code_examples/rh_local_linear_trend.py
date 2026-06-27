@@ -5,7 +5,7 @@ import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import gruanpy as gp
 from code_examples.visual_config.color_map import map_labels_to_colors
-from ssm.local_trend import RHLocalLinearTrend
+from ssm.statsmodels.local_trend import RHLocalLinearTrend
 
 example_paths = [
     r'gdp\icm16\LIN-RS-01_2_RS41-GDP_001_20170303T120000_1-004-002.nc',
