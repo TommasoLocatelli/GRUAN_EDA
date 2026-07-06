@@ -17,7 +17,7 @@ temp/*
 !gdp/icm16/
 !gdp/icm16/**
 
-.pkl
+*.pkl
 
 # Distribution / packaging
 .Python
