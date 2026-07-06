@@ -11,9 +11,9 @@ start_time = time.time()   # <-- start timer
 
 random.seed(42)
 
+# select list of unzipped annual gdp folder
 folders = [
-    r'gdp\products_RS41-GDP-1_LAU-RS-02_2024',
-    r'gdp\products_RS41-GDP-1_HKO-RS-01_2024'
+    r'gdp\products_RS41-GDP-1_LIN-RS-01_2024'
 ]
 
 for folder in folders:
@@ -35,8 +35,11 @@ for folder in folders:
         continue
 
     if len(nc_files) > 800:
-        nc_files = random.sample(nc_files, 750)
-        print(f"Sampled subset of 750 files from {folder} (seed=42)")
+        nc_files = [
+        f for f in nc_files
+        if ("T000000" in f or "T120000" in f)
+        ]
+        print(f"Keeping only T00 and T12 files: {len(nc_files)} found")
 
     for nc in tqdm.tqdm(nc_files[:]):
         try:
