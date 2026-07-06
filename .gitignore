@@ -17,6 +17,8 @@ temp/*
 !gdp/icm16/
 !gdp/icm16/**
 
+.pkl
+
 # Distribution / packaging
 .Python
 build/
