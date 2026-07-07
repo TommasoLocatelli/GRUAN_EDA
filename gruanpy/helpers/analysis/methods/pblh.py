@@ -114,35 +114,67 @@ class PBLHMethods:
 
     def bulk_richardson_number_method(self, data, propagate_uncertainty=False):
         """
-        version of Seidel et al. (2012) using bulk Richardson number
+        Bulk Richardson number using:
+        - virtual potential temperature (θv)
+        - wzon, wmeri (not wspeed + wdir)
         """
+
         self._find_upper_bound(data)
-        # computes missing variables if not present
-        data['es']=FM.tetens_equation(data['temp']) if 'es' not in data else data['es']
-        data['es_uc']=FM.saturation_vapor_pressure_uncertainty(data['temp'], data['temp_uc']) if 'es' not in data and propagate_uncertainty else None
-        data['e']=FM.water_vapor_pressure_from_RH(data['rh'], data['es']) if 'e' not in data else data['e']
-        data['virtual_temp']=FM.virtual_temperature(data['temp'], data['e'], data['press']) if 'virtual_temp' not in data else data['virtual_temp']
-        data['virtual_theta']=FM.potential_temperature(data['virtual_temp'], data['press']) if 'virtual_theta' not in data else data['virtual_theta']
-        data['uspeed'] = data['wspeed'] * np.cos(np.radians(data['wdir'])) if 'uspeed' not in data else data['uspeed']
-        data['vspeed'] = data['wspeed'] * np.sin(np.radians(data['wdir'])) if 'vspeed' not in data else data['vspeed']
-        # compute Richardson number
-        surface_virtual_potential_temperature = data['virtual_theta'].iloc[0]
-        data['Ri_b'] = FM.bulk_richardson_number(surface_virtual_potential_temperature, data['virtual_theta'], data['alt'], data['uspeed'], data['vspeed'])
-        # apply criterion
+
+        # --- Compute missing variables ---
+        # saturation vapor pressure
+        if 'es' not in data:
+            data['es'] = FM.tetens_equation(data['temp'])
+            if propagate_uncertainty:
+                data['es_uc'] = FM.saturation_vapor_pressure_uncertainty(
+                    data['temp'], data['temp_uc']
+                )
+
+        # water vapor pressure
+        if 'e' not in data:
+            data['e'] = FM.water_vapor_pressure_from_RH(data['rh'], data['es'])
+
+        # --- Virtual potential temperature (θv) ---
+        # GRUAN-style: virtual_temp → potential_temperature
+        # Your style: directly virtual_potential_temperature
+        data['virtual_theta'] = FM.virtual_potential_temperature(
+            data['temp'], data['press'], data['wvmr_mass'] * 1e-6
+        )
+
+        # --- Use wzon and wmeri directly ---
+        data['uspeed'] = data['wzon']
+        data['vspeed'] = data['wmeri']
+
+        # --- Compute bulk Richardson number ---
+        thv_surf = data['virtual_theta'].iloc[0]
+
+        data['Ri_b'] = FM.bulk_richardson_number(
+            thv_surf,
+            data['virtual_theta'],
+            data['alt'],
+            data['uspeed'],
+            data['vspeed']
+        )
+
+        # --- Apply criterion ---
         data['pblh_Ri'] = 0
-        index = data[(data['Ri_b'] > 0.25) & (data['alt'] <= self.altitude_bound)].index
-        if not index.empty:
-            pblh_index = index[0]
-            data.at[pblh_index, 'pblh_Ri'] = 1
+        idx = data[(data['Ri_b'] > 0.25) & (data['alt'] <= self.altitude_bound)].index
+
+        if len(idx) > 0:
+            data.at[idx[0], 'pblh_Ri'] = 1
+
         return data
 
-    def apply_pblh_methods(self, data):
+
+    def apply_pblh_methods(self, data, include_q=False):
         data = self.parcel_method(data) # calculate PBLH using parcel method
         data = self.potential_temperature_gradient(data, virtual=True) # calculate potential temperature gradient
         data = self.RH_gradient(data) # calculate RH gradient
-        data = self.specific_humidity_gradient(data) # calculate specific humidity gradient
         data = self.bulk_richardson_number_method(data) # calculate gradient Richardson number
+        if include_q:
+            data = self.specific_humidity_gradient(data) # calculate specific humidity gradient
         return data
 
-    def pblh_values(self, data, methods = ['pblh_pm', 'pblh_theta', 'pblh_rh', 'pblh_q', 'pblh_Ri']):
+    def pblh_values(self, data, methods = ['pblh_pm', 'pblh_theta', 'pblh_rh', 'pblh_Ri']):
+        # add pblh_q if interested
         return tuple(data['alt'][data[method] == 1].iloc[0] if method in data.columns and (data[method] == 1).any() else None for method in methods)

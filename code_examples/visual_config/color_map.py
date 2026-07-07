@@ -1,5 +1,3 @@
-# Trying to maintain consistency across plots in various code_example scripts
-
 map_labels_to_colors = {
     'alt': "#1A6478",
     'alt_uc': "#47B5D3",
@@ -14,6 +12,7 @@ map_labels_to_colors = {
     'rh': "#2C3993",
     'rh_uc': 'lightskyblue',
     'q': "#125F20",
+    'q_uc': "#26BD42",
     'es': "#1A785C",
     'es_uc': "#47EEBC",
     'e': "#A41A8F",
@@ -28,9 +27,22 @@ map_labels_to_colors = {
     'vspeed_uc': "#60F19C",
     'Ri_b': "#7E3395",
     'Ri_b_uc': "#CA68E8",
+
+    # -------------------------
+    # PBLH methods (standard)
+    # -------------------------
     'pblh_pm': "#C71251CF",
     'pblh_theta': "#C7A012",
     'pblh_rh': "#2C3993",
     'pblh_q': "#125F18",
     'pblh_Ri': "#7E3395",
+
+    # -------------------------
+    # PBLH uncertainty colors
+    # -------------------------
+    'pblh_pm_uc': "#D06389CF",      # same hue, lower opacity
+    'pblh_theta_uc': "#C7A01280",
+    'pblh_rh_uc': "#2C399380",
+    'pblh_q_uc': "#125F1880",
+    'pblh_Ri_uc': "#7E339580",
 }

@@ -96,7 +96,7 @@ class Formulas:
         Returns:
         float or array-like: Virtual potential temperature in Kelvin.
         """
-        thv = T * (self.p0 / p) ** (CNST.Poisson_exponent) * (1 + 0.61 * r)
+        thv = T * (CNST.p0 / p) ** (CNST.Poisson_exponent) * (1 + 0.61 * r)
         return thv
     
     def virtual_potential_temperature_uncertainty(self, T, p, r, T_uc, p_uc, r_uc, p0=1000.0):
@@ -294,3 +294,40 @@ class Formulas:
         denominator = u**2 + v**2
         Ri_b = numerator / denominator
         return Ri_b
+    
+    def bulk_richardson_number_uncertainty_np(self,
+        thv_s, thv, z, u, v,
+        thv_s_unc, thv_unc, z_unc, u_unc, v_unc,
+        g=9.80665
+    ):
+        thv_s      = np.asarray(thv_s, dtype=float)
+        thv        = np.asarray(thv, dtype=float)
+        z          = np.asarray(z, dtype=float)
+        u          = np.asarray(u, dtype=float)
+        v          = np.asarray(v, dtype=float)
+        thv_s_unc  = np.asarray(thv_s_unc, dtype=float)
+        thv_unc    = np.asarray(thv_unc, dtype=float)
+        z_unc      = np.asarray(z_unc, dtype=float)
+        u_unc      = np.asarray(u_unc, dtype=float)
+        v_unc      = np.asarray(v_unc, dtype=float)
+
+        C = u**2 + v**2
+        B = (thv - thv_s) * z
+
+        Ri = (g / thv_s) * B / C
+
+        dRi_dthv  = (g / thv_s) * (z / C)
+        dRi_dthvs = -(g / thv_s**2) * (B / C) - (g / thv_s) * (z / C)
+        dRi_dz    = (g / thv_s) * ((thv - thv_s) / C)
+        dRi_du    = -(2*u / C**2) * (g / thv_s) * B
+        dRi_dv    = -(2*v / C**2) * (g / thv_s) * B
+
+        Ri_unc = np.sqrt(
+            (dRi_dthv  * thv_unc)**2 +
+            (dRi_dthvs * thv_s_unc)**2 +
+            (dRi_dz    * z_unc)**2 +
+            (dRi_du    * u_unc)**2 +
+            (dRi_dv    * v_unc)**2
+        )
+
+        return Ri_unc
