@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from methodology import *
 from tqdm import tqdm
 from code_examples.visual_config.color_map import map_labels_to_colors
-from plot_profile import plot_ssm_diagnostics_short, plot_ssm_diagnostics_full
+from plot_profile import plot_ssm_diagnostics_short, plot_ssm_diagnostics_full, plot_ssm_diagnostics_with_hist
 
 # ---------------------------------------------------------
 # Specify the pickle file you want to load
@@ -17,6 +17,12 @@ from plot_profile import plot_ssm_diagnostics_short, plot_ssm_diagnostics_full
 pkl_path = r"papers\pblh_unc\gdp_2024_POT-RS-02_2024.pkl"
 
 pkl_path = r"papers\pblh_unc\gdp_2024_POT-RS-01_2024.pkl"
+
+#pkl_path=r'papers\pblh_unc\gdp_2024_HKO-RS-01_2024.pkl'
+
+#pkl_path=r'papers\pblh_unc\gdp_2024_LAU-RS-02_2024.pkl'
+
+pkl_path=r'papers\pblh_unc\gdp_2024_LIN-RS-01_2024.pkl'
 # ---------------------------------------------------------
 # Load the dataset
 # ---------------------------------------------------------
@@ -45,9 +51,11 @@ for pid, gdp in tqdm(dataset.items()):
         method='powell'
         model, results = fit_ssm(gdp, method=method, iterations=50)
     except:
-        method='lbfgs'
-        model, results = fit_ssm(gdp, method=method, iterations=100)
-        
+        try:
+            method='lbfgs'
+            model, results = fit_ssm(gdp, method=method, iterations=100)
+        except:
+            pass
     print(method, results.mle_retvals)
 
     # 2. Smooth variables
@@ -190,10 +198,6 @@ for pid, gdp in tqdm(dataset.items()):
 
     ri_o = gp.bulk_richardson_number(thv_o[0], thv_o, alt_o, u_o, v_o)
     
-    plt.plot(ri_o, alt_o)
-    plt.plot(data['Ri_b'],alt_o)
-    plt.show()
-    
     ri_o_unc = gp.bulk_richardson_number_uncertainty_np(
     thv_o[0], thv_o, alt_o, u_o, v_o,
     thv_o_unc[0], thv_o_unc, alt_o_unc, u_o_unc, v_o_unc
@@ -228,18 +232,30 @@ for pid, gdp in tqdm(dataset.items()):
         "high":   pblh_unc["ri"]["97.5"],
     }}
 
+    # Add MC samples to pblh_info
+    pblh_info["pm"]["samples"]  = df_sim["pm"].values
+    pblh_info["thv"]["samples"] = df_sim["thv"].values
+    pblh_info["rh"]["samples"]  = df_sim["rh"].values
+    pblh_info["ri"]["samples"]  = df_sim["ri"].values
+
+    where = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Site.Name']['Value'].values[0] # location
+    when = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Measurement.StartTime']['Value'].values[0] # time
+    when=when[0:10]
+    tod=gdp.global_attrs[gdp.global_attrs['Attribute'] == "g.Measurement.TimeOfDay"]['Value'].values[0] # time
+    
     plot_ssm_diagnostics_short(
-        pid,
+        pid, where, when, tod,
         alt_o, thv_o, rh_o, u_o, v_o,
         thv_o_unc, rh_o_unc, u_o_unc, v_o_unc,
         alt_s, thv_s, rh_s, u_s, v_s,
         thv_s_unc, rh_s_unc, u_s_unc, v_s_unc,
         simulations,
-        pblh_info,
+        None,#pblh_info,
         map_labels_to_colors,
         scatter_obs=True
     )
 
+    comment="""
     plot_ssm_diagnostics_full(
     pid,
     alt_o, thv_o, rh_o, u_o, v_o,
@@ -257,7 +273,4 @@ for pid, gdp in tqdm(dataset.items()):
     alpha=0.75,
     alpha_unc=0.30,
     alpha_sim=0.02
-    )
-
-
-
+    )"""

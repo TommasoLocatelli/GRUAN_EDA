@@ -189,13 +189,19 @@ def smooth_variables(smoothed_state, smoothed_state_cov=None):
     # ----------------------------------------------------
     # Richardson number and uncertainty
     # ----------------------------------------------------
-    g = 9.81
 
-    sm_rich = ((g / sm_thv) * (sm_thv_rc / sm_alt_rc)) / (
-        (sm_u_rc / sm_alt_rc)**2 + (sm_v_rc / sm_alt_rc)**2
-    )
+    # bulk
+    sm_rich = gp.bulk_richardson_number(sm_thv[0], sm_thv, sm_alt, sm_u, sm_v)
+    
+    g = 9.81
+    #sm_rich = ((g / sm_thv[0]) * (sm_thv_rc / sm_alt_rc)) / ((sm_u_rc / sm_alt_rc)**2 + (sm_v_rc / sm_alt_rc)**2)
 
     if smoothed_state_cov is not None:
+        sm_rich_uc = gp.bulk_richardson_number_uncertainty_np(
+            sm_thv[0], sm_thv, sm_alt, sm_u, sm_v,
+            sm_thv_unc[0], sm_thv_unc, sm_alt_unc, sm_u_unc, sm_v_unc
+            )
+
 
         thv_term = (g / sm_thv) * (sm_thv_rc / sm_alt_rc)
         wind_shear = (sm_u_rc / sm_alt_rc)**2 + (sm_v_rc / sm_alt_rc)**2
@@ -206,7 +212,8 @@ def smooth_variables(smoothed_state, smoothed_state_cov=None):
         dRi_du_rc    = -thv_term * (2 * sm_u_rc / sm_alt_rc**2) / wind_shear**2
         dRi_dv_rc    = -thv_term * (2 * sm_v_rc / sm_alt_rc**2) / wind_shear**2
 
-        sm_rich_uc = np.sqrt(
+        if False:
+            sm_rich_uc = np.sqrt(
             (dRi_dthv    * sm_thv_unc)**2 +
             (dRi_dthv_rc * sm_thv_rc_unc)**2 +
             (dRi_dalt_rc * sm_alt_rc_unc)**2 +
@@ -251,7 +258,7 @@ def smooth_variables(smoothed_state, smoothed_state_cov=None):
         "rich_unc": sm_rich_uc,
     }
 
-def smooth_pblh(smooth_vars):
+def smooth_pblh(smooth_vars, Ri_c=0.25):
 
     # ----------------------------------------------------
     # Extract variables
@@ -290,7 +297,7 @@ def smooth_pblh(smooth_vars):
     # 4. Richardson Number Method
     # ----------------------------------------------------
     # PBLH = first height where Ri > 0.25
-    ri_threshold = 0.25
+    ri_threshold = Ri_c
     indices = np.where(rich > ri_threshold)[0]
 
     if len(indices) > 0:
