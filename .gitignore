@@ -18,6 +18,8 @@ temp/*
 !gdp/icm16/**
 
 *.pkl
+*.png
+*.csv
 
 # Distribution / packaging
 .Python
