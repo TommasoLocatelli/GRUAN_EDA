@@ -1,6 +1,11 @@
 import matplotlib.pyplot as plt
 from methodology import *
 from code_examples.visual_config.color_map import map_labels_to_colors
+import seaborn as sns
+from matplotlib.lines import Line2D
+import pandas as pd
+
+sim_proxy = Line2D([0], [0], color="gray", alpha=0.8, linewidth=1, label="Sim. profiles")
 
 def plot_ssm_diagnostics_short(
     pid, where, when, tod,
@@ -17,7 +22,7 @@ def plot_ssm_diagnostics_short(
     # color map
     map_labels_to_colors,
     # plotting parameters
-    FONTE_SIZE=12, alpha=0.75, alpha_unc=0.30, alpha_sim=0.025,
+    FONTE_SIZE=12, alpha=0.75, alpha_unc=0.30, alpha_sim=0.05,
     scatter_obs = False
 ):
 
@@ -26,40 +31,39 @@ def plot_ssm_diagnostics_short(
         pblh_info = {}
 
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    plt.suptitle(f"Profile {pid} - {where} - {when} - {tod}", fontsize=14)
+    plt.suptitle(f"Profile Id: {pid}, {where}, {when}, {tod.capitalize()}", fontsize=14)
 
     # =========================================================
     # 1. θv PANEL — pm + thv gradient
     # =========================================================
     ax = axes[0]
+    ax.legend(handles=[sim_proxy] + ax.get_legend_handles_labels()[0])
 
     if scatter_obs:
-        ax.scatter(thv_o, alt_o, label="Observed θv",
-            color=map_labels_to_colors['virtual_theta'], alpha=alpha)
+        ax.scatter(thv_o, alt_o, label="Obs. θv",
+            color=map_labels_to_colors['theta'], alpha=alpha)
     else:
-        ax.plot(thv_o, alt_o, label="Observed θv",
-            color=map_labels_to_colors['virtual_theta'], alpha=alpha)
+        ax.plot(thv_o, alt_o, label="Obs. θv",
+            color=map_labels_to_colors['theta'], alpha=alpha)
     
     ax.plot(thv_s, alt_s, label="Smoothed θv",
-            color=map_labels_to_colors['virtual_temp'], linewidth=2, alpha=alpha)
+            color=map_labels_to_colors['temp'], linewidth=2, alpha=alpha)
 
     # Simulated profiles (single legend entry)
-    first_sim = True
     for sim in simulations:
         sim_vars = smooth_variables(sim)
         ax.plot(sim_vars["thv"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1,
-                label="Simulated profiles" if first_sim else None)
-        first_sim = False
+                color="gray", alpha=alpha_sim, linewidth=1)
+
 
     # Uncertainty bands
     ax.fill_betweenx(alt_o, thv_o - thv_o_unc, thv_o + thv_o_unc,
-                     color=map_labels_to_colors['virtual_theta_uc'], alpha=alpha_unc,
-                     label="Obs θv uncertainty")
+                     color=map_labels_to_colors['theta_uc'], alpha=alpha_unc,
+                     label="Obs θv Unc.")
 
     ax.fill_betweenx(alt_s, thv_s - thv_s_unc, thv_s + thv_s_unc,
-                     color=map_labels_to_colors['virtual_temp_uc'], alpha=alpha_unc,
-                     label="Smoothed θv uncertainty")
+                     color=map_labels_to_colors['temp_uc'], alpha=alpha_unc,
+                     label="Smoothed θv Unc.")
 
     # --- pm method ---
     if pblh_info and "pm" in pblh_info:
@@ -90,41 +94,42 @@ def plot_ssm_diagnostics_short(
     ax.set_xlabel(r"$\theta_v$ [K]")
     ax.set_ylabel("Altitude [m]")
     ax.set_title("Virtual Potential Temperature", fontsize=FONTE_SIZE)
-    ax.legend(loc="upper left")
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles=[sim_proxy] + handles, loc="upper left")
     ax.grid(True)
 
     # =========================================================
     # 2. RH PANEL — rh method
     # =========================================================
     ax = axes[1]
+    
+    ax.legend(handles=[sim_proxy] + ax.get_legend_handles_labels()[0])
+
 
     if scatter_obs:
-        ax.scatter(rh_o, alt_o, label="Observed RH",
+        ax.scatter(rh_o, alt_o, label="Obs. RH",
             color=map_labels_to_colors['rh'], alpha=alpha)
     else:
-        ax.plot(rh_o, alt_o, label="Observed RH",
+        ax.plot(rh_o, alt_o, label="Obs. RH",
             color=map_labels_to_colors['rh'], alpha=alpha)
     
     ax.plot(rh_s, alt_s, label="Smoothed RH",
             color=map_labels_to_colors['press'], linewidth=2, alpha=alpha)
 
     # Simulated profiles
-    first_sim = True
     for sim in simulations:
         sim_vars = smooth_variables(sim)
         ax.plot(sim_vars["rh"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1,
-                label="Simulated profiles" if first_sim else None)
-        first_sim = False
+                color="gray", alpha=alpha_sim, linewidth=1)
 
     # Uncertainty bands
     ax.fill_betweenx(alt_o, rh_o - rh_o_unc, rh_o + rh_o_unc,
                      color=map_labels_to_colors['rh_uc'], alpha=alpha_unc,
-                     label="Obs RH uncertainty")
+                     label="Obs RH Unc.")
 
     ax.fill_betweenx(alt_s, rh_s - rh_s_unc, rh_s + rh_s_unc,
                      color=map_labels_to_colors['press_uc'], alpha=alpha_unc,
-                     label="Smoothed RH uncertainty")
+                     label="Smoothed RH Unc.")
 
     # --- RH method ---
     if pblh_info and "rh" in pblh_info:
@@ -142,57 +147,60 @@ def plot_ssm_diagnostics_short(
     ax.set_xlabel("RH [%]")
     ax.set_ylabel("Altitude [m]")
     ax.set_title("Relative Humidity", fontsize=FONTE_SIZE)
-    ax.legend(loc="upper left")
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles=[sim_proxy] + handles, loc="upper left")
     ax.grid(True)
 
     # =========================================================
     # 3. WIND PANEL — Ri method
     # =========================================================
     ax = axes[2]
+        
+    ax.legend(handles=[sim_proxy] + ax.get_legend_handles_labels()[0])
 
     if scatter_obs:
-        ax.scatter(u_o, alt_o, label="Observed u",
-            color=map_labels_to_colors['q'], alpha=alpha)
-        ax.scatter(v_o, alt_o, label="Observed v",
+        #ax.scatter(u_o, alt_o, label="Obs. u",
+        #    color=map_labels_to_colors['q_uc'], alpha=alpha)
+        ax.scatter(v_o, alt_o, label="Obs. v",
             color=map_labels_to_colors['uspeed'], alpha=alpha)
     else:
-        ax.plot(u_o, alt_o, label="Observed u",
-            color=map_labels_to_colors['q'], alpha=alpha)
-        ax.plot(v_o, alt_o, label="Observed v",
+        #ax.plot(u_o, alt_o, label="Obs. u",
+        #    color=map_labels_to_colors['q_uc'], alpha=alpha)
+        ax.plot(v_o, alt_o, label="Obs. v",
             color=map_labels_to_colors['uspeed'], alpha=alpha)
     
-    ax.plot(u_s, alt_s, label="Smoothed u",
-            color=map_labels_to_colors['wspeed'], linewidth=2, alpha=alpha)
+    #ax.plot(u_s, alt_s, label="Smoothed u",
+    #        color=map_labels_to_colors['wspeed'], linewidth=2, alpha=alpha)
     ax.plot(v_s, alt_s, label="Smoothed v",
             color=map_labels_to_colors['es'], linewidth=2, alpha=alpha)
 
-    # Simulated profiles
+    # Unc. profiles
     first_sim = True
     for sim in simulations:
         sim_vars = smooth_variables(sim)
-        ax.plot(sim_vars["u"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1,
-                label="Simulated profiles" if first_sim else None)
+        #ax.plot(sim_vars["u"], sim_vars["alt"],
+        #        color="gray", alpha=alpha_sim, linewidth=1,
+        #        label="Sim. profiles" if first_sim else None)
         ax.plot(sim_vars["v"], sim_vars["alt"],
                 color="gray", alpha=alpha_sim, linewidth=1)
         first_sim = False
 
     # Uncertainty bands
-    ax.fill_betweenx(alt_o, u_o - u_o_unc, u_o + u_o_unc,
-                     color=map_labels_to_colors['q_uc'], alpha=alpha_unc,
-                     label="Obs u uncertainty")
+    #ax.fill_betweenx(alt_o, u_o - u_o_unc, u_o + u_o_unc,
+    #                 color=map_labels_to_colors['uspeed'], alpha=alpha_unc,
+    #                 label="Obs u Unc.")
 
     ax.fill_betweenx(alt_o, v_o - v_o_unc, v_o + v_o_unc,
                      color=map_labels_to_colors['uspeed_uc'], alpha=alpha_unc,
-                     label="Obs v uncertainty")
+                     label="Obs v Unc.")
 
-    ax.fill_betweenx(alt_s, u_s - u_s_unc, u_s + u_s_unc,
-                     color=map_labels_to_colors['wspeed_uc'], alpha=alpha_unc,
-                     label="Smoothed u uncertainty")
+    #ax.fill_betweenx(alt_s, u_s - u_s_unc, u_s + u_s_unc,
+    #                 color=map_labels_to_colors['wspeed_uc'], alpha=alpha_unc,
+    #                 label="Smoothed u Unc.")
 
     ax.fill_betweenx(alt_s, v_s - v_s_unc, v_s + v_s_unc,
                      color=map_labels_to_colors['es_uc'], alpha=alpha_unc,
-                     label="Smoothed v uncertainty")
+                     label="Smoothed v Unc.")
 
     # --- Ri method ---
     if pblh_info and "ri" in pblh_info:
@@ -208,476 +216,261 @@ def plot_ssm_diagnostics_short(
                         color=map_labels_to_colors['pblh_Ri_uc'], alpha=alpha_unc,
                         label=f"PBLH Ri 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
 
-    ax.set_xlabel("Wind [m/s]")
+    ax.set_xlabel("Wind speed [m/s]")
     ax.set_ylabel("Altitude [m]")
-    ax.set_title("Zonal and Meridional Wind", fontsize=FONTE_SIZE)
-    ax.legend(loc="upper left")
+    ax.set_title("Meridional Wind Speed", fontsize=FONTE_SIZE)
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles=[sim_proxy] + handles, loc="upper left")
     ax.grid(True)
 
     plt.tight_layout()
     plt.show()
 
-def plot_ssm_diagnostics_with_hist(
-    pid, where, when, tod,
+def plot_ssm_diagnostics_with_violin(
+    pid, where, when, tod, launch_time_local,
     # observed
     alt_o, thv_o, rh_o, u_o, v_o,
     thv_o_unc, rh_o_unc, u_o_unc, v_o_unc,
     # smoothed
     alt_s, thv_s, rh_s, u_s, v_s,
     thv_s_unc, rh_s_unc, u_s_unc, v_s_unc,
-    # simulations
+    # simulations (ignored)
     simulations,
     # PBLH info (pm, thv, rh, ri) including "samples"
     pblh_info,
     # color map
     map_labels_to_colors,
     # plotting parameters
-    FONTE_SIZE=12, alpha=0.75, alpha_unc=0.30, alpha_sim=0.02,
+    FONTE_SIZE=12, alpha=0.75, alpha_unc=0.30,
     scatter_obs=False
 ):
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    plt.suptitle(f"Profile {pid} - {where} - {when} - {tod}", fontsize=14)
+    fig, axes = plt.subplots(1, 4, figsize=(20, 5))
+    lt_str = launch_time_local.strftime("%Y-%m-%d %H:%M:%S %Z")
 
-    # =========================================================
-    # 1. θv PANEL (top-left)
-    # =========================================================
-    ax = axes[0, 0]
-
-    if scatter_obs:
-        ax.scatter(thv_o, alt_o, label="Observed θv",
-                   color=map_labels_to_colors['virtual_theta'], alpha=alpha)
-    else:
-        ax.plot(thv_o, alt_o, label="Observed θv",
-                color=map_labels_to_colors['virtual_theta'], alpha=alpha)
-
-    ax.plot(thv_s, alt_s, label="Smoothed θv",
-            color=map_labels_to_colors['virtual_temp'], linewidth=2, alpha=alpha)
-
-    for sim in simulations:
-        sim_vars = smooth_variables(sim)
-        ax.plot(sim_vars["thv"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1)
-
-    ax.fill_betweenx(alt_o, thv_o - thv_o_unc, thv_o + thv_o_unc,
-                     color=map_labels_to_colors['virtual_theta_uc'], alpha=alpha_unc)
-    ax.fill_betweenx(alt_s, thv_s - thv_s_unc, thv_s + thv_s_unc,
-                     color=map_labels_to_colors['virtual_temp_uc'], alpha=alpha_unc)
-
-    # pm method
-    if "pm" in pblh_info:
-        z = pblh_info["pm"]
-        ax.axhline(z["value"], color=map_labels_to_colors['pblh_pm'],
-                   linestyle='--', linewidth=1.4,
-                   label=f"PBLH pm std = {z['value']:.0f} m")
-        ax.axhline(z["median"], color=map_labels_to_colors['pblh_pm'],
-                   linestyle='-', linewidth=1.6,
-                   label=f"PBLH pm median = {z['median']:.0f} m")
-        ax.fill_between([thv_o.min(), thv_o.max()], z["low"], z["high"],
-                        color=map_labels_to_colors['pblh_pm_uc'], alpha=alpha_unc,
-                        label=f"PBLH pm 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
-
-    # thv gradient method
-    if "thv" in pblh_info:
-        z = pblh_info["thv"]
-        ax.axhline(z["value"], color=map_labels_to_colors['pblh_theta'],
-                   linestyle='-.', linewidth=1.4,
-                   label=f"PBLH θv-grad std = {z['value']:.0f} m")
-        ax.axhline(z["median"], color=map_labels_to_colors['pblh_theta'],
-                   linestyle='-', linewidth=1.6,
-                   label=f"PBLH θv-grad median = {z['median']:.0f} m")
-        ax.fill_between([thv_o.min(), thv_o.max()], z["low"], z["high"],
-                        color=map_labels_to_colors['pblh_theta_uc'], alpha=alpha_unc,
-                        label=f"PBLH θv-grad 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
-
-    ax.set_xlabel(r"$\theta_v$ [K]")
-    ax.set_ylabel("Altitude [m]")
-    ax.set_title("Virtual Potential Temperature", fontsize=FONTE_SIZE)
-    ax.grid(True)
-    ax.legend(loc="upper left")
-
-    # =========================================================
-    # 2. RH PANEL (top-right)
-    # =========================================================
-    ax = axes[0, 1]
-
-    if scatter_obs:
-        ax.scatter(rh_o, alt_o, label="Observed RH",
-                   color=map_labels_to_colors['rh'], alpha=alpha)
-    else:
-        ax.plot(rh_o, alt_o, label="Observed RH",
-                color=map_labels_to_colors['rh'], alpha=alpha)
-
-    ax.plot(rh_s, alt_s, label="Smoothed RH",
-            color=map_labels_to_colors['press'], linewidth=2, alpha=alpha)
-
-    for sim in simulations:
-        sim_vars = smooth_variables(sim)
-        ax.plot(sim_vars["rh"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1)
-
-    ax.fill_betweenx(alt_o, rh_o - rh_o_unc, rh_o + rh_o_unc,
-                     color=map_labels_to_colors['rh_uc'], alpha=alpha_unc)
-    ax.fill_betweenx(alt_s, rh_s - rh_s_unc, rh_s + rh_s_unc,
-                     color=map_labels_to_colors['press_uc'], alpha=alpha_unc)
-
-    if "rh" in pblh_info:
-        z = pblh_info["rh"]
-        ax.axhline(z["value"], color=map_labels_to_colors['pblh_rh'],
-                   linestyle='--', linewidth=1.4,
-                   label=f"PBLH RH std = {z['value']:.0f} m")
-        ax.axhline(z["median"], color=map_labels_to_colors['pblh_rh'],
-                   linestyle='-', linewidth=1.6,
-                   label=f"PBLH RH median = {z['median']:.0f} m")
-        ax.fill_between([rh_o.min(), rh_o.max()], z["low"], z["high"],
-                        color=map_labels_to_colors['pblh_rh_uc'], alpha=alpha_unc,
-                        label=f"PBLH RH 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
-
-    ax.set_xlabel("RH [%]")
-    ax.set_ylabel("Altitude [m]")
-    ax.set_title("Relative Humidity", fontsize=FONTE_SIZE)
-    ax.grid(True)
-    ax.legend(loc="upper left")
-
-    # =========================================================
-    # 3. WIND PANEL (bottom-left)
-    # =========================================================
-    ax = axes[1, 0]
-
-    if scatter_obs:
-        ax.scatter(u_o, alt_o, label="Observed u",
-                   color=map_labels_to_colors['q'], alpha=alpha)
-        ax.scatter(v_o, alt_o, label="Observed v",
-                   color=map_labels_to_colors['uspeed'], alpha=alpha)
-    else:
-        ax.plot(u_o, alt_o, label="Observed u",
-                color=map_labels_to_colors['q'], alpha=alpha)
-        ax.plot(v_o, alt_o, label="Observed v",
-                color=map_labels_to_colors['uspeed'], alpha=alpha)
-
-    ax.plot(u_s, alt_s, label="Smoothed u",
-            color=map_labels_to_colors['wspeed'], linewidth=2, alpha=alpha)
-    ax.plot(v_s, alt_s, label="Smoothed v",
-            color=map_labels_to_colors['es'], linewidth=2, alpha=alpha)
-
-    for sim in simulations:
-        sim_vars = smooth_variables(sim)
-        ax.plot(sim_vars["u"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1)
-        ax.plot(sim_vars["v"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1)
-
-    ax.fill_betweenx(alt_o, u_o - u_o_unc, u_o + u_o_unc,
-                     color=map_labels_to_colors['q_uc'], alpha=alpha_unc)
-    ax.fill_betweenx(alt_o, v_o - v_o_unc, v_o + v_o_unc,
-                     color=map_labels_to_colors['uspeed_uc'], alpha=alpha_unc)
-    ax.fill_betweenx(alt_s, u_s - u_s_unc, u_s + u_s_unc,
-                     color=map_labels_to_colors['wspeed_uc'], alpha=alpha_unc)
-    ax.fill_betweenx(alt_s, v_s - v_s_unc, v_s + v_s_unc,
-                     color=map_labels_to_colors['es_uc'], alpha=alpha_unc)
-
-    if "ri" in pblh_info:
-        z = pblh_info["ri"]
-        ax.axhline(z["value"], color=map_labels_to_colors['pblh_Ri'],
-                   linestyle='--', linewidth=1.4,
-                   label=f"PBLH Ri std = {z['value']:.0f} m")
-        ax.axhline(z["median"], color=map_labels_to_colors['pblh_Ri'],
-                   linestyle='-', linewidth=1.6,
-                   label=f"PBLH Ri median = {z['median']:.0f} m")
-        ax.fill_between([min(u_o.min(), v_o.min()), max(u_o.max(), v_o.max())],
-                        z["low"], z["high"],
-                        color=map_labels_to_colors['pblh_Ri_uc'], alpha=alpha_unc,
-                        label=f"PBLH Ri 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
-
-    ax.set_xlabel("Wind [m/s]")
-    ax.set_ylabel("Altitude [m]")
-    ax.set_title("Zonal and Meridional Wind", fontsize=FONTE_SIZE)
-    ax.grid(True)
-    ax.legend(loc="upper left")
-
-    # =========================================================
-    # 4. HISTOGRAM PANEL (bottom-right)
-    # =========================================================
-    ax = axes[1, 1]
-    ax.set_title("Monte‑Carlo PBLH Distributions", fontsize=FONTE_SIZE)
-
-    colors = {
-        "pm":  map_labels_to_colors['pblh_pm'],
-        "thv": map_labels_to_colors['pblh_theta'],
-        "rh":  map_labels_to_colors['pblh_rh'],
-        "ri":  map_labels_to_colors['pblh_Ri']
-    }
-
-    # ---- COMMON BINS ----
-    all_samples = np.concatenate([
-        pblh_info[m]["samples"]
-        for m in ["pm", "thv", "rh", "ri"]
-        if "samples" in pblh_info[m]
-    ])
-    common_bins = np.linspace(all_samples.min(), all_samples.max(), 41)
-
-    # ---- HISTOGRAMS WITH NUMBERS IN LEGEND ----
-    for method in ["pm", "thv", "rh", "ri"]:
-        if method in pblh_info and "samples" in pblh_info[method]:
-            z = pblh_info[method]
-            samples = z["samples"]
-
-            ax.hist(samples, bins=common_bins, alpha=0.6, density=True,
-                    color=colors[method],
-                    label=f"{method.upper()} median={z['median']:.0f} m, 95%=[{z['low']:.0f},{z['high']:.0f}]")
-
-    ax.set_xlabel("PBLH [m]")
-    ax.set_ylabel("Density")
-    ax.grid(True)
-    ax.legend()
-
-    plt.tight_layout()
-    plt.show()
-
-
-def plot_ssm_diagnostics_full(
-    pid,
-    alt_o, thv_o, rh_o, u_o, v_o,
-    thv_g_o, rh_g_o, ri_o,
-    alt_o_unc, thv_o_unc, rh_o_unc, u_o_unc, v_o_unc,
-    thv_g_o_unc, rh_g_o_unc, ri_o_unc,
-    alt_s, thv_s, rh_s, u_s, v_s,
-    thv_g_s, rh_g_s, ri_s,
-    alt_s_unc, thv_s_unc, rh_s_unc, u_s_unc, v_s_unc,
-    thv_g_s_unc, rh_g_s_unc, ri_s_unc,
-    simulations,
-    pblh_info,
-    map_labels_to_colors,
-    *,
-    FONTE_SIZE=8, alpha=0.75, alpha_unc=0.30, alpha_sim=0.02
-):
-
-    fig, axes = plt.subplots(3, 2, figsize=(10, 12))
-    axes = axes.flatten()
-    plt.suptitle(f"SSM Diagnostics — Profile {pid}", fontsize=12)
+    plt.suptitle(
+        f"PBLH Estimates\n\n"
+        f"Profile Id: {pid}\n"
+        f"Site: {where}\n"
+        f"Local Launch Time: {lt_str}\n",
+        fontsize=14
+        )
 
     # =========================================================
     # 1. θv PANEL — pm + thv gradient
     # =========================================================
     ax = axes[0]
 
-    ax.plot(thv_o, alt_o, label="Observed θv",
-            color=map_labels_to_colors['virtual_theta'], alpha=alpha)
+    if scatter_obs:
+        ax.scatter(thv_o, alt_o, label="Obs. θv",
+            color=map_labels_to_colors['theta'], alpha=alpha)
+    else:
+        ax.plot(thv_o, alt_o, label="Obs. θv",
+            color=map_labels_to_colors['theta'], alpha=alpha)
+
     ax.plot(thv_s, alt_s, label="Smoothed θv",
-            color=map_labels_to_colors['virtual_temp'], linewidth=2, alpha=alpha)
+            color=map_labels_to_colors['temp'], linewidth=2, alpha=alpha)
 
-    for sim in simulations:
-        sim_vars = smooth_variables(sim)
-        ax.plot(sim_vars["thv"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1)
-
+    # Uncertainty bands
     ax.fill_betweenx(alt_o, thv_o - thv_o_unc, thv_o + thv_o_unc,
-                     color=map_labels_to_colors['virtual_theta_uc'], alpha=alpha_unc)
+                     color=map_labels_to_colors['theta_uc'], alpha=alpha_unc,
+                     label="Obs θv Unc.")
+
     ax.fill_betweenx(alt_s, thv_s - thv_s_unc, thv_s + thv_s_unc,
-                     color=map_labels_to_colors['virtual_temp_uc'], alpha=alpha_unc)
+                     color=map_labels_to_colors['temp_uc'], alpha=alpha_unc,
+                     label="Smoothed θv Unc.")
 
     # --- pm method ---
-    if "pm" in pblh_info:
+    if pblh_info and "pm" in pblh_info:
         z = pblh_info["pm"]
         ax.axhline(z["value"], color=map_labels_to_colors['pblh_pm'],
                    linestyle='--', linewidth=1.4,
-                   label=f"PBLH pm std = {z['value']:.0f} m")
+                   label=f"PBLH PM = {z['value']:.0f} m")
         ax.axhline(z["median"], color=map_labels_to_colors['pblh_pm'],
                    linestyle='-', linewidth=1.6,
-                   label=f"PBLH pm median = {z['median']:.0f} m")
-        ax.fill_between([thv_o.min(), thv_o.max()], z["low"], z["high"],
+                   label=f"PBLH PM MC = {z['median']:.0f} m")
+        ax.fill_between([thv_o.min()-thv_o_unc.max(), thv_o.max()+thv_o_unc.max()], z["low"], z["high"],
                         color=map_labels_to_colors['pblh_pm_uc'], alpha=alpha_unc,
-                        label=f"PBLH pm 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
+                        label=f"PBLH PM 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
 
     # --- thv gradient method ---
-    if "thv" in pblh_info:
+    if pblh_info and "thv" in pblh_info:
         z = pblh_info["thv"]
         ax.axhline(z["value"], color=map_labels_to_colors['pblh_theta'],
-                   linestyle='-.', linewidth=1.4,
-                   label=f"PBLH θv-grad std = {z['value']:.0f} m")
+                   linestyle='--', linewidth=1.4,
+                   label=f"PBLH θv-grad = {z['value']:.0f} m")
         ax.axhline(z["median"], color=map_labels_to_colors['pblh_theta'],
                    linestyle='-', linewidth=1.6,
-                   label=f"PBLH θv-grad median = {z['median']:.0f} m")
-        ax.fill_between([thv_o.min(), thv_o.max()], z["low"], z["high"],
+                   label=f"PBLH θv-grad MC = {z['median']:.0f} m")
+        ax.fill_between([thv_o.min()-thv_o_unc.max(), thv_o.max()+thv_o_unc.max()], z["low"], z["high"],
                         color=map_labels_to_colors['pblh_theta_uc'], alpha=alpha_unc,
                         label=f"PBLH θv-grad 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
 
     ax.set_xlabel(r"$\theta_v$ [K]")
     ax.set_ylabel("Altitude [m]")
-    ax.set_title("Virtual Potential Temperature", fontsize=FONTE_SIZE)
+    ax.set_title("θv Profile, PM & θv PBLH", fontsize=FONTE_SIZE)
     ax.legend(loc="upper left")
     ax.grid(True)
+
+    ymin = -50
+    ymax = max(alt_o.max()+50, alt_s.max()+50)
+    ax.set_ylim(ymin, ymax)
+
 
     # =========================================================
     # 2. RH PANEL — rh method
     # =========================================================
     ax = axes[1]
 
-    ax.plot(rh_o, alt_o, label="Observed RH",
+    if scatter_obs:
+        ax.scatter(rh_o, alt_o, label="Obs. RH",
             color=map_labels_to_colors['rh'], alpha=alpha)
+    else:
+        ax.plot(rh_o, alt_o, label="Obs. RH",
+            color=map_labels_to_colors['rh'], alpha=alpha)
+
     ax.plot(rh_s, alt_s, label="Smoothed RH",
             color=map_labels_to_colors['press'], linewidth=2, alpha=alpha)
 
-    for sim in simulations:
-        sim_vars = smooth_variables(sim)
-        ax.plot(sim_vars["rh"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1)
-
+    # Uncertainty bands
     ax.fill_betweenx(alt_o, rh_o - rh_o_unc, rh_o + rh_o_unc,
-                     color=map_labels_to_colors['rh_uc'], alpha=alpha_unc)
+                     color=map_labels_to_colors['rh_uc'], alpha=alpha_unc,
+                     label="Obs RH Unc.")
+
     ax.fill_betweenx(alt_s, rh_s - rh_s_unc, rh_s + rh_s_unc,
-                     color=map_labels_to_colors['press_uc'], alpha=alpha_unc)
+                     color=map_labels_to_colors['press_uc'], alpha=alpha_unc,
+                     label="Smoothed RH Unc.")
 
     # --- RH method ---
-    if "rh" in pblh_info:
+    if pblh_info and "rh" in pblh_info:
         z = pblh_info["rh"]
         ax.axhline(z["value"], color=map_labels_to_colors['pblh_rh'],
                    linestyle='--', linewidth=1.4,
-                   label=f"PBLH RH std = {z['value']:.0f} m")
+                   label=f"PBLH RH = {z['value']:.0f} m")
         ax.axhline(z["median"], color=map_labels_to_colors['pblh_rh'],
                    linestyle='-', linewidth=1.6,
-                   label=f"PBLH RH median = {z['median']:.0f} m")
-        ax.fill_between([rh_o.min(), rh_o.max()], z["low"], z["high"],
+                   label=f"PBLH RH MC = {z['median']:.0f} m")
+        ax.fill_between([rh_o.min()-rh_o_unc.max(), rh_o.max()+rh_o_unc.max()], z["low"], z["high"],
                         color=map_labels_to_colors['pblh_rh_uc'], alpha=alpha_unc,
                         label=f"PBLH RH 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
 
     ax.set_xlabel("RH [%]")
     ax.set_ylabel("Altitude [m]")
-    ax.set_title("Relative Humidity", fontsize=FONTE_SIZE)
+    ax.set_title("Relative Humidity Profile, RH PBLH", fontsize=FONTE_SIZE)
     ax.legend(loc="upper left")
     ax.grid(True)
+
+    ymin = -50
+    ymax = max(alt_o.max()+50, alt_s.max()+50)
+    ax.set_ylim(ymin, ymax)
+
 
     # =========================================================
     # 3. WIND PANEL — Ri method
     # =========================================================
     ax = axes[2]
 
-    ax.plot(u_o, alt_o, label="Observed u",
-            color=map_labels_to_colors['q'], alpha=alpha)
-    ax.plot(v_o, alt_o, label="Observed v",
+    if scatter_obs:
+        ax.scatter(v_o, alt_o, label="Obs. v",
+            color=map_labels_to_colors['uspeed'], alpha=alpha)
+    else:
+        ax.plot(v_o, alt_o, label="Obs. v",
             color=map_labels_to_colors['uspeed'], alpha=alpha)
 
-    ax.plot(u_s, alt_s, label="Smoothed u",
-            color=map_labels_to_colors['wspeed'], linewidth=2, alpha=alpha)
     ax.plot(v_s, alt_s, label="Smoothed v",
             color=map_labels_to_colors['es'], linewidth=2, alpha=alpha)
 
-    for sim in simulations:
-        sim_vars = smooth_variables(sim)
-        ax.plot(sim_vars["u"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1)
-        ax.plot(sim_vars["v"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1)
-
-    ax.fill_betweenx(alt_o, u_o - u_o_unc, u_o + u_o_unc,
-                     color=map_labels_to_colors['q_uc'], alpha=alpha_unc)
+    # Uncertainty bands
     ax.fill_betweenx(alt_o, v_o - v_o_unc, v_o + v_o_unc,
-                     color=map_labels_to_colors['uspeed_uc'], alpha=alpha_unc)
-    ax.fill_betweenx(alt_s, u_s - u_s_unc, u_s + u_s_unc,
-                     color=map_labels_to_colors['wspeed_uc'], alpha=alpha_unc)
+                     color=map_labels_to_colors['uspeed_uc'], alpha=alpha_unc,
+                     label="Obs v Unc.")
+
     ax.fill_betweenx(alt_s, v_s - v_s_unc, v_s + v_s_unc,
-                     color=map_labels_to_colors['es_uc'], alpha=alpha_unc)
+                     color=map_labels_to_colors['es_uc'], alpha=alpha_unc,
+                     label="Smoothed v Unc.")
 
     # --- Ri method ---
-    if "ri" in pblh_info:
+    if pblh_info and "ri" in pblh_info:
         z = pblh_info["ri"]
         ax.axhline(z["value"], color=map_labels_to_colors['pblh_Ri'],
                    linestyle='--', linewidth=1.4,
-                   label=f"PBLH Ri std = {z['value']:.0f} m")
+                   label=f"PBLH RM = {z['value']:.0f} m")
         ax.axhline(z["median"], color=map_labels_to_colors['pblh_Ri'],
                    linestyle='-', linewidth=1.6,
-                   label=f"PBLH Ri median = {z['median']:.0f} m")
-        ax.fill_between([min(u_o.min(), v_o.min()), max(u_o.max(), v_o.max())],
+                   label=f"PBLH RM MC = {z['median']:.0f} m")
+        ax.fill_between([v_o.min()-v_o_unc.max(), v_o.max()+v_o_unc.max()],
                         z["low"], z["high"],
                         color=map_labels_to_colors['pblh_Ri_uc'], alpha=alpha_unc,
-                        label=f"PBLH Ri 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
+                        label=f"PBLH RM 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
 
-    ax.set_xlabel("Wind [m/s]")
+    ax.set_xlabel("Wind speed [m/s]")
     ax.set_ylabel("Altitude [m]")
-    ax.set_title("Zonal and Meridional Wind", fontsize=FONTE_SIZE)
+    ax.set_title("Meridional Wind Speed, RM PBLH", fontsize=FONTE_SIZE)
     ax.legend(loc="upper left")
     ax.grid(True)
 
+    ymin = -50
+    ymax = max(alt_o.max()+50, alt_s.max()+50)
+    ax.set_ylim(ymin, ymax)
+
+
     # =========================================================
-    # 4. θv gradient vs altitude
+    # 4. VIOLIN PANEL — Monte Carlo PBLH distributions (seaborn)
     # =========================================================
     ax = axes[3]
-    ax.plot(thv_g_o, alt_o, label="Observed θv gradient",
-            color=map_labels_to_colors['virtual_theta'], alpha=alpha)
-    ax.plot(thv_g_s, alt_s, label="Smoothed θv gradient",
-            color=map_labels_to_colors['virtual_temp'], linewidth=2, alpha=alpha)
+    ax.set_title("Monte‑Carlo PBLH Distributions", fontsize=FONTE_SIZE)
 
-    for sim in simulations:
-        sim_vars = smooth_variables(sim)
-        ax.plot(sim_vars["thv_grad"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1)
+    # Prepare dataframe for seaborn
+    df_violin = []
+    for method in ["pm", "thv", "rh", "ri"]:
+        if method in pblh_info and "samples" in pblh_info[method]:
+            samples = pblh_info[method]["samples"]
+            df_violin.append(pd.DataFrame({
+                "PBLH": samples,
+                "Method": method.upper()
+            }))
 
-    ax.fill_betweenx(alt_o, thv_g_o - thv_g_o_unc, thv_g_o + thv_g_o_unc,
-                     color=map_labels_to_colors['virtual_theta_uc'], alpha=alpha_unc)
+    df_violin = pd.concat(df_violin, ignore_index=True)
 
-    ax.fill_betweenx(alt_s, thv_g_s - thv_g_s_unc, thv_g_s + thv_g_s_unc,
-                     color=map_labels_to_colors['virtual_temp_uc'], alpha=alpha_unc)
+    sns.violinplot(
+        data=df_violin,
+        x="Method",
+        y="PBLH",
+        ax=ax,
+        palette={
+            "PM":  map_labels_to_colors['pblh_pm'],
+            "THV": map_labels_to_colors['pblh_theta'],
+            "RH":  map_labels_to_colors['pblh_rh'],
+            "RI":  map_labels_to_colors['pblh_Ri']
+        },
+        cut=0,
+        inner="quartile",
+        linewidth=1.2
+    )
 
-    ax.set_xlabel(r"$d\theta_v/dz$ [K/m]")
-    ax.set_ylabel("Altitude [m]")
-    ax.set_title("Virtual Potential Temperature Gradient", fontsize=FONTE_SIZE)
-    ax.legend()
+    ax.set_ylabel("PBLH [m]")
     ax.grid(True)
 
-    # =========================================================
-    # 5. RH gradient vs altitude
-    # =========================================================
-    ax = axes[4]
-    ax.plot(rh_g_o, alt_o, label="Observed RH gradient",
-            color=map_labels_to_colors['rh'], alpha=alpha)
-    ax.plot(rh_g_s, alt_s, label="Smoothed RH gradient",
-            color=map_labels_to_colors['press'], linewidth=2, alpha=alpha)
+    # >>> Match y-axis limits with other panels <<<
+    ymin = -50
+    ymax = max(alt_o.max()+50, alt_s.max()+50)
+    ax.set_ylim(ymin, ymax)
 
-    for sim in simulations:
-        sim_vars = smooth_variables(sim)
-        ax.plot(sim_vars["rh_grad"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1)
+    axes[3].set_position([
+    axes[3].get_position().x0 + 0.03,
+    axes[3].get_position().y0,
+    axes[3].get_position().width * 0.85,
+    axes[3].get_position().height])
 
-    ax.fill_betweenx(alt_o, rh_g_o - rh_g_o_unc, rh_g_o + rh_g_o_unc,
-                     color=map_labels_to_colors['rh_uc'], alpha=alpha_unc)
-
-    ax.fill_betweenx(alt_s, rh_g_s - rh_g_s_unc, rh_g_s + rh_g_s_unc,
-                     color=map_labels_to_colors['press_uc'], alpha=alpha_unc)
-
-    ax.set_xlabel("RH Gradient [%/m]")
-    ax.set_ylabel("Altitude [m]")
-    ax.set_title("Relative Humidity Gradient", fontsize=FONTE_SIZE)
-    ax.legend()
-    ax.grid(True)
-
-    # =========================================================
-    # 6. Richardson number vs altitude
-    # =========================================================
-    ax = axes[5]
-    ax.plot(ri_o, alt_o, label="Observed Ri",
-            color=map_labels_to_colors['rh'], alpha=alpha)
-    ax.plot(ri_s, alt_s, label="Smoothed Ri",
-            color=map_labels_to_colors['Ri_b'], linewidth=2, alpha=alpha)
-
-    for sim in simulations:
-        sim_vars = smooth_variables(sim)
-        ax.plot(sim_vars["rich"], sim_vars["alt"],
-                color="gray", alpha=alpha_sim, linewidth=1)
-
-    ax.fill_betweenx(alt_o, ri_o - ri_o_unc, ri_o + ri_o_unc,
-                     color=map_labels_to_colors['rh_uc'], alpha=alpha_unc)
-
-    ax.fill_betweenx(alt_s, ri_s - ri_s_unc, ri_s + ri_s_unc,
-                     color=map_labels_to_colors['Ri_b_uc'], alpha=alpha_unc)
-
-    ax.axvline(0.25, color='black', linestyle='--', alpha=alpha,
-               label="Ri = 0.25")
-
-    ax.set_xlabel("Richardson Number")
-    ax.set_ylabel("Altitude [m]")
-    ax.set_title("Bulk Richardson Number", fontsize=FONTE_SIZE)
-    ax.legend()
-    ax.grid(True)
 
     plt.tight_layout()
+    plt.subplots_adjust(
+    top=0.80,
+    bottom=0.09,
+    left=0.05,
+    right=0.99,
+    hspace=0.20,
+    wspace=0.25   # leggermente più largo del tuo 0.223
+    )
     plt.show()
+

@@ -9,20 +9,49 @@ import matplotlib.pyplot as plt
 from methodology import *
 from tqdm import tqdm
 from code_examples.visual_config.color_map import map_labels_to_colors
-from plot_profile import plot_ssm_diagnostics_short, plot_ssm_diagnostics_full, plot_ssm_diagnostics_with_hist
+from plot_profile import plot_ssm_diagnostics_short, plot_ssm_diagnostics_with_violin
+import pytz
+
+pids=['857603',
+      '857579',
+      '857947',
+      '857567',
+      '879125',
+      '879119']
+
+SITE_TIMEZONES = {
+    "LIN": "Europe/Berlin",
+    "HKO": "Asia/Hong_Kong",
+    "LAU": "Pacific/Auckland",
+    "POT": "Europe/Rome",
+}
+
+import re
+
+def extract_site_code(pkl_path):
+    # Match pattern like "_LIN-" or "_HKO-" etc.
+    m = re.search(r"_(LIN|HKO|LAU|POT)-", pkl_path)
+    if m:
+        return m.group(1)
+    raise ValueError("Site code not found in pkl_path")
+
+
 
 # ---------------------------------------------------------
 # Specify the pickle file you want to load
 # ---------------------------------------------------------
-pkl_path = r"papers\pblh_unc\gdp_2024_POT-RS-02_2024.pkl"
+#pkl_path = r"papers\pblh_unc\pkls\gdp_2024_POT-RS-02_2024.pkl"
 
-pkl_path = r"papers\pblh_unc\gdp_2024_POT-RS-01_2024.pkl"
+#pkl_path = r"papers\pblh_unc\pkls\gdp_2024_POT-RS-01_2024.pkl"
 
-#pkl_path=r'papers\pblh_unc\gdp_2024_HKO-RS-01_2024.pkl'
+pkl_path=r'papers\pblh_unc\pkls\gdp_2024_HKO-RS-01_2024.pkl'
 
-#pkl_path=r'papers\pblh_unc\gdp_2024_LAU-RS-02_2024.pkl'
+#pkl_path=r'papers\pblh_unc\pkls\gdp_2024_LAU-RS-02_2024.pkl'
 
-pkl_path=r'papers\pblh_unc\gdp_2024_LIN-RS-01_2024.pkl'
+#pkl_path=r'papers\pblh_unc\pkls\gdp_2024_LIN-RS-01_2024.pkl'
+
+site_code = extract_site_code(pkl_path)
+
 # ---------------------------------------------------------
 # Load the dataset
 # ---------------------------------------------------------
@@ -34,14 +63,25 @@ print('Dataset Loaded')
 # ---------------------------------------------------------
 results_dict = {}
 
+dataset={pid: dataset[pid] for pid in pids if pid in dataset}
+print(f"Profiles: {len(dataset)}")
 for pid, gdp in tqdm(dataset.items()):
 
     print(f"\nProcessing profile: {pid}")
-    upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3500, return_value=True) # find the PBLH upper bound for profile
+    upper_bound=gp._find_upper_bound(gdp.data[['alt']], upper_bound=3000, return_value=True) # find the PBLH upper bound for profile
     gdp.data = gdp.data[gdp.data['alt'] <= upper_bound]  # Limit to first 3.5 km
     where = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Site.Name']['Value'].values[0] # location
     when = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Measurement.StartTime']['Value'].values[0] # time
     when=when[0:10]+' '+when[11:19]
+    launch_time_utc = pd.to_datetime(gdp.data['time'].iloc[0], utc=True)
+    site_code 
+    # Extract UTC launch time from dataset
+    launch_time_utc = pd.to_datetime(gdp.data['time'].iloc[0], utc=True)
+
+    # Convert to local timezone
+    tz = pytz.timezone(SITE_TIMEZONES[site_code])
+    launch_time_local = launch_time_utc.astimezone(tz)
+
     data=gdp.data
 
     # 0. GRUAN PBLH
@@ -98,7 +138,7 @@ for pid, gdp in tqdm(dataset.items()):
         "pblh_unc": pblh_unc,
     }
 
-    print(results_dict)
+    #print(results_dict)
 
     # -----------------------------
     # Extract smoothed variables + uncertainties
@@ -242,21 +282,49 @@ for pid, gdp in tqdm(dataset.items()):
     when = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Measurement.StartTime']['Value'].values[0] # time
     when=when[0:10]
     tod=gdp.global_attrs[gdp.global_attrs['Attribute'] == "g.Measurement.TimeOfDay"]['Value'].values[0] # time
+
     
+    plot_ssm_diagnostics_with_violin(
+        pid, where, when, tod, launch_time_local,
+        alt_o, thv_o, rh_o, u_o, v_o,
+        thv_o_unc, rh_o_unc, u_o_unc, v_o_unc,
+        alt_s, thv_s, rh_s, u_s, v_s,
+        thv_s_unc, rh_s_unc, u_s_unc, v_s_unc,
+        simulations,
+        pblh_info,
+        map_labels_to_colors,
+        scatter_obs=False
+    )    
+
+    comment="""
     plot_ssm_diagnostics_short(
+            pid, where, when, tod,
+            alt_o, thv_o, rh_o, u_o, v_o,
+            thv_o_unc, rh_o_unc, u_o_unc, v_o_unc,
+            alt_s, thv_s, rh_s, u_s, v_s,
+            thv_s_unc, rh_s_unc, u_s_unc, v_s_unc,
+            simulations,
+            None,#pblh_info,
+            map_labels_to_colors,
+            scatter_obs=False
+        )
+    
+
+    plot_ssm_diagnostics_with_hist(
         pid, where, when, tod,
         alt_o, thv_o, rh_o, u_o, v_o,
         thv_o_unc, rh_o_unc, u_o_unc, v_o_unc,
         alt_s, thv_s, rh_s, u_s, v_s,
         thv_s_unc, rh_s_unc, u_s_unc, v_s_unc,
         simulations,
-        None,#pblh_info,
+        pblh_info,
         map_labels_to_colors,
-        scatter_obs=True
+        scatter_obs=False
     )
 
-    comment="""
-    plot_ssm_diagnostics_full(
+
+    plot_ssm_diagnostics_f
+    ull(
     pid,
     alt_o, thv_o, rh_o, u_o, v_o,
     thv_g_o, rh_g_o, ri_o,
