@@ -9,7 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Need to download one GDP
-file_path=r'gdp\data_examples\LIN-RS-01_2_RS41-GDP_001_20141209T120000_1-009-002.nc' # Path to the file
+file_path=r'gdp\exmpls\BAR-RS-01_2_RS41-GDP_001_20180227T193000_1-000-001.nc' # Path to the file
 gdp=gp.read(file_path)
 main_columns=['alt', 'alt_uc',
             #'lat', 'lat_uc', 'lon', 'lon_uc',

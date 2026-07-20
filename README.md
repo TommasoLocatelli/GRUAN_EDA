@@ -1,41 +1,64 @@
-# GCOS Reference Upper Air Network (GRUAN) Exploratory Data Analysis (EDA) by GRUANpy
+# GCOS Reference Upper-Air Network (GRUAN) Exploratory Data Analysis (EDA) with **GRUANpy**
 
-This repo is meant to collect python developed functionalities to analyze GRUAN Data Product.
+A collection of Python tools designed to analyze GRUAN Data Products (GDPs) and support research on atmospheric profiles, uncertainty quantification, and boundary-layer diagnostics.
+
+---
 
 ## What is GRUAN?
 
-"The Global Climate Observing System (GCOS) Reference Upper-Air Network (GRUAN) is an international reference observing network of sites measuring essential climate variables above Earth's surface, designed to fill an important gap in the current global observing system. GRUAN measurements are providing long-term, high-quality climate data records from the surface, through the troposphere, and into the stratosphere. These are being used to determine trends, constrain and calibrate data from more spatially‐comprehensive observing systems (including satellites and current radiosonde networks), and provide appropriate data for studying atmospheric processes. GRUAN is envisaged as a global network of eventually 30-40 sites that, to the extent possible, builds on existing observational networks and capabilities." 
-https://www.gruan.org/
+> “The Global Climate Observing System (GCOS) Reference Upper-Air Network (GRUAN) is an international reference observing network of sites measuring essential climate variables above Earth's surface, designed to fill an important gap in the current global observing system. GRUAN measurements provide long-term, high-quality climate data records from the surface, through the troposphere, and into the stratosphere. GRUAN is envisaged as a global network of eventually 30–40 sites that builds on existing observational networks and capabilities.”  
+> — https://www.gruan.org/
 
-## What are GRUAN Data Products (GDP)?
+---
 
-GDP are documented NetCDF files containing data and metadata from GRUAN.
-"All certified GRUAN data products are based on measurements and processing that adhere to the GRUAN principles (e.g. [Immler et al., 2010](https://www.gruan.org/documentation/articles/immler-et-al-2010-amt))."
+## What are GRUAN Data Products (GDPs)?
 
-https://www.gruan.org/data/data-products/gdp
+GRUAN Data Products are documented NetCDF files containing high‑quality atmospheric measurements and metadata.  
+All certified GDPs follow GRUAN principles (e.g., [Immler et al., 2010](https://www.gruan.org/documentation/articles/immler-et-al-2010-amt)).
 
-Certified GRUAN data products
-- RS92-GDP.2 -- RS92 GRUAN data product version 2
-- RS-11G-GDP.1 -- RS-11G GRUAN data product version 1
-- RS41-GDP.1 -- RS41 GRUAN data product version 1
-- IMS-100-GDP.2 -- iMS-100 GRUAN data product version 2
+More info: https://www.gruan.org/data/data-products/gdp
 
-## What is GRUANpy?
+---
 
-GRUANpy is a toolkit for analizing GDP. Hope to pubblish it on PyPI at some point. 🤞
+## What is **GRUANpy**?
 
-## How to use it?
+**GRUANpy** is a Python toolkit for reading, analyzing, and visualizing GRUAN Data Products.  
+It includes utilities for:
 
-Just put in the "gdp" folder (or wherever you like) a GDP.nc file and import gruanpy to:
-- read it
-- make fancy plots
-- compute PBLH
-- ...
+- loading GDP NetCDF files  
+- generating diagnostic and exploratory plots  
+- computing Planetary Boundary Layer Height (PBLH)  
+- performing state‑space modelling (SSM) and uncertainty analysis  
+- supporting reproducible workflows for atmospheric research  
 
-The limit is the sky, literally.
+The long‑term goal is to publish GRUANpy on PyPI. 🤞
 
-You can find some example inside the "code_example" folder.
+---
 
-## Some tips.
+## How to Use It
 
-NetCDF Explorer (VSCode Extension) to let us look at .nc.info files.
+Place one or more `*.nc` GDP files in the `gdp/` folder (or any directory you prefer) and import `gruanpy` in your Python script or notebook to:
+
+- read and inspect GDP variables  
+- create plots of atmospheric profiles  
+- compute PBLH using multiple diagnostics  
+- run SSM-based smoothing and uncertainty quantification  
+- explore radiosonde data with reproducible workflows  
+
+Examples are available in the `applications/` folder, including the code supporting the paper:  
+**https://arxiv.org/abs/2607.14960**
+
+---
+
+## Repository Structure
+
+- **applications/** — example scripts and workflows  
+- **gdp/** — directory intended to store GDP NetCDF files  
+- **gruanpy/** — core library with GDP utilities and diagnostics  
+- **ssm/** — state‑space modelling and Kalman smoothing tools  
+
+---
+
+## Tips
+
+If you use VS Code, the **NetCDF Explorer** extension is extremely helpful for inspecting `.nc` files and metadata.
