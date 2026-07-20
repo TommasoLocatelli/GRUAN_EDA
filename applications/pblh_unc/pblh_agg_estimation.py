@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 import numpy as np
 import pandas as pd
 import gruanpy as gp
-from methodology import *
+from applications.pblh_unc.methodology import *
 from tqdm import tqdm
 
 # Input pickle paths

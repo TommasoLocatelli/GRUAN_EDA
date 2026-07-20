@@ -10,8 +10,8 @@ import statsmodels.api as sm
 from tqdm import tqdm
 
 import gruanpy as gp
-from methodology import *
-from plot_profile import (
+from applications.pblh_unc.methodology import *
+from applications.pblh_unc.plot_profile import (
     plot_ssm_diagnostics_short,
     plot_ssm_diagnostics_full,
     plot_ssm_diagnostics_with_hist

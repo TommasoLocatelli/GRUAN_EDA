@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Tuple
 
-from ekf import ExtendedKalmanFilter
+from ssm.from_scratch.ekf import ExtendedKalmanFilter
 
 
 class EKF_EM:

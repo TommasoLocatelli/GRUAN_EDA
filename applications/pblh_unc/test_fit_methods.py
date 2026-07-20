@@ -5,7 +5,7 @@ import sys, os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 import gruanpy as gp
-from methodology import fit_ssm
+from applications.pblh_unc.methodology import fit_ssm
 from tqdm import tqdm
 
 # ---------------------------------------------------------

@@ -1,5 +1,5 @@
 import numpy as np
-from ssm.ssm_model import (
+from ssm.from_scratch.ssm_model import (
     Z_I, LZ_I, T_I, P_I, RH_I, R_I, U_I, V_I,
     Z_S, LZ_S, Thv_S, LThv_S, P_S, RH_S, LRH_S, R_S, U_S, LU_S, V_S, LV_S
 )

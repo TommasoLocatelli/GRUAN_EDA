@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Callable, Optional
-from ssm.standardize import standardize_obs, denormalize_obs, reconstruct_physical_states
+from ssm.from_scratch.standardize import standardize_obs, denormalize_obs, reconstruct_physical_states
 
 class ExtendedKalmanFilter:
     def __init__(

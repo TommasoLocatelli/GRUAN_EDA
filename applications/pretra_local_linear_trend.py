@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import gruanpy as gp
-from code_examples.visual_config.color_map import map_labels_to_colors
+from applications.visual_config.color_map import map_labels_to_colors
 from ssm.statsmodels.pretrasformed_local_trend import PreTransformedLocalLinearTrend
 
 example_paths = [

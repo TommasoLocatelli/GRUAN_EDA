@@ -5,7 +5,7 @@ import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import gruanpy as gp
 import pandas as pd
-from code_examples.visual_config.color_map import map_labels_to_colors
+from applications.visual_config.color_map import map_labels_to_colors
 from matplotlib.patches import Ellipse
 import statsmodels.api as sm
 from ssm.local_level import MeasurementLocalLevel
