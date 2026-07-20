@@ -53,9 +53,10 @@ Examples are available in the `applications/` folder, including the code support
 ## Repository Structure
 
 - **applications/** — example scripts and workflows  
+  - **applications/pblh_unc/** — script supporting the publication at http://arxiv.org/abs/2607.14960
 - **gdp/** — directory intended to store GDP NetCDF files  
 - **gruanpy/** — core library with GDP utilities and diagnostics  
-- **ssm/** — state‑space modelling and Kalman smoothing tools  
+- **ssm/** — state‑space modelling and Kalman smoothing tools
 
 ---
 
