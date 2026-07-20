@@ -12,9 +12,7 @@ from tqdm import tqdm
 import gruanpy as gp
 from applications.pblh_unc.methodology import *
 from applications.pblh_unc.plot_profile import (
-    plot_ssm_diagnostics_short,
-    plot_ssm_diagnostics_full,
-    plot_ssm_diagnostics_with_hist
+    plot_ssm_diagnostics_short
 )
 
 # =====================================================================
@@ -130,7 +128,7 @@ def validate_ssm_fit(model, results, gdp, profile_id=None):
 # LOAD DATASET
 # =====================================================================
 
-pkl_path = r"papers\pblh_unc\gdp_2024_POT-RS-02_2024.pkl"
+pkl_path = r"applications\pblh_unc\pkls\gdp_2024_POT-RS-02_2024.pkl"
 
 with open(pkl_path, "rb") as f:
     dataset = pickle.load(f)

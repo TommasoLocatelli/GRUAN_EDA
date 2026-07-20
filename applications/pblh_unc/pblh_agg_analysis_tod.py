@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Folder containing the *_pblh_results.pkl files
-RESULTS_FOLDER = r"papers\pblh_unc"
+RESULTS_FOLDER = r"applications\pblh_unc\pkls"
 
 # Collect all result pickles
 result_files = [

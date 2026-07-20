@@ -11,11 +11,11 @@ from tqdm import tqdm
 
 # Input pickle paths
 pkl_paths = [
-    r"papers\pblh_unc\gdp_2024_POT-RS-02_2024.pkl",
-    r"papers\pblh_unc\gdp_2024_POT-RS-01_2024.pkl",
-    r"papers\pblh_unc\gdp_2024_HKO-RS-01_2024.pkl",
-    r"papers\pblh_unc\gdp_2024_LAU-RS-02_2024.pkl",
-    r"papers\pblh_unc\gdp_2024_LIN-RS-01_2024.pkl"
+    r"applications\pblh_unc\pkls\gdp_2024_POT-RS-02_2024.pkl",
+    r"applications\pblh_unc\pkls\gdp_2024_POT-RS-01_2024.pkl",
+    r"applications\pblh_unc\pkls\gdp_2024_HKO-RS-01_2024.pkl",
+    r"applications\pblh_unc\pkls\gdp_2024_LAU-RS-02_2024.pkl",
+    r"applications\pblh_unc\pkls\gdp_2024_LIN-RS-01_2024.pkl"
 ]
 
 for pkl_path in pkl_paths:

@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from applications.pblh_unc.methodology import *
+from methodology import *
 from applications.visual_config.color_map import map_labels_to_colors
 import seaborn as sns
 from matplotlib.lines import Line2D

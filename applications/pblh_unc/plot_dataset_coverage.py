@@ -15,9 +15,9 @@ def load_pkl(path):
     with open(path, "rb") as f:
         return pickle.load(f)
 
-hko = load_pkl(r"papers/pblh_unc/gdp_2024_HKO-RS-01_2024.pkl")
-lau = load_pkl(r"papers/pblh_unc/gdp_2024_LAU-RS-02_2024.pkl")
-lin = load_pkl(r"papers/pblh_unc/gdp_2024_LIN-RS-01_2024.pkl")
+hko = load_pkl(r"applications/pblh_unc/pkls/gdp_2024_HKO-RS-01_2024.pkl")
+lau = load_pkl(r"applications/pblh_unc/pkls/gdp_2024_LAU-RS-02_2024.pkl")
+lin = load_pkl(r"applications/pblh_unc/pkls/gdp_2024_LIN-RS-01_2024.pkl")
 
 print("Loaded:")
 print("HKO:", len(hko))

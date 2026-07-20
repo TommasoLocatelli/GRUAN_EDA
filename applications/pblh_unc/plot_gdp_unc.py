@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 import gruanpy as gp
-from code_examples.visual_config.color_map import map_labels_to_colors
+from applications.visual_config.color_map import map_labels_to_colors
 import matplotlib.patches as mpatches
 
 import matplotlib.pyplot as plt
@@ -24,7 +24,7 @@ plt.rcParams.update({
 #plt.rcParams["savefig.dpi"] = 300
 #"""
 
-folder = r'gdp\icm16'
+folder = r'gdp\products_RS41-GDP-1_LIN-RS-01_2024'
 file_paths = [
     os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.nc')
 ]
