@@ -38,12 +38,13 @@ def plot_ssm_diagnostics_short(
     scatter_obs = False
 ):
 
+    
     # Allow disabling PBLH plotting
     if not pblh_info:
         pblh_info = {}
 
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    plt.suptitle(f"Profile Id: {pid}, {where}, {when}, {tod.capitalize()}", fontsize=14)
+    #plt.suptitle(f"Profile Id: {pid}, {where}, {when}, {tod.capitalize()}", fontsize=14)
 
     # =========================================================
     # 1. θv PANEL — pm + thv gradient
@@ -105,9 +106,12 @@ def plot_ssm_diagnostics_short(
 
     ax.set_xlabel(r"$\theta_v$ [K]")
     ax.set_ylabel("Altitude [m]")
-    ax.set_title("Virtual Potential Temperature", fontsize=FONTE_SIZE)
+    #ax.set_title("Virtual Potential Temperature", fontsize=FONTE_SIZE)
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles=[sim_proxy] + handles, loc="upper left")
+    ax.legend(handles=[sim_proxy] + handles,
+        loc='lower center',
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=1)
     ax.grid(True)
 
     # =========================================================
@@ -157,10 +161,13 @@ def plot_ssm_diagnostics_short(
                         label=f"RH unc. = [{z['low']:.0f}, {z['high']:.0f}] m")
 
     ax.set_xlabel("RH [%]")
-    ax.set_ylabel("Altitude [m]")
-    ax.set_title("Relative Humidity", fontsize=FONTE_SIZE)
+    ax.set_yticklabels([])
+    #ax.set_title("Relative Humidity", fontsize=FONTE_SIZE)
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles=[sim_proxy] + handles, loc="upper left")
+    ax.legend(handles=[sim_proxy] + handles, 
+        loc='lower center',
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=1)
     ax.grid(True)
 
     # =========================================================
@@ -229,13 +236,24 @@ def plot_ssm_diagnostics_short(
                         label=f"Rm unc = [{z['low']:.0f}, {z['high']:.0f}] m")
 
     ax.set_xlabel("Wind speed [m/s]")
-    ax.set_ylabel("Altitude [m]")
-    ax.set_title("Meridional Wind Speed", fontsize=FONTE_SIZE)
+    ax.set_yticklabels([])
+    #ax.set_title("Meridional Wind Speed", fontsize=FONTE_SIZE)
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles=[sim_proxy] + handles, loc="upper left")
+    ax.legend(handles=[sim_proxy] + handles, 
+        loc='lower center',
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=1)
     ax.grid(True)
 
     plt.tight_layout()
+    plt.subplots_adjust(
+    top=0.75,
+    bottom=0.09,
+    left=0.07,
+    right=0.99,
+    hspace=0.20,
+    wspace=0.25   # leggermente più largo del tuo 0.223
+    )
     plt.show()
 
 def plot_ssm_diagnostics_with_violin(

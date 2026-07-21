@@ -284,7 +284,8 @@ for pid, gdp in tqdm(dataset.items()):
     tod=gdp.global_attrs[gdp.global_attrs['Attribute'] == "g.Measurement.TimeOfDay"]['Value'].values[0] # time
 
     
-    plot_ssm_diagnostics_with_violin(
+    if False:
+        plot_ssm_diagnostics_with_violin(
         pid, where, when, tod, launch_time_local,
         alt_o, thv_o, rh_o, u_o, v_o,
         thv_o_unc, rh_o_unc, u_o_unc, v_o_unc,
@@ -296,7 +297,7 @@ for pid, gdp in tqdm(dataset.items()):
         scatter_obs=False
     )    
 
-    comment="""
+    #comment="""
     plot_ssm_diagnostics_short(
             pid, where, when, tod,
             alt_o, thv_o, rh_o, u_o, v_o,
@@ -309,7 +310,7 @@ for pid, gdp in tqdm(dataset.items()):
             scatter_obs=False
         )
     
-
+    comment="""
     plot_ssm_diagnostics_with_hist(
         pid, where, when, tod,
         alt_o, thv_o, rh_o, u_o, v_o,
