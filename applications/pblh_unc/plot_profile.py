@@ -7,6 +7,18 @@ import pandas as pd
 
 sim_proxy = Line2D([0], [0], color="gray", alpha=0.8, linewidth=1, label="Sim. profiles")
 
+TEXT_SIZE=15
+#c="""
+plt.rcParams.update({
+    #"font.size": 5,            # Base font size
+    "axes.titlesize": TEXT_SIZE,       # Subplot titles
+    "axes.labelsize": TEXT_SIZE,       # Axis labels
+    "xtick.labelsize": TEXT_SIZE,      # Tick labels
+    "ytick.labelsize": TEXT_SIZE,
+    "legend.fontsize": 15,      # Legend text
+    "figure.titlesize": TEXT_SIZE,     # Suptitle
+})
+
 def plot_ssm_diagnostics_short(
     pid, where, when, tod,
     # observed
@@ -76,20 +88,20 @@ def plot_ssm_diagnostics_short(
                    label=f"PBLH pm median = {z['median']:.0f} m")
         ax.fill_between([thv_o.min(), thv_o.max()], z["low"], z["high"],
                         color=map_labels_to_colors['pblh_pm_uc'], alpha=alpha_unc,
-                        label=f"PBLH pm 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
+                        label=f"pm unc. = [{z['low']:.0f}, {z['high']:.0f}] m")
 
     # --- thv gradient method ---
     if pblh_info and "thv" in pblh_info:
         z = pblh_info["thv"]
         ax.axhline(z["value"], color=map_labels_to_colors['pblh_theta'],
                    linestyle='-.', linewidth=1.4,
-                   label=f"PBLH θv-grad std = {z['value']:.0f} m")
+                   label=f"PBLH θv std = {z['value']:.0f} m")
         ax.axhline(z["median"], color=map_labels_to_colors['pblh_theta'],
                    linestyle='-', linewidth=1.6,
-                   label=f"PBLH θv-grad median = {z['median']:.0f} m")
+                   label=f"PBLH θv median = {z['median']:.0f} m")
         ax.fill_between([thv_o.min(), thv_o.max()], z["low"], z["high"],
                         color=map_labels_to_colors['pblh_theta_uc'], alpha=alpha_unc,
-                        label=f"PBLH θv-grad 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
+                        label=f"θv Unc. = [{z['low']:.0f}, {z['high']:.0f}] m")
 
     ax.set_xlabel(r"$\theta_v$ [K]")
     ax.set_ylabel("Altitude [m]")
@@ -142,7 +154,7 @@ def plot_ssm_diagnostics_short(
                    label=f"PBLH RH median = {z['median']:.0f} m")
         ax.fill_between([rh_o.min(), rh_o.max()], z["low"], z["high"],
                         color=map_labels_to_colors['pblh_rh_uc'], alpha=alpha_unc,
-                        label=f"PBLH RH 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
+                        label=f"RH unc. = [{z['low']:.0f}, {z['high']:.0f}] m")
 
     ax.set_xlabel("RH [%]")
     ax.set_ylabel("Altitude [m]")
@@ -214,7 +226,7 @@ def plot_ssm_diagnostics_short(
         ax.fill_between([min(u_o.min(), v_o.min()), max(u_o.max(), v_o.max())],
                         z["low"], z["high"],
                         color=map_labels_to_colors['pblh_Ri_uc'], alpha=alpha_unc,
-                        label=f"PBLH Ri 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
+                        label=f"Rm unc = [{z['low']:.0f}, {z['high']:.0f}] m")
 
     ax.set_xlabel("Wind speed [m/s]")
     ax.set_ylabel("Altitude [m]")
@@ -248,12 +260,10 @@ def plot_ssm_diagnostics_with_violin(
     fig, axes = plt.subplots(1, 4, figsize=(20, 5))
     lt_str = launch_time_local.strftime("%Y-%m-%d %H:%M:%S %Z")
 
-    plt.suptitle(
-        f"PBLH Estimates\n\n"
+    print(
         f"Profile Id: {pid}\n"
         f"Site: {where}\n"
-        f"Local Launch Time: {lt_str}\n",
-        fontsize=14
+        f"Local Launch Time: {lt_str}\n"
         )
 
     # =========================================================
@@ -262,23 +272,25 @@ def plot_ssm_diagnostics_with_violin(
     ax = axes[0]
 
     if scatter_obs:
-        ax.scatter(thv_o, alt_o, label="Obs. θv",
+        ax.scatter(thv_o, alt_o, #label="Obs. θv",
             color=map_labels_to_colors['theta'], alpha=alpha)
     else:
-        ax.plot(thv_o, alt_o, label="Obs. θv",
+        ax.plot(thv_o, alt_o, #label="Obs. θv",
             color=map_labels_to_colors['theta'], alpha=alpha)
 
-    ax.plot(thv_s, alt_s, label="Smoothed θv",
+    ax.plot(thv_s, alt_s, #label="Smoothed θv",
             color=map_labels_to_colors['temp'], linewidth=2, alpha=alpha)
 
     # Uncertainty bands
     ax.fill_betweenx(alt_o, thv_o - thv_o_unc, thv_o + thv_o_unc,
-                     color=map_labels_to_colors['theta_uc'], alpha=alpha_unc,
-                     label="Obs θv Unc.")
+                     color=map_labels_to_colors['theta_uc'], 
+                     #label="Obs θv Unc.",
+                     alpha=alpha_unc)
 
     ax.fill_betweenx(alt_s, thv_s - thv_s_unc, thv_s + thv_s_unc,
-                     color=map_labels_to_colors['temp_uc'], alpha=alpha_unc,
-                     label="Smoothed θv Unc.")
+                     color=map_labels_to_colors['temp_uc'], 
+                     #label="Smoothed θv Unc.",
+                     alpha=alpha_unc)
 
     # --- pm method ---
     if pblh_info and "pm" in pblh_info:
@@ -291,31 +303,33 @@ def plot_ssm_diagnostics_with_violin(
                    label=f"PBLH PM MC = {z['median']:.0f} m")
         ax.fill_between([thv_o.min()-thv_o_unc.max(), thv_o.max()+thv_o_unc.max()], z["low"], z["high"],
                         color=map_labels_to_colors['pblh_pm_uc'], alpha=alpha_unc,
-                        label=f"PBLH PM 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
+                        label=f"PM MC Unc. = [{z['low']:.0f}, {z['high']:.0f}] m")
 
     # --- thv gradient method ---
     if pblh_info and "thv" in pblh_info:
         z = pblh_info["thv"]
         ax.axhline(z["value"], color=map_labels_to_colors['pblh_theta'],
                    linestyle='--', linewidth=1.4,
-                   label=f"PBLH θv-grad = {z['value']:.0f} m")
+                   label=f"PBLH θv = {z['value']:.0f} m")
         ax.axhline(z["median"], color=map_labels_to_colors['pblh_theta'],
                    linestyle='-', linewidth=1.6,
-                   label=f"PBLH θv-grad MC = {z['median']:.0f} m")
+                   label=f"PBLH θv MC = {z['median']:.0f} m")
         ax.fill_between([thv_o.min()-thv_o_unc.max(), thv_o.max()+thv_o_unc.max()], z["low"], z["high"],
                         color=map_labels_to_colors['pblh_theta_uc'], alpha=alpha_unc,
-                        label=f"PBLH θv-grad 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
+                        label=f"θv MC Unc.= [{z['low']:.0f}, {z['high']:.0f}] m")
 
     ax.set_xlabel(r"$\theta_v$ [K]")
     ax.set_ylabel("Altitude [m]")
-    ax.set_title("θv Profile, PM & θv PBLH", fontsize=FONTE_SIZE)
+    #ax.set_title("θv Profile, PM & θv PBLH", fontsize=FONTE_SIZE)
     ax.legend(loc="upper left")
     ax.grid(True)
 
     ymin = -50
     ymax = max(alt_o.max()+50, alt_s.max()+50)
     ax.set_ylim(ymin, ymax)
-
+    ax.legend(loc='lower center',
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=1)
 
     # =========================================================
     # 2. RH PANEL — rh method
@@ -323,23 +337,25 @@ def plot_ssm_diagnostics_with_violin(
     ax = axes[1]
 
     if scatter_obs:
-        ax.scatter(rh_o, alt_o, label="Obs. RH",
+        ax.scatter(rh_o, alt_o, #label="Obs. RH",
             color=map_labels_to_colors['rh'], alpha=alpha)
     else:
-        ax.plot(rh_o, alt_o, label="Obs. RH",
+        ax.plot(rh_o, alt_o, #label="Obs. RH",
             color=map_labels_to_colors['rh'], alpha=alpha)
 
-    ax.plot(rh_s, alt_s, label="Smoothed RH",
+    ax.plot(rh_s, alt_s, #label="Smoothed RH",
             color=map_labels_to_colors['press'], linewidth=2, alpha=alpha)
 
     # Uncertainty bands
     ax.fill_betweenx(alt_o, rh_o - rh_o_unc, rh_o + rh_o_unc,
-                     color=map_labels_to_colors['rh_uc'], alpha=alpha_unc,
-                     label="Obs RH Unc.")
+                     color=map_labels_to_colors['rh_uc'],
+                     #label="Obs RH Unc.",
+                     alpha=alpha_unc)
 
     ax.fill_betweenx(alt_s, rh_s - rh_s_unc, rh_s + rh_s_unc,
-                     color=map_labels_to_colors['press_uc'], alpha=alpha_unc,
-                     label="Smoothed RH Unc.")
+                     color=map_labels_to_colors['press_uc'],
+                     #label="Smoothed RH Unc.",
+                     alpha=alpha_unc)
 
     # --- RH method ---
     if pblh_info and "rh" in pblh_info:
@@ -352,18 +368,20 @@ def plot_ssm_diagnostics_with_violin(
                    label=f"PBLH RH MC = {z['median']:.0f} m")
         ax.fill_between([rh_o.min()-rh_o_unc.max(), rh_o.max()+rh_o_unc.max()], z["low"], z["high"],
                         color=map_labels_to_colors['pblh_rh_uc'], alpha=alpha_unc,
-                        label=f"PBLH RH 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
+                        label=f"RH MC Unc. = [{z['low']:.0f}, {z['high']:.0f}] m")
 
     ax.set_xlabel("RH [%]")
-    ax.set_ylabel("Altitude [m]")
-    ax.set_title("Relative Humidity Profile, RH PBLH", fontsize=FONTE_SIZE)
+    #ax.set_title("Relative Humidity Profile, RH PBLH", fontsize=FONTE_SIZE)
     ax.legend(loc="upper left")
     ax.grid(True)
 
     ymin = -50
     ymax = max(alt_o.max()+50, alt_s.max()+50)
     ax.set_ylim(ymin, ymax)
-
+    ax.legend(loc='lower center',
+        bbox_to_anchor=(0.5, 1.12),
+        ncol=1)
+    ax.set_yticklabels([])
 
     # =========================================================
     # 3. WIND PANEL — Ri method
@@ -371,23 +389,25 @@ def plot_ssm_diagnostics_with_violin(
     ax = axes[2]
 
     if scatter_obs:
-        ax.scatter(v_o, alt_o, label="Obs. v",
+        ax.scatter(v_o, alt_o, #label="Obs. v",
             color=map_labels_to_colors['uspeed'], alpha=alpha)
     else:
-        ax.plot(v_o, alt_o, label="Obs. v",
+        ax.plot(v_o, alt_o, #label="Obs. v",
             color=map_labels_to_colors['uspeed'], alpha=alpha)
 
-    ax.plot(v_s, alt_s, label="Smoothed v",
+    ax.plot(v_s, alt_s, #label="Smoothed v",
             color=map_labels_to_colors['es'], linewidth=2, alpha=alpha)
 
     # Uncertainty bands
     ax.fill_betweenx(alt_o, v_o - v_o_unc, v_o + v_o_unc,
-                     color=map_labels_to_colors['uspeed_uc'], alpha=alpha_unc,
-                     label="Obs v Unc.")
+                     color=map_labels_to_colors['uspeed_uc'], 
+                     #label="Obs v Unc.",
+                     alpha=alpha_unc)
 
     ax.fill_betweenx(alt_s, v_s - v_s_unc, v_s + v_s_unc,
-                     color=map_labels_to_colors['es_uc'], alpha=alpha_unc,
-                     label="Smoothed v Unc.")
+                     color=map_labels_to_colors['es_uc'],
+                     #label="Smoothed v Unc.",
+                     alpha=alpha_unc)
 
     # --- Ri method ---
     if pblh_info and "ri" in pblh_info:
@@ -401,24 +421,26 @@ def plot_ssm_diagnostics_with_violin(
         ax.fill_between([v_o.min()-v_o_unc.max(), v_o.max()+v_o_unc.max()],
                         z["low"], z["high"],
                         color=map_labels_to_colors['pblh_Ri_uc'], alpha=alpha_unc,
-                        label=f"PBLH RM 95% = [{z['low']:.0f}, {z['high']:.0f}] m")
+                        label=f"RM MC Unc.= [{z['low']:.0f}, {z['high']:.0f}] m")
 
     ax.set_xlabel("Wind speed [m/s]")
-    ax.set_ylabel("Altitude [m]")
-    ax.set_title("Meridional Wind Speed, RM PBLH", fontsize=FONTE_SIZE)
+    #ax.set_title("Meridional Wind Speed, RM PBLH", fontsize=FONTE_SIZE)
     ax.legend(loc="upper left")
     ax.grid(True)
 
     ymin = -50
     ymax = max(alt_o.max()+50, alt_s.max()+50)
     ax.set_ylim(ymin, ymax)
-
+    ax.legend(loc='lower center',
+        bbox_to_anchor=(0.5, 1.12),
+        ncol=1)
+    ax.set_yticklabels([])
 
     # =========================================================
     # 4. VIOLIN PANEL — Monte Carlo PBLH distributions (seaborn)
     # =========================================================
     ax = axes[3]
-    ax.set_title("Monte‑Carlo PBLH Distributions", fontsize=FONTE_SIZE)
+    #ax.set_title("Monte‑Carlo PBLH Distributions", fontsize=FONTE_SIZE)
 
     # Prepare dataframe for seaborn
     df_violin = []
@@ -448,7 +470,6 @@ def plot_ssm_diagnostics_with_violin(
         linewidth=1.2
     )
 
-    ax.set_ylabel("PBLH [m]")
     ax.grid(True)
 
     # >>> Match y-axis limits with other panels <<<
@@ -461,13 +482,14 @@ def plot_ssm_diagnostics_with_violin(
     axes[3].get_position().y0,
     axes[3].get_position().width * 0.85,
     axes[3].get_position().height])
-
+    ax.set_ylabel('')
+    ax.set_yticklabels([])
 
     plt.tight_layout()
     plt.subplots_adjust(
-    top=0.80,
+    top=0.65,
     bottom=0.09,
-    left=0.05,
+    left=0.07,
     right=0.99,
     hspace=0.20,
     wspace=0.25   # leggermente più largo del tuo 0.223

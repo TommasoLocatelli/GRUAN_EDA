@@ -6,6 +6,20 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 import gruanpy as gp
+import matplotlib.pyplot as plt
+import numpy as np
+
+TEXT_SIZE=22
+#c="""
+plt.rcParams.update({
+    #"font.size": 5,            # Base font size
+    "axes.titlesize": TEXT_SIZE,       # Subplot titles
+    "axes.labelsize": TEXT_SIZE,       # Axis labels
+    "xtick.labelsize": TEXT_SIZE,      # Tick labels
+    "ytick.labelsize": TEXT_SIZE,
+    "legend.fontsize": TEXT_SIZE,      # Legend text
+    "figure.titlesize": TEXT_SIZE,     # Suptitle
+})
 
 # -----------------------------
 # 1. Load GDP dictionaries
@@ -133,8 +147,7 @@ print("Day/Night:", lin_dn)
 print("Seasons:", lin_season)
 print("Hours:", lin_hours)
 
-import matplotlib.pyplot as plt
-import numpy as np
+
 # ---------------------------------------------------------
 # Prepare stacked arrays
 # ---------------------------------------------------------
@@ -172,10 +185,12 @@ for i, cat in enumerate(dn_categories):
     ax.bar(sites, dn_stacked[:, i], bottom=bottom, label=cat, color=colors_dn[i])
     bottom += dn_stacked[:, i]
 
-ax.set_title("Day/Night/Twilight Distribution per Site")
+#ax.set_title("Day/Night/Twilight Distribution per Site")
 ax.set_ylabel("Number of launches")
-ax.legend(title="Time of Day")
 ax.grid(axis="y", alpha=0.3)
+ax.legend(loc='lower center',
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=2)
 
 # ---------------------------------------------------------
 # Subplot 2: Seasons
@@ -190,10 +205,23 @@ for i, cat in enumerate(season_categories):
     ax.bar(sites, season_stacked[:, i], bottom=bottom, label=cat, color=colors_season[i])
     bottom += season_stacked[:, i]
 
-ax.set_title("Seasonal Distribution per Site")
+#ax.set_title("Seasonal Distribution per Site")
 ax.set_ylabel("Number of launches")
-ax.legend(title="Season")
+ax.set_ylabel('')        # remove axis label
+#ax.set_yticklabels([])        # remove tick marks + numbers
+# or ax.set_yticklabels([]) if you want ticks but no numbers
 ax.grid(axis="y", alpha=0.3)
+ax.legend(loc='lower center',
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=2)
 
 plt.tight_layout()
+plt.subplots_adjust(
+    top=0.775,
+    bottom=0.10,
+    left=0.10,
+    right=0.95,
+    hspace=0.20,
+    wspace=0.25   # leggermente più largo del tuo 0.223
+    )
 plt.show()

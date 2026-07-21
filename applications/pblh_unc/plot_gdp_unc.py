@@ -10,15 +10,17 @@ import matplotlib.patches as mpatches
 
 import matplotlib.pyplot as plt
 
+
+TEXT_SIZE=22
 #c="""
 plt.rcParams.update({
     #"font.size": 5,            # Base font size
-    "axes.titlesize": 14,       # Subplot titles
-    "axes.labelsize": 14,       # Axis labels
-    "xtick.labelsize": 14,      # Tick labels
-    "ytick.labelsize": 14,
-    "legend.fontsize": 14,      # Legend text
-    "figure.titlesize": 14,     # Suptitle
+    "axes.titlesize": TEXT_SIZE,       # Subplot titles
+    "axes.labelsize": TEXT_SIZE,       # Axis labels
+    "xtick.labelsize": TEXT_SIZE,      # Tick labels
+    "ytick.labelsize": TEXT_SIZE,
+    "legend.fontsize": TEXT_SIZE,      # Legend text
+    "figure.titlesize": TEXT_SIZE,     # Suptitle
 })
 #plt.rcParams["figure.dpi"] = 300
 #plt.rcParams["savefig.dpi"] = 300
@@ -39,8 +41,8 @@ for file_path in file_paths[:5]:
     gdp.data = gdp.data[gdp.data.index % 3==0]
 
     plt.figure(figsize=(12, 4))
-    plt.suptitle(f'RS41-GDP.1: {where}, {when}', fontsize=20)
-    DOTS_SIZE = 20
+    plt.suptitle(f'RS41-GDP.1: {where}')
+    DOTS_SIZE = 25
 
     # ---------------------------------------------------------
     # 1) TEMPERATURE
@@ -62,8 +64,12 @@ for file_path in file_paths[:5]:
     plt.xlabel('Temperature (K)')
     plt.ylabel('Altitude (m)')
     plt.grid(True)
-    plt.legend([proxy_temp, proxy_temp_uc],
-            ["Temperature", "Temperature uncertainty"],loc='upper right')
+    plt.legend(
+        [proxy_temp, proxy_temp_uc],
+        ["Temperature", "Temperature uncertainty"],
+        loc='lower center',
+        bbox_to_anchor=(0.5, 1.02)
+    )
 
     # ---------------------------------------------------------
     # 2) RELATIVE HUMIDITY
@@ -84,9 +90,13 @@ for file_path in file_paths[:5]:
                 color=map_labels_to_colors['rh'], s=DOTS_SIZE)
     plt.xlabel('Relative Humidity (%)')
     plt.gca().set_ylabel('')
+    plt.gca().set_yticklabels([])
     plt.grid(True)
     plt.legend([proxy_rh, proxy_rh_uc],
-            ["RH", "RH uncertainty"],loc='upper right')
+            ["RH", "RH uncertainty"],
+            loc='lower center',
+        bbox_to_anchor=(0.5, 1.02)
+    )
 
     # ---------------------------------------------------------
     # 3) WIND SPEED
@@ -107,9 +117,23 @@ for file_path in file_paths[:5]:
                 color=map_labels_to_colors['wspeed'], s=DOTS_SIZE)
     plt.xlabel('Wind Speed (m/s)')
     plt.gca().set_ylabel('')
+    plt.gca().set_yticklabels([])
     plt.grid(True)
     plt.legend([proxy_ws, proxy_ws_uc],
-            ["Wind speed", "Wind speed uncertainty"],loc='upper right')
+            ["Wind speed", "Wind speed uncertainty"],
+            loc='lower center',
+        bbox_to_anchor=(0.5, 1.02)
+    )
 
     plt.tight_layout()
+
+    plt.subplots_adjust(
+    top=0.775,
+    bottom=0.10,
+    left=0.10,
+    right=0.95,
+    hspace=0.20,
+    wspace=0.25   # leggermente più largo del tuo 0.223
+    )
     plt.show()
+    break
