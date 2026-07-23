@@ -5,6 +5,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
+# Setting the font size by 2.5 
+sns.set(font_scale=2.5)
+
+TEXT_SIZE=22
 
 # Folder containing the *_pblh_results.pkl files
 RESULTS_FOLDER = r"applications\pblh_unc\pkls"
@@ -157,8 +161,8 @@ for site in sites:
 
     # ---- Compute and save full stats table ----
     stats_table = compute_full_stats(df_site)
-    stats_table.to_csv(f"{site}_SEASON_stats.csv", index=False)
-    print(f"Saved table: {site}_SEASON_stats.csv")
+    #stats_table.to_csv(f"{site}_SEASON_stats.csv", index=False)
+    #print(f"Saved table: {site}_SEASON_stats.csv")
 
     # ---- Create figure ----
     fig, axes = plt.subplots(
@@ -187,9 +191,13 @@ for site in sites:
 
         ax.set_ylim(ymin, ymax)
         ax.set_xlabel("")
-        ax.set_ylabel("Standard PBLH [m]")
-        ax.set_title(f"{method.upper()}")
-        ax.tick_params(axis="x", rotation=25)
+        ax.set_ylabel("Standard PBLH [m]", fontsize=TEXT_SIZE)
+        ax.set_title(f"{'RM' if method.upper()=='RI' else 
+                        'θv' if method.upper()=='THV' else
+                        method.upper()}", fontsize=TEXT_SIZE)
+        ax.tick_params(axis="x", rotation=0)
+        ax.set_xticklabels([])
+        ax.tick_params(axis="y", labelsize=TEXT_SIZE-4)
 
     # ---------------------------------------------------------
     # ROW 2: median MC estimates
@@ -210,9 +218,11 @@ for site in sites:
 
         ax.set_ylim(ymin, ymax)
         ax.set_xlabel("")
-        ax.set_ylabel("MCM PBLH [m]")
+        ax.set_ylabel("MC PBLH [m]", fontsize=TEXT_SIZE)
         ax.set_title("")
-        ax.tick_params(axis="x", rotation=25)
+        ax.tick_params(axis="x", rotation=0)
+        ax.set_xticklabels([])
+        ax.tick_params(axis="y", labelsize=TEXT_SIZE-4)
 
     # ---------------------------------------------------------
     # ROW 3: uncertainty width
@@ -231,16 +241,16 @@ for site in sites:
             ax=ax
         )
 
-        ax.set_ylim(ymin, ymax)
         ax.set_xlabel("")
-        ax.set_ylabel("PBLH Unc. Width [m]")
-        ax.tick_params(axis="x", rotation=25)
+        ax.set_ylabel("MC Unc. Width [m]", fontsize=TEXT_SIZE)
+        ax.tick_params(axis="x", labelsize=TEXT_SIZE, rotation=45)
+        ax.tick_params(axis="y", labelsize=TEXT_SIZE-4)
         ax.set_title("")
 
     # ---------------------------------------------------------
     # Layout
     # ---------------------------------------------------------
-    fig.suptitle(f"PBLH Distribution by Season - {site}", fontsize=16)
+    #fig.suptitle(f"PBLH Distribution by Season - {site}", fontsize=16)
     fig.tight_layout(rect=[0.05, 0.05, 0.95, 0.95])
 
     # ---- Save figure ----

@@ -41,7 +41,7 @@ for file_path in file_paths[:5]:
     gdp.data = gdp.data[gdp.data.index % 3==0]
 
     plt.figure(figsize=(12, 4))
-    plt.suptitle(f'RS41-GDP.1: {where}')
+    #plt.suptitle(f'RS41-GDP.1: {where}')
     DOTS_SIZE = 25
 
     # ---------------------------------------------------------

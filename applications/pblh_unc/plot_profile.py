@@ -7,7 +7,7 @@ import pandas as pd
 
 sim_proxy = Line2D([0], [0], color="gray", alpha=0.8, linewidth=1, label="Sim. profiles")
 
-TEXT_SIZE=15
+TEXT_SIZE=16
 #c="""
 plt.rcParams.update({
     #"font.size": 5,            # Base font size
@@ -15,7 +15,7 @@ plt.rcParams.update({
     "axes.labelsize": TEXT_SIZE,       # Axis labels
     "xtick.labelsize": TEXT_SIZE,      # Tick labels
     "ytick.labelsize": TEXT_SIZE,
-    "legend.fontsize": 15,      # Legend text
+    "legend.fontsize": TEXT_SIZE,      # Legend text
     "figure.titlesize": TEXT_SIZE,     # Suptitle
 })
 
@@ -247,9 +247,9 @@ def plot_ssm_diagnostics_short(
 
     plt.tight_layout()
     plt.subplots_adjust(
-    top=0.75,
-    bottom=0.09,
-    left=0.07,
+    top=0.65,
+    bottom=0.1,
+    left=0.09,
     right=0.99,
     hspace=0.20,
     wspace=0.25   # leggermente più largo del tuo 0.223
@@ -346,7 +346,7 @@ def plot_ssm_diagnostics_with_violin(
     ymax = max(alt_o.max()+50, alt_s.max()+50)
     ax.set_ylim(ymin, ymax)
     ax.legend(loc='lower center',
-        bbox_to_anchor=(0.5, 1.02),
+        bbox_to_anchor=(0.35, 1.02),
         ncol=1)
 
     # =========================================================
@@ -450,7 +450,7 @@ def plot_ssm_diagnostics_with_violin(
     ymax = max(alt_o.max()+50, alt_s.max()+50)
     ax.set_ylim(ymin, ymax)
     ax.legend(loc='lower center',
-        bbox_to_anchor=(0.5, 1.12),
+        bbox_to_anchor=(0.65, 1.12),
         ncol=1)
     ax.set_yticklabels([])
 
@@ -505,7 +505,7 @@ def plot_ssm_diagnostics_with_violin(
 
     plt.tight_layout()
     plt.subplots_adjust(
-    top=0.65,
+    top=0.7,
     bottom=0.09,
     left=0.07,
     right=0.99,

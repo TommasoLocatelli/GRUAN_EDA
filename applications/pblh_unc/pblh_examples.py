@@ -48,7 +48,7 @@ pkl_path=r'applications\pblh_unc\pkls\gdp_2024_HKO-RS-01_2024.pkl'
 
 pkl_path=r'applications\pblh_unc\pkls\gdp_2024_LAU-RS-02_2024.pkl'
 
-pkl_path=r'applications\pblh_unc\pkls\gdp_2024_LIN-RS-01_2024.pkl'
+#pkl_path=r'applications\pblh_unc\pkls\gdp_2024_LIN-RS-01_2024.pkl'
 
 site_code = extract_site_code(pkl_path)
 
@@ -284,8 +284,7 @@ for pid, gdp in tqdm(dataset.items()):
     tod=gdp.global_attrs[gdp.global_attrs['Attribute'] == "g.Measurement.TimeOfDay"]['Value'].values[0] # time
 
     
-    if False:
-        plot_ssm_diagnostics_with_violin(
+    plot_ssm_diagnostics_with_violin(
         pid, where, when, tod, launch_time_local,
         alt_o, thv_o, rh_o, u_o, v_o,
         thv_o_unc, rh_o_unc, u_o_unc, v_o_unc,
@@ -297,7 +296,7 @@ for pid, gdp in tqdm(dataset.items()):
         scatter_obs=False
     )    
 
-    #comment="""
+    comment="""
     plot_ssm_diagnostics_short(
             pid, where, when, tod,
             alt_o, thv_o, rh_o, u_o, v_o,
@@ -309,37 +308,4 @@ for pid, gdp in tqdm(dataset.items()):
             map_labels_to_colors,
             scatter_obs=False
         )
-    
-    comment="""
-    plot_ssm_diagnostics_with_hist(
-        pid, where, when, tod,
-        alt_o, thv_o, rh_o, u_o, v_o,
-        thv_o_unc, rh_o_unc, u_o_unc, v_o_unc,
-        alt_s, thv_s, rh_s, u_s, v_s,
-        thv_s_unc, rh_s_unc, u_s_unc, v_s_unc,
-        simulations,
-        pblh_info,
-        map_labels_to_colors,
-        scatter_obs=False
-    )
-
-
-    plot_ssm_diagnostics_f
-    ull(
-    pid,
-    alt_o, thv_o, rh_o, u_o, v_o,
-    thv_g_o, rh_g_o, ri_o,
-    alt_o_unc, thv_o_unc, rh_o_unc, u_o_unc, v_o_unc,
-    thv_g_o_unc, rh_g_o_unc, ri_o_unc,
-    alt_s, thv_s, rh_s, u_s, v_s,
-    thv_g_s, rh_g_s, ri_s,
-    alt_s_unc, thv_s_unc, rh_s_unc, u_s_unc, v_s_unc,
-    thv_g_s_unc, rh_g_s_unc, ri_s_unc,
-    simulations,
-    pblh_info,
-    map_labels_to_colors,
-    FONTE_SIZE=8,
-    alpha=0.75,
-    alpha_unc=0.30,
-    alpha_sim=0.02
-    )"""
+    """
