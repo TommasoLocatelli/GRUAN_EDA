@@ -4,7 +4,7 @@ import os
 import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 import gruanpy as gp
-from ssm.statsmodels.pretrasformed_local_trend import PreTransformedLocalLinearTrend
+from ssm.statsmodels.local_trend import LocalLinearTrend
 
 def fit_ssm(gdp, method='lbfgs', iterations=100):
     data = gdp.data
@@ -92,7 +92,7 @@ def fit_ssm(gdp, method='lbfgs', iterations=100):
     measurement_var = np.column_stack([z_var, Thv_var, RH_var, u_var, v_var]).T
 
     # Setup the model
-    model = PreTransformedLocalLinearTrend(endog=endog, measurement_var=measurement_var)
+    model = LocalLinearTrend(endog=endog, measurement_var=measurement_var)
 
     # Fit it using MLE with a fixed sequence of measurement variances
     results = model.fit(method=method,
