@@ -8,7 +8,7 @@ class MeasurementLocalLevel(sm.tsa.statespace.MLEModel):
         k_posdef = endog.shape[1] # The dimension of a guaranteed positive definite covariance matrix describing the shocks in the transition equation.
 
         # Store fixed measurement variance sequence if provided
-        self.measurement_var = measurement_var
+        self.measurement_var = measurement_var.T
 
         # Store measurement names for later use
         self.measurement_names = measurement_names
