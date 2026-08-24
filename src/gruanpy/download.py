@@ -1,0 +1,86 @@
+"""
+This module provides a DownloadHelper (DH) class for managing Gruan data product (GDP) downloads through an FTP server.
+As of 2025, GRUAN has not yet implemented an authentication system for complete data dissemination.
+To download the data, you need to register on the GRUAN website and manually download the GDP of interest.
+Alternatively, the DH class helps in downloading some examples of GDP made available by an FTP server of the 
+National Oceanic and Atmospheric Administration (NOAA).
+The class exploit the ftplib library to connect to the FTP server and download files and can be used in principle to download other types of binary file from others FTP servers.
+
+See an example of usage to explore and download GDP from the NOAA FTP server in code_examples folder "download_gdp.py".
+
+Attributes:
+    ftp_url (str): The URL of the FTP server. Defaults to "ftp.ncdc.noaa.gov".
+    download_folder (str): The local folder where downloaded files will be stored. Defaults to "gdp".
+
+Methods:
+    __init__(ftp_url="ftp.ncdc.noaa.gov", download_folder="gdp"):
+        Initializes the DH with the specified FTP URL and download folder.
+
+    search(ftp_dir_path):
+        Searches for files in the specified FTP directory.
+        Args:
+            ftp_dir_path (str): The path to the directory on the FTP server.
+        Returns:
+            list: A list of filenames in the specified FTP directory.
+
+    download(ftp_dir_path, filename):
+        Downloads a file from the specified FTP directory to the local download folder.
+        Args:
+            ftp_dir_path (str): The path to the directory on the FTP server.
+            filename (str): The name of the file to download.
+        Returns:
+            None
+
+    execute_request(api_request):
+        Executes a request string.
+        Args:
+            api_request (str): The request string to execute.
+        Returns:
+            None
+
+        Meant for Copernicus Climate Data Store (CDS) API
+
+        how to set up:
+        https://cds.climate.copernicus.eu/how-to-api
+        
+        how to generate request:
+        https://cds.climate.copernicus.eu/datasets/insitu-observations-gruan-reference-network?tab=overview
+"""
+
+from ftplib import FTP
+import os
+
+class DownloadHelper:
+    def __init__(self, ftp_url="ftp.ncdc.noaa.gov", download_folder="gdp"):
+        self.ftp_url=ftp_url
+        self.download_folder=download_folder
+
+    def search(self, ftp_dir_path=r'pub/data/gruan/processing'):
+        ftp = FTP(self.ftp_url, timeout=30)
+        ftp=FTP(self.ftp_url)
+        ftp.login()
+        ftp.cwd(ftp_dir_path)
+        files = ftp.nlst()
+        ftp.quit()
+
+        return files
+    
+    def download(self, ftp_dir_path, file_name):
+
+        ftp = FTP(self.ftp_url, timeout=30)
+        ftp.login()
+        ftp.cwd(ftp_dir_path)
+        
+        os.makedirs(self.download_folder, exist_ok=True)
+        local_file_path = os.path.join(self.download_folder, file_name)
+        with open(local_file_path, 'wb') as local_file:
+            ftp.retrbinary(f"RETR {file_name}", local_file.write)
+        
+        ftp.quit()
+
+    def exec_request(self, api_request):
+        assert isinstance(api_request, str), "api_request must be a string"
+        api_request = api_request.lstrip()
+        assert api_request.startswith("import cdsapi"), "api_request must start with 'import cdsapi'"
+        exec(api_request)
+

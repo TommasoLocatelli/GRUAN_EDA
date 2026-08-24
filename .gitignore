@@ -10,12 +10,12 @@ __pycache__/
 #data/*
 #!data/
 
-gdp/*
-!gdp/
-!gdp/.gitkeep
+data/*
+!data/
+!data/.gitkeep
 temp/*
-!gdp/icm16/
-!gdp/icm16/**
+!data/icm16/
+!data/icm16/**
 
 *.pkl
 *.png

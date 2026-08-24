@@ -1,0 +1,327 @@
+# Various atmospheric formulas
+
+from src.physics.constants import EPSILON, Poisson_exponent, p0, R_DRY_AIR, R_WATER_VAPOR, G0
+import numpy as np
+
+def from_celsius_to_kelvin(T_c):
+        """Convert temperature from Celsius to Kelvin.
+        Parameters:
+        T_c (float or array-like): Temperature in Celsius.
+        Returns:
+        float or array-like: Temperature in Kelvin.
+        """
+        T_k = T_c + 273.15
+        return T_k
+
+def from_kelvin_to_celsius(T_k):
+    """Convert temperature from Kelvin to Celsius.
+    Parameters:
+    T_k (float or array-like): Temperature in Kelvin.
+    Returns:
+    float or array-like: Temperature in Celsius.
+    """
+    T_c = T_k - 273.15
+    return T_c
+
+def virtual_temperature(T, e, p):
+    """Calculate the virtual temperature.
+    Parameters:
+    T (float or array-like): Temperature in Kelvin.
+    e (float or array-like): Vapor pressure in hPa.
+    p (float or array-like): Pressure in hPa.
+    Returns:
+    float or array-like: Virtual temperature in Kelvin.
+    """
+    Tv = T / (1 - (e / p)*(1 - EPSILON))
+    return Tv
+
+def virtual_temperature_uncertainty(T, e, p, T_uc, e_uc, p_uc):
+    """Calculate the uncertainty in virtual temperature.
+    Parameters:
+    T (float or array-like): Temperature in Kelvin.
+    e (float or array-like): Vapor pressure in hPa.
+    p (float or array-like): Pressure in hPa.
+    T_uc (float or array-like): Uncertainty in temperature in Kelvin.
+    e_uc (float or array-like): Uncertainty in vapor pressure in hPa.
+    p_uc (float or array-like): Uncertainty in pressure in hPa.
+    Returns:
+    float or array-like: Uncertainty in virtual temperature in Kelvin.
+    """
+    dTv_dT = 1 / (1 - (e / p)*(1 - EPSILON))
+    dTv_dp = T * e * (1 - EPSILON) / ( p - e * (1 - EPSILON))**2
+    dTv_de = p * T * (1 - EPSILON) /  (p - e *(1 - EPSILON))**2
+    Tv_uc = np.sqrt((dTv_dT * T_uc)**2 + (dTv_de * e_uc)**2 + (dTv_dp * p_uc)**2)
+    return Tv_uc
+
+def potential_temperature(T, p, p0=p0):
+    """Calculate the potential temperature thanks to the Poisson equation.
+    Parameters:
+    T (float or array-like): Temperature in Kelvin.
+    p (float or array-like): Pressure in hPa.
+    p0 (float): Reference pressure in hPa. Default is 1000 hPa.
+    Returns:
+    float or array-like: Potential temperature in Kelvin.
+    """
+    theta = T * (p0 / p) ** (Poisson_exponent)
+    return theta
+
+def potential_temperature_uncertainty(T, p, T_uc, p_uc, p0=p0):
+    """Calculate the uncertainty in potential temperature.
+    Parameters:
+    T (float or array-like): Temperature in Kelvin.
+    p (float or array-like): Pressure in hPa.
+    T_uc (float or array-like): Uncertainty in temperature in Kelvin.
+    p_uc (float or array-like): Uncertainty in pressure in hPa.
+    p0 (float): Reference pressure in hPa. Default is 1000 hPa.
+    Returns:
+    float or array-like: Uncertainty in potential temperature in Kelvin.
+    """
+    dtheta_dT = (p0 / p) ** (Poisson_exponent)
+    dtheta_dp = - ((Poisson_exponent) * T * ((p0 / p) ** (Poisson_exponent))) / p
+    theta_uc = np.sqrt((dtheta_dT * T_uc)**2 + (dtheta_dp * p_uc)**2)
+    return theta_uc
+
+def virtual_potential_temperature(T, p, r, p0=p0):
+    """Calculate the virtual potential temperature.
+    Parameters:
+    T (float or array-like): Temperature in Kelvin.
+    p (float or array-like): Pressure in hPa.
+    r (float or array-like): Mixing ratio in kg/kg.
+    Returns:
+    float or array-like: Virtual potential temperature in Kelvin.
+    """
+    thv = T * (p0 / p) ** (Poisson_exponent) * (1 + 0.61 * r)
+    return thv
+
+def virtual_potential_temperature_uncertainty(T, p, r, T_uc, p_uc, r_uc, p0=p0):
+    """Calculate the uncertainty in virtual potential temperature.
+    Parameters:
+    T (float or array-like): Temperature in Kelvin.
+    p (float or array-like): Pressure in hPa.
+    r (float or array-like): Mixing ratio in kg/kg.
+    T_uc (float or array-like): Uncertainty in temperature in Kelvin.
+    p_uc (float or array-like): Uncertainty in pressure in hPa.
+    r_uc (float or array-like): Uncertainty in mixing ratio in kg/kg.
+    p0 (float): Reference pressure in hPa. Default is 1000 hPa.
+    Returns:
+    float or array-like: Uncertainty in virtual potential temperature in Kelvin.
+    """
+    dthv_dT = (p0 / p) ** (Poisson_exponent) * (1 + 0.61 * r)
+    dthv_dp = - ((Poisson_exponent) * T * ((p0 / p) ** (Poisson_exponent)) * (1 + 0.61 * r)) / p
+    dthv_dr = 0.61 * T * (p0 / p) ** (Poisson_exponent)
+    
+    thv_uc = np.sqrt((dthv_dT * T_uc)**2 + (dthv_dp * p_uc)**2 + (dthv_dr * r_uc)**2)
+    return thv_uc
+
+def virtual_potential_temperature_inverse(thv, p, r, p0=p0):
+    """Calculate the temperature from virtual potential temperature.
+    Parameters:
+    thv (float or array-like): Virtual potential temperature in Kelvin.
+    p (float or array-like): Pressure in hPa.
+    r (float or array-like): Mixing ratio in kg/kg.
+    Returns:
+    float or array-like: Temperature in Kelvin.
+    """
+    T = thv / ((p0 / p) ** (Poisson_exponent) * (1 + 0.61 * r))
+    return T
+
+def virtual_potential_temperature_inverse_uncertainty(thv, p, r, thv_uc, p_uc, r_uc, p0=p0):
+    """Calculate the uncertainty in temperature from virtual potential temperature.
+    Parameters:
+    thv (float or array-like): Virtual potential temperature in Kelvin.
+    p (float or array-like): Pressure in hPa.
+    r (float or array-like): Mixing ratio in kg/kg.
+    thv_uc (float or array-like): Uncertainty in virtual potential temperature in Kelvin.
+    p_uc (float or array-like): Uncertainty in pressure in hPa.
+    r_uc (float or array-like): Uncertainty in mixing ratio in kg/kg.
+    p0 (float): Reference pressure in hPa. Default is 1000 hPa.
+    Returns:
+    float or array-like: Uncertainty in temperature in Kelvin.
+    """
+    factor_p = (p / p0) ** (Poisson_exponent)
+    factor_r = 1.0 / (1.0 + 0.61 * r)
+
+    dT_dthv = factor_p * factor_r
+    dT_dp = thv * factor_r * Poisson_exponent * (p / p0) ** (Poisson_exponent - 1) / p0
+    dT_dr = -0.61 * thv * factor_p * (factor_r ** 2)
+
+    T_uc = np.sqrt((dT_dthv * thv_uc)**2 + (dT_dp * p_uc)**2 + (dT_dr * r_uc)**2)
+    return T_uc
+    
+
+def tetens_equation(T):
+    """Calculate the saturation vapor pressure using Tetens equation.
+    Parameters:
+    T (float or array-like): Temperature in Kelvin.
+    Returns:
+    float or array-like: Saturation vapor pressure in hPa.
+    """
+    es = 6.1078 * np.exp((17.27 * (T - 273.16)) / (T - 35.86))
+    return es
+    
+def saturation_vapor_pressure_uncertainty(T, T_uc):
+    """Calculate the uncertainty in saturation vapor pressure using Tetens equation.
+    Parameters:
+    T (float or array-like): Temperature in Kelvin.
+    T_uc (float or array-like): Uncertainty in temperature in Kelvin.
+    Returns:
+    float or array-like: Uncertainty in saturation vapor pressure in hPa.
+    """
+    es_uc = 6.1078 * np.exp((17.27 * (T - 273.16)) / (T - 35.86)) * (4098.17/(T - 35.86)**2) * T_uc
+    return es_uc
+
+def water_vapor_saturation_mass(es, p):
+    """Calculate the water vapor saturation mass (mixing ratio at saturation).
+    Parameters:
+    es (float or array-like): Saturation vapor pressure in hPa.
+    p (float or array-like): Pressure in hPa.
+    Returns:
+    float or array-like: Water vapor saturation mass in kg/kg.
+    """
+    ws = EPSILON * es / (p - es)
+    return ws
+
+def mixing_ratio_from_RH(RH, ws):
+    """Calculate the mixing ratio from relative humidity and saturation mixing ratio.
+    Parameters:
+    RH (float or array-like): Relative humidity in percentage (0-100).
+    ws (float or array-like): Saturation mixing ratio in kg/kg.
+    Returns:
+    float or array-like: Mixing ratio in kg/kg.
+    """
+    w = (RH / 100.0) * ws
+    return w
+
+def water_vapor_pressure_from_RH(RH, es):
+    """Calculate the water vapor pressure from relative humidity and saturation vapor pressure.
+    Parameters:
+    RH (float or array-like): Relative humidity in percentage (0-100).
+    es (float or array-like): Saturation vapor pressure in hPa.
+    Returns:
+    float or array-like: Water vapor pressure in hPa.
+    """
+    e = (RH / 100.0) * es
+    return e
+
+def water_vapor_pressure_uncertainty(RH, es, RH_uc, es_uc):
+    """Calculate the uncertainty in water vapor pressure from uncertainties in RH and es.
+    Parameters:
+    RH (float or array-like): Relative humidity in percentage (0-100).
+    es (float or array-like): Saturation vapor pressure in hPa.
+    RH_uc (float or array-like): Uncertainty in relative humidity in percentage.
+    es_uc (float or array-like): Uncertainty in saturation vapor pressure in hPa.
+    Returns:
+    float or array-like: Uncertainty in water vapor pressure in hPa.
+    """
+    e_uc = np.sqrt((es * RH_uc / 100.0) ** 2 + (RH * es_uc / 100.0) ** 2)
+    return e_uc
+
+def density_of_dry_air(pd, T):
+    """Calculate the density of dry air using the ideal gas law.
+    Parameters:
+    pd (float or array-like): Dry air partial pressure in hPa.
+    T (float or array-like): Temperature in Kelvin.
+    Returns:
+    float or array-like: Density of dry air in kg/m³.
+    """
+    p_pa = pd * 100  # Convert hPa to Pa
+    rho = p_pa / (R_DRY_AIR * T)
+    return rho
+
+def density_of_water_vapor(e, T):
+    """Calculate the density of water vapor using the ideal gas law.
+    Parameters:
+    e (float or array-like): Water vapor pressure in hPa.
+    T (float or array-like): Temperature in Kelvin.
+    Returns:
+    float or array-like: Density of water vapor in kg/m³.
+    """
+    e_pa = e * 100  # Convert hPa to Pa
+    rho_v = e_pa / (R_WATER_VAPOR * T)
+    return rho_v
+
+def specific_humidity_from_mixing_ratio(w):
+    """Calculate the specific humidity from mixing ratio.
+    Parameters:
+    w (float or array-like): Mixing ratio in kg/kg.
+    Returns:
+    float or array-like: Specific humidity in kg/kg.
+    """
+    q = w / (1 + w)
+    return q
+
+def finite_difference_gradient(variable, altitude):
+    """Calculate the vertical gradient of a variable using finite differences.
+    Parameters:
+    variable (array-like): The variable for which to calculate the gradient.
+    altitude (array-like): The altitude corresponding to the variable.
+    Returns:
+    array-like: The vertical gradient of the variable.
+    """
+    gradient = variable.diff()/altitude.diff()
+    return gradient
+
+def finite_difference_gradient_uncertainty(variable, altitude, variable_uc, altitude_uc):
+    """Calculate the uncertainty in the vertical gradient of a variable using finite differences.
+    Parameters:
+    variable (array-like): The variable for which to calculate the gradient.
+    altitude (array-like): The altitude corresponding to the variable.
+    variable_uc (array-like): Uncertainty in the variable.
+    altitude_uc (array-like): Uncertainty in the altitude.
+    Returns:
+    array-like: The uncertainty in the vertical gradient of the variable.
+    """
+    dvar = variable.diff()
+    dalt = altitude.diff()
+    dvar_uc = variable_uc**2+variable_uc.shift(1)**2
+    dalt_uc = altitude_uc**2+altitude_uc.shift(1)**2
+    
+    gradient_uc = np.sqrt( (dvar_uc / dalt)**2 + (dvar * dalt_uc / dalt**2)**2 )
+    return gradient_uc
+
+def bulk_richardson_number(virtual_pot_temp_s, virtual_pot_temp, z, u, v, g=G0):
+    """
+    version of Seidel et al. (2012) using bulk Richardson number, but do not interpolate to mid-points.
+    z is the height above the surface, u and v are the wind horizontal speed components at height z,
+    """
+    numerator = (g/virtual_pot_temp_s) * (virtual_pot_temp - virtual_pot_temp_s) * z
+    denominator = u**2 + v**2
+    Ri_b = numerator / denominator
+    return Ri_b
+
+def bulk_richardson_number_uncertainty_np(
+    thv_s, thv, z, u, v,
+    thv_s_unc, thv_unc, z_unc, u_unc, v_unc,
+    g=9.80665
+):
+    thv_s      = np.asarray(thv_s, dtype=float)
+    thv        = np.asarray(thv, dtype=float)
+    z          = np.asarray(z, dtype=float)
+    u          = np.asarray(u, dtype=float)
+    v          = np.asarray(v, dtype=float)
+    thv_s_unc  = np.asarray(thv_s_unc, dtype=float)
+    thv_unc    = np.asarray(thv_unc, dtype=float)
+    z_unc      = np.asarray(z_unc, dtype=float)
+    u_unc      = np.asarray(u_unc, dtype=float)
+    v_unc      = np.asarray(v_unc, dtype=float)
+
+    C = u**2 + v**2
+    B = (thv - thv_s) * z
+
+    Ri = (g / thv_s) * B / C
+
+    dRi_dthv  = (g / thv_s) * (z / C)
+    dRi_dthvs = -(g / thv_s**2) * (B / C) - (g / thv_s) * (z / C)
+    dRi_dz    = (g / thv_s) * ((thv - thv_s) / C)
+    dRi_du    = -(2*u / C**2) * (g / thv_s) * B
+    dRi_dv    = -(2*v / C**2) * (g / thv_s) * B
+
+    Ri_unc = np.sqrt(
+        (dRi_dthv  * thv_unc)**2 +
+        (dRi_dthvs * thv_s_unc)**2 +
+        (dRi_dz    * z_unc)**2 +
+        (dRi_du    * u_unc)**2 +
+        (dRi_dv    * v_unc)**2
+    )
+
+    return Ri_unc

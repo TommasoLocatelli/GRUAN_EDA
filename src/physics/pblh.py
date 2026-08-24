@@ -1,0 +1,186 @@
+# Various methods to estimate the Planetary Boundary Layer Height (PBLH).
+
+import numpy as np
+from src.physics.formulas import (tetens_equation,
+    saturation_vapor_pressure_uncertainty,
+    water_vapor_pressure_from_RH,
+    water_vapor_pressure_uncertainty,
+    virtual_temperature,
+    virtual_temperature_uncertainty,
+    potential_temperature,
+    potential_temperature_uncertainty,
+    finite_difference_gradient,
+    finite_difference_gradient_uncertainty,
+    water_vapor_saturation_mass,
+    mixing_ratio_from_RH,
+    specific_humidity_from_mixing_ratio,
+    virtual_potential_temperature,
+    bulk_richardson_number)
+
+def upper_bound(data, upper_bound=3500, apply=True):
+    ground_level = data['alt'].min()
+    upper_bound = ground_level + upper_bound
+    if apply:
+        return data[data['alt'] <= upper_bound]
+    else:
+        return upper_bound
+
+def parcel_method(data, propagate_uncertainty=False):
+    """
+    "Mixing height based on hypothetical vertical displacement of a parcel of air 
+    from the surface and identification of the height at which virtual potential temperature 
+    is equal to the surface value." Seidel et al. (2010)"
+    """
+    # computes missing variables if not present
+    data['es']=tetens_equation(data['temp']) if 'es' not in data else data['es']
+    data['es_uc']=saturation_vapor_pressure_uncertainty(data['temp'], data['temp_uc']) if 'es' not in data and propagate_uncertainty else None
+    data['e']=water_vapor_pressure_from_RH(data['rh'], data['es']) if 'e' not in data else data['e']
+    data['e_uc']=water_vapor_pressure_uncertainty(data['rh'], data['es'], data['rh_uc'], data['es_uc']) if 'e_uc' not in data and propagate_uncertainty else None
+    data['virtual_temp']=virtual_temperature(data['temp'], data['e'], data['press']) if 'virtual_temp' not in data else data['virtual_temp']
+    data['virtual_temp_uc']=virtual_temperature_uncertainty(data['temp'], data['e'], data['press'], data['temp_uc'], data['e_uc'], data['press_uc']) if 'virtual_temp_uc' not in data and propagate_uncertainty else None
+    data['virtual_theta']=potential_temperature(data['virtual_temp'], data['press']) if 'virtual_theta' not in data else data['virtual_theta']
+    data['virtual_theta_uc']=potential_temperature_uncertainty(data['virtual_temp'], data['press'], data['virtual_temp_uc'], data['press_uc']) if 'theta_uc' not in data and propagate_uncertainty else None
+    # apply parcel method criterion
+    data['pblh_pm'] = 0
+    surface_virtual_potential_temperature = data['virtual_theta'].iloc[0]
+    index = data[(data['virtual_theta'] > surface_virtual_potential_temperature) & (data['alt'] <= altitude_bound)].index
+    if not index.empty:
+        pblh_index = index[0]
+        data.at[pblh_index, 'pblh_pm'] = 1
+    else:
+        data.at[data.index[0], 'pblh_pm'] = 1  # If no crossing found, set to the lowest level
+    return data
+
+def potential_temperature_gradient(data, virtual=False, propagate_uncertainty=False):
+    """
+    "Location of the maximum vertical gradient of potential temperature." 
+    Seidel et al. (2010)
+    The virtual flag indicates whether to use virtual potential temperature
+    (if True) or potential temperature (if False).
+    Vertical gradient is computed using finite differences.
+    """
+    # computes missing variables if not present
+    if virtual:
+        temp_clmn='virtual_theta'
+        data['es']=tetens_equation(data['temp']) if 'es' not in data else data['es']
+        data['es_uc']=saturation_vapor_pressure_uncertainty(data['temp'], data['temp_uc']) if 'es' not in data else data['es']
+        data['e']=water_vapor_pressure_from_RH(data['rh'], data['es']) if 'e' not in data else data['e']
+        data['e_uc']=water_vapor_pressure_uncertainty(data['rh'], data['es'], data['rh_uc'], data['es_uc']) if 'e_uc' not in data and propagate_uncertainty else None
+        data['virtual_temp']=virtual_temperature(data['temp'], data['e'], data['press']) if 'virtual_temp' not in data else data['virtual_temp']
+        data['virtual_temp_uc']=virtual_temperature_uncertainty(data['temp'], data['e'], data['press'], data['temp_uc'], data['e_uc'], data['press_uc']) if 'virtual_temp_uc' not in data and propagate_uncertainty else None
+        data[temp_clmn]=potential_temperature(data['virtual_temp'], data['press']) if 'theta' not in data else data['theta']
+        data[temp_clmn+'_uc']=potential_temperature_uncertainty(data['virtual_temp'], data['press'], data['virtual_temp_uc'], data['press_uc']) if temp_clmn+'_uc' not in data and propagate_uncertainty else None
+    else:
+        temp_clmn='theta'
+        data[temp_clmn]=potential_temperature(data['temp'], data['press']) if 'theta' not in data else data['theta']
+        data[temp_clmn+'_uc']=potential_temperature_uncertainty(data['temp'], data['press'], data['temp_uc'], data['press_uc']) if temp_clmn+'_uc' not in data and propagate_uncertainty else None
+    # compute gradient and apply criterion
+    data['theta_gradient'] = finite_difference_gradient(data[temp_clmn], data['alt'])
+    data['theta_gradient_uc'] = finite_difference_gradient_uncertainty(data[temp_clmn], data['alt'], data[temp_clmn+'_uc'], data['alt_uc']) if 'theta_gradient_uc' not in data and propagate_uncertainty else None
+    data['pblh_theta'] = 0
+    max_gradient_index = data[data.index > 1]['theta_gradient'].idxmax()
+    data.at[max_gradient_index, 'pblh_theta'] = 1 
+    return data
+
+def RH_gradient(data, propagate_uncertainty=False):
+    """
+    "Location of the minimum vertical gradient of relative humidity " 
+    Seidel et al. (2010)
+    Vertical gradient is computed using finite differences.
+    """
+    data['rh_gradient'] = finite_difference_gradient(data['rh'], data['alt'])
+    data['rh_gradient_uc'] = finite_difference_gradient_uncertainty(data['rh'], data['alt'], data['rh_uc'], data['alt_uc']) if 'rh_gradient_uc' not in data and propagate_uncertainty else None
+    # apply criterion
+    data['pblh_rh'] = 0
+    min_gradient_index = data['rh_gradient'].idxmin()
+    data.at[min_gradient_index, 'pblh_rh'] = 1 
+    return data
+
+def specific_humidity_gradient(data, propagate_uncertainty=False):
+    """
+    "Location of the maximum vertical gradient of specific humidity." 
+    Seidel et al. (2010)
+    Vertical gradient is computed using finite differences.
+    """
+    # computes missing variables if not present
+    data['es']=tetens_equation(data['temp']) if 'es' not in data else data['es']
+    data['es_uc']=saturation_vapor_pressure_uncertainty(data['temp'], data['temp_uc']) if 'es' not in data and propagate_uncertainty else None
+    data['ws']=water_vapor_saturation_mass(data['es'], data['press']) if 'ws' not in data else data['ws']
+    # missing uncertainty calculation for ws can be added if needed
+    data['w']=mixing_ratio_from_RH(data['rh'], data['ws']) if 'w' not in data else data['w']
+    # missing uncertainty calculation for w can be added if needed
+    data['q']=specific_humidity_from_mixing_ratio(data['w']) if 'q' not in data else data['q']
+    # missing uncertainty calculation for q can be added if needed
+    # compute gradient and apply criterion
+    data['q_gradient'] = finite_difference_gradient(data['q'], data['alt'])
+    # apply criterion
+    data['pblh_q'] = 0
+    min_gradient_index = data[data.index > 1]['q_gradient'].idxmin()
+    data.at[min_gradient_index, 'pblh_q'] = 1 
+    return data
+
+def bulk_richardson_number_method(data, propagate_uncertainty=False):
+    """
+    Bulk Richardson number using:
+    - virtual potential temperature (θv)
+    - wzon, wmeri (not wspeed + wdir)
+    """
+    # --- Compute missing variables ---
+    # saturation vapor pressure
+    if 'es' not in data:
+        data['es'] = tetens_equation(data['temp'])
+        if propagate_uncertainty:
+            data['es_uc'] = saturation_vapor_pressure_uncertainty(
+                data['temp'], data['temp_uc']
+            )
+
+    # water vapor pressure
+    if 'e' not in data:
+        data['e'] = water_vapor_pressure_from_RH(data['rh'], data['es'])
+
+    # --- Virtual potential temperature (θv) ---
+    # GRUAN-style: virtual_temp → potential_temperature
+    # Your style: directly virtual_potential_temperature
+    data['virtual_theta'] = virtual_potential_temperature(
+        data['temp'], data['press'], data['wvmr_mass'] * 1e-6
+    )
+
+    # --- Use wzon and wmeri directly ---
+    data['uspeed'] = data['wzon']
+    data['vspeed'] = data['wmeri']
+
+    # --- Compute bulk Richardson number ---
+    thv_surf = data['virtual_theta'].iloc[0]
+
+    data['Ri_b'] = bulk_richardson_number(
+        thv_surf,
+        data['virtual_theta'],
+        data['alt'],
+        data['uspeed'],
+        data['vspeed']
+    )
+
+    # --- Apply criterion ---
+    data['pblh_Ri'] = 0
+    idx = data[data['Ri_b'] > 0.25].index
+
+    if len(idx) > 0:
+        data.at[idx[0], 'pblh_Ri'] = 1
+
+    return data
+
+def apply_pblh_methods(data, methods = ['pblh_pm', 'pblh_theta', 'pblh_rh', 'pblh_Ri'], values=False):
+    if 'pblh_pm' in methods:
+        data = parcel_method(data) # calculate PBLH using parcel method
+    if 'pblh_theta' in  methods:
+        data = potential_temperature_gradient(data, virtual=True) # calculate potential temperature gradient
+    if 'pblh_rh' in methods:
+        data = RH_gradient(data) # calculate RH gradient
+    if 'pblh_q' in methods:
+        data = specific_humidity_gradient(data) # calculate specific humidity gradient
+    if 'pblh_Ri' in methods:
+        data = bulk_richardson_number_method(data) # calculate gradient Richardson number
+    if values:
+        return tuple(data['alt'][data[method] == 1].iloc[0] if method in data.columns and (data[method] == 1).any() else None for method in methods)
+    else:
+        return data
