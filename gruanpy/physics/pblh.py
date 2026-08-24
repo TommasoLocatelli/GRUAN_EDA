@@ -1,7 +1,7 @@
 # Various methods to estimate the Planetary Boundary Layer Height (PBLH).
 
 import numpy as np
-from src.physics.formulas import (tetens_equation,
+from gruanpy.physics.formulas import (tetens_equation,
     saturation_vapor_pressure_uncertainty,
     water_vapor_pressure_from_RH,
     water_vapor_pressure_uncertainty,

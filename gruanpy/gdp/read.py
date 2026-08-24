@@ -1,6 +1,6 @@
 import pandas as pd
 import xarray as xr
-from src.gruanpy.data_model import GDP
+from gruanpy.gdp.data_model import GDP
 import os
 
 class ReadingHelper:

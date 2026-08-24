@@ -5,16 +5,16 @@ import matplotlib.pyplot as plt
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from ssm.from_scratch.preproc import preprocess_profile
-from ssm.from_scratch.ssm_model import PHI, A, J_A
-from ssm.from_scratch.ssm_model import (
+from src.gruanpy.ssm.from_scratch.preproc import preprocess_profile
+from src.gruanpy.ssm.from_scratch.ssm_model import PHI, A, J_A
+from src.gruanpy.ssm.from_scratch.ssm_model import (
     Z_I, LZ_I, T_I, P_I, RH_I, R_I, U_I, V_I,
     Z_S, LZ_S, Thv_S, LThv_S, P_S, RH_S, LRH_S, R_S, U_S, LU_S, V_S, LV_S
 )
-from ssm.from_scratch.guess_starting_values import guess_initial_state
-from ssm.from_scratch.ekf import ExtendedKalmanFilter
+from src.gruanpy.ssm.from_scratch.guess_starting_values import guess_initial_state
+from src.gruanpy.ssm.from_scratch.ekf import ExtendedKalmanFilter
 import _gruanpy as gp
-from ssm.from_scratch.standardize import standardize_obs, denormalize_obs, reconstruct_physical_states
+from src.gruanpy.ssm.from_scratch.standardize import standardize_obs, denormalize_obs, reconstruct_physical_states
 
 
 example_paths = [

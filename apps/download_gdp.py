@@ -5,15 +5,12 @@ It allows the user to navigate through directories and download files interactiv
 
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.gruanpy.download import DownloadHelper as DH
-
-dh=DH()
+from gruanpy import helper
 
 dir_path=r'pub/data/gruan/processing'
 
 while True:
-    items=dh.search(dir_path)
+    items=helper.search(dir_path)
     print('-'*50)
     print(f'Items in the directory "{dir_path}":')
     for item in items:
@@ -31,7 +28,7 @@ while True:
         item=items[choice]
         print("You chose:",item)
         if item.endswith('.nc'):
-            dh.download(dir_path, item)
+            helper.download(dir_path, item)
         else:
             item = "/"+item
             dir_path+=item

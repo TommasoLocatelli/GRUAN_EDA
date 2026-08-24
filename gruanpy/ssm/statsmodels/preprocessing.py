@@ -1,5 +1,5 @@
 import numpy as np
-from src.physics.formulas import virtual_potential_temperature, virtual_potential_temperature_uncertainty
+from gruanpy.physics.formulas import virtual_potential_temperature, virtual_potential_temperature_uncertainty
 
 def data_prep(data):
     # -----------------------------

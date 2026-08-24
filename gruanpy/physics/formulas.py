@@ -1,6 +1,6 @@
 # Various atmospheric formulas
 
-from src.physics.constants import EPSILON, Poisson_exponent, p0, R_DRY_AIR, R_WATER_VAPOR, G0
+from gruanpy.physics.constants import EPSILON, Poisson_exponent, p0, R_DRY_AIR, R_WATER_VAPOR, G0
 import numpy as np
 
 def from_celsius_to_kelvin(T_c):
