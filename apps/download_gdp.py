@@ -5,12 +5,12 @@ It allows the user to navigate through directories and download files interactiv
 
 import sys
 import os
-from gruanpy import helper
+import gruanpy as gp
 
 dir_path=r'pub/data/gruan/processing'
 
 while True:
-    items=helper.search(dir_path)
+    items=gp.search_gdp(dir_path)
     print('-'*50)
     print(f'Items in the directory "{dir_path}":')
     for item in items:
@@ -28,7 +28,7 @@ while True:
         item=items[choice]
         print("You chose:",item)
         if item.endswith('.nc'):
-            helper.download(dir_path, item)
+            gp.download_gdp(dir_path, item)
         else:
             item = "/"+item
             dir_path+=item

@@ -4,16 +4,16 @@ Example code to compute PBLH using different methods and plot the results for GR
 import sys
 import os
 import matplotlib.pyplot as plt
-from gruanpy import helper as gp
-from _applications.visual_config.color_map import map_labels_to_colors
+import gruanpy as gp
+from apps.visual_config.color_map import map_labels_to_colors
 
 folder = r'data\products_RS41-GDP-1_POT_2025'
 file_paths = [
     os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.nc')
 ]
 for file_path in file_paths[:5]:
-    gdp = gp.read(file_path)
-    gdp.data = gdp.data[gdp.data['alt'] <= 10000]  # Limit to first 10 km for speed
+    gdp = gp.read_gdp(file_path)
+    gdp.data = gp.upper_bound(gdp.data)
     where = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Site.Name']['Value'].values[0]
     when = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Measurement.StartTime']['Value'].values[0]
     
