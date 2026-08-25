@@ -1,38 +1,25 @@
 import pandas as pd
 import xarray as xr
 import os
-from gruanpy.gdp.data_model import GDP
-
+from gruanpy.gdp.data_models import GDP, NETCDF
 
 def read_gdp(file_path, only_global_attrs=False):
     """
     Read a GRUAN GDP NetCDF file and return a GDP object.
-
-    Parameters
-    ----------
-    file_path : str
-        Path to the NetCDF file.
-    only_global_attrs : bool
-        If True, only global attributes are returned.
-
-    Returns
-    -------
-    GDP
-        A GDP object containing:
-        - global attributes (DataFrame)
-        - data (DataFrame or None)
-        - variable attributes (DataFrame or None)
     """
     content = xr.open_dataset(file_path)
 
     # Global attributes
-    global_attrs = pd.DataFrame(content.attrs.items(),
-                                columns=["Attribute", "Value"])
+    global_attrs = pd.DataFrame(
+        content.attrs.items(),
+        columns=["Attribute", "Value"]
+    )
 
-    # Data variables
     if not only_global_attrs:
+        # Data variables
         data = content.to_dataframe().sort_values(by="alt")
         data = data.reset_index()
+
         variables_attrs = pd.DataFrame([
             {**var.attrs, "variable": var_name}
             for var_name, var in content.data_vars.items()
@@ -47,14 +34,6 @@ def read_gdp(file_path, only_global_attrs=False):
 def read_cdm(file_path):
     """
     Read a CDM-format GDP file (.nc or .csv).
-
-    Parameters
-    ----------
-    file_path : str
-
-    Returns
-    -------
-    GDP
     """
     _, ext = os.path.splitext(file_path)
     ext = ext.lower()
@@ -68,3 +47,24 @@ def read_cdm(file_path):
 
     else:
         raise ValueError(f"Unsupported file extension: {ext}")
+
+
+def read_netcdf(file_path):
+    """
+    Read a generic NetCDF file into a NETCDF object.
+    """
+    content = xr.open_dataset(file_path)
+
+    global_attrs = pd.DataFrame(
+        content.attrs.items(),
+        columns=["Attribute", "Value"]
+    )
+
+    data = content.to_dataframe().reset_index()
+
+    variables_attrs = pd.DataFrame([
+        {**var.attrs, "variable": var_name}
+        for var_name, var in content.data_vars.items()
+    ])
+
+    return NETCDF(global_attrs, data, variables_attrs)

@@ -2,8 +2,7 @@
 
 # --- GDP ---
 from .gdp.download import search_gdp, download_gdp, exec_cds_request
-from .gdp.read import read_cdm, read_gdp
-from .gdp.validate import validation_pipeline
+from .gdp.read import read_cdm, read_gdp, read_netcdf
 
 # --- Physics ---
 from .physics.formulas import *

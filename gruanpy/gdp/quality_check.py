@@ -1,23 +1,18 @@
-import os
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import gruanpy as gp
-from apps.visual_config.color_map import map_labels_to_colors
+import numpy as np
 
-
-def missing_data(gdp, columns=None):
+def missing_data(data, columns=None):
     """
     Check missing values in selected columns.
     Returns:
         dict: {column: DataFrame of rows with missing values}
         DataFrame: combined problematic rows
     """
-    if gdp.data is None:
+    if data is None:
         print("No data table found in GDP object.")
         return {}, pd.DataFrame()
 
-    df = gdp.data
+    df = data
 
     # Select columns
     if columns is None:
@@ -48,15 +43,17 @@ def missing_data(gdp, columns=None):
     combined = pd.concat(missing_rows.values()).drop_duplicates()
     return missing_rows, combined
 
-def physics_constraint(gdp, columns=None):
+def physics_constraint(data, columns=None):
     """
     Check physical constraints and return problematic rows.
+    Variables without defined constraints are ignored (no QC needed).
     """
-    if gdp.data is None:
+
+    if data is None:
         print("No data table found in GDP object.")
         return {}, pd.DataFrame()
 
-    df = gdp.data
+    df = data
 
     # Select columns
     if columns is None:
@@ -94,6 +91,10 @@ def physics_constraint(gdp, columns=None):
 
         # Uncertainty variables
         if col.endswith("_uc"):
+            if col not in uc_constraints:
+                # No constraint defined → skip
+                continue
+
             low, high = uc_constraints[col]
             mask = (series < low) | (series > high)
             if mask.any():
@@ -106,27 +107,28 @@ def physics_constraint(gdp, columns=None):
             mask = (series < low) | (series > high)
             if mask.any():
                 violations[col] = df.loc[mask]
+        else:
+            # No constraint defined → skip
+            continue
 
+    # Combine violations
     if len(violations) == 0:
         print("All selected columns satisfy physical constraints.")
         return {}, pd.DataFrame()
 
-    print("\nPhysics constraint violations:")
-    for col, rows in violations.items():
-        print(f"{col}: {len(rows)} violations")
-
     combined = pd.concat(violations.values()).drop_duplicates()
+
     return violations, combined
 
-def detect_outliers(gdp, columns=None, method="zscore", z_thresh=3.5, iqr_factor=1.5):
+def detect_outliers(data, columns=None, method="iqr", z_thresh=3.5, iqr_factor=1.5):
     """
     Detect outliers and return problematic rows.
     """
-    if gdp.data is None:
+    if data is None:
         print("No data table found in GDP object.")
         return {}, pd.DataFrame()
 
-    df = gdp.data
+    df = data
 
     # Select columns
     if columns is None:
@@ -183,7 +185,7 @@ def detect_outliers(gdp, columns=None, method="zscore", z_thresh=3.5, iqr_factor
     combined = pd.concat(outlier_rows.values()).drop_duplicates()
     return outlier_rows, combined
 
-def altitude_drops(gdp):
+def altitude_drops(data):
     """
     Detect altitude drops in GDP data.
 
@@ -198,11 +200,11 @@ def altitude_drops(gdp):
         Combined DataFrame of all problematic rows
     """
 
-    if gdp.data is None:
+    if data is None:
         print("No data table found in GDP object.")
         return {}, pd.DataFrame()
 
-    df = gdp.data
+    df = data
 
     # Check required columns
     required = ["time", "alt"]
@@ -243,67 +245,3 @@ def altitude_drops(gdp):
     combined = pd.concat(problems.values()).drop_duplicates()
 
     return problems, combined
-
-
-# -------------------------
-# MAIN SCRIPT
-# -------------------------
-
-folder = r"data\products_RS41-GDP-1_POT_2025"
-file_paths = [
-    os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".nc")
-]
-
-for file_path in file_paths[1:2]:
-    print(f"\nReading: {file_path}")
-    gdp = gp.read_gdp(file_path)
-
-    # Apply upper bounds
-    gdp.data = gp.upper_bound(gdp.data)
-
-    # Missing values
-    missing_dict, missing_rows = missing_data(gdp, [
-        'alt', 'alt_uc',
-        'temp', 'temp_uc',
-        'rh', 'rh_uc',
-        'wmeri', 'wmeri_uc',
-        'wzon', 'wzon_uc'
-    ])
-
-    if len(missing_rows)>0:
-        print("\nSample missing rows:")
-        print(missing_rows[missing_dict.keys()].head())
-
-    # Physics constraints
-    phys_dict, phys_rows = physics_constraint(gdp, [
-        'alt', 'alt_uc',
-        'temp', 'temp_uc',
-        'rh', 'rh_uc',
-        'wmeri', 'wmeri_uc',
-        'wzon', 'wzon_uc'
-    ])
-
-    if len(phys_rows)>0:
-        print("\nSample unconstraints rows:")
-        print(phys_rows[phys_dict.keys()].head())
-
-    # Outliers
-    outlier_dict, outlier_rows = detect_outliers(
-        gdp,
-        ['alt', 'temp', 'rh', 'wmeri', 'wzon'],
-        method="iqr"
-    )
-    # Example: print first few problematic rows
-    if len(outlier_rows) > 0:
-        print("\nSample outlier rows:")
-        print(outlier_rows[outlier_dict.keys()].head())
-        for col in outlier_dict.keys():
-            plt.plot(gdp.data[col], gdp.data['alt'])
-            plt.title(col.capitalize())
-            #plt.show()
-
-    drops_dict, drops_rows = altitude_drops(gdp)
-
-    if len(drops_rows) > 0:
-        print("\nAltitude/time issues:")
-        print(drops_rows.head())
