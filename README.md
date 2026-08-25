@@ -37,7 +37,7 @@ The long‑term goal is to publish GRUANpy on PyPI. 🤞
 
 ## How to Use It
 
-Place one or more `*.nc` GDP files in the `gdp/` folder (or any directory you prefer) and import `gruanpy` in your Python script or notebook to:
+Place one or more `*.nc` GDP files in the `data/` folder (or any directory you prefer) and import `gruanpy` in your Python script or notebook to:
 
 - read and inspect GDP variables  
 - create plots of atmospheric profiles  
@@ -45,18 +45,17 @@ Place one or more `*.nc` GDP files in the `gdp/` folder (or any directory you pr
 - run SSM-based smoothing and uncertainty quantification  
 - explore radiosonde data with reproducible workflows  
 
-Examples are available in the `applications/` folder, including the code supporting the paper:  
+Examples are available in the `apps/` folder, including the code supporting the paper:  
 **https://arxiv.org/abs/2607.14960**
 
 ---
 
 ## Repository Structure
 
-- **applications/** — example scripts and workflows  
-  - **applications/pblh_unc/** — script supporting the publication at http://arxiv.org/abs/2607.14960
-- **gdp/** — directory intended to store GDP NetCDF files  
-- **gruanpy/** — core library with GDP utilities and diagnostics  
-- **ssm/** — state‑space modelling and Kalman smoothing tools
+- **apps/** — example scripts and workflows  
+  - **apps/pblh_unc/** — script supporting the publication at http://arxiv.org/abs/2607.14960
+- **data/** — directory intended to store GDP NetCDF files  
+- **gruanpy/** — core library with GDP utilities and diagnostics 
 
 ---
 
