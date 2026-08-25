@@ -14,8 +14,6 @@ data/*
 !data/
 !data/.gitkeep
 temp/*
-!data/icm16/
-!data/icm16/**
 
 *.pkl
 *.png
