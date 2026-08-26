@@ -14,9 +14,12 @@ mwr_paths = [
     r'data\cloudnet-examples\20260817_cabauw_hatpro-multi_46797fd6.nc'
 ]
 
-path = mwr_paths[0]
+path = mwr_paths[1]
 netcdf = gp.read_netcdf(path)
 data = netcdf.data
+
+# Filter out observations above 5000 m
+data = data[data["height"] <= 5000]
 
 # Ensure time is datetime
 data['time'] = pd.to_datetime(data['time'])
@@ -37,10 +40,14 @@ rh_grad_long.columns = ['height', 'time', 'rh_gradient']
 # Moist PBLH = minimum RH gradient
 pblh_rh_df = (
     rh_grad_long.groupby('time')
-    .apply(lambda g: g.loc[g['rh_gradient'].idxmin()][['height']])
+    .apply(
+        lambda g: g.loc[g['rh_gradient'].idxmin()][['height']],
+        include_groups=False
+    )
     .reset_index()
 )
 pblh_rh_df.columns = ['time', 'pbl_height_rh']
+
 
 # -----------------------------
 # POTENTIAL TEMPERATURE GRADIENT & THERMAL PBLH
@@ -57,10 +64,14 @@ theta_grad_long.columns = ['height', 'time', 'theta_gradient']
 # Thermal PBLH = maximum theta gradient
 pblh_theta_df = (
     theta_grad_long.groupby('time')
-    .apply(lambda g: g.loc[g['theta_gradient'].idxmax()][['height']])
+    .apply(
+        lambda g: g.loc[g['theta_gradient'].idxmax()][['height']],
+        include_groups=False
+    )
     .reset_index()
 )
 pblh_theta_df.columns = ['time', 'pbl_height_theta']
+
 # -----------------------------
 # TWO SUBPLOTS: RH + θ
 # -----------------------------
