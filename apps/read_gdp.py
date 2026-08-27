@@ -9,7 +9,7 @@ file_paths=[r'data\gdp_examples\BAR-RS-01_2_RS41-GDP_001_20180227T193000_1-000-0
     r'data\gdp_examples\LIN-RS-01_2_IMS-100-GDP_002_20220107T093400_1-002-001.nc',
     r'data\gdp_examples\LIN-RS-01_2_RS-11G-GDP_001_20141008T000000_1-004-001.nc']
 file_path=file_paths[1]
-gdp=gp.read_gdp(file_path)
+gdp=gp.read_gdp(file_path, upper_bound=True)
 print(gdp.global_attrs)
 print(gdp.data)
 print(gdp.variables_attrs)

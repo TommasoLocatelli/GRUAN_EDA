@@ -35,11 +35,11 @@ from sklearn.decomposition import PCA
 N_COMPONENTS=5
 
 pca = PCA(n_components=N_COMPONENTS)
-scores = pca.fit_transform(pt_clean)   # shape: (time, 3)
+scores = pca.fit_transform(pt_clean)
 
 from statsmodels.tsa.statespace.dynamic_factor import DynamicFactor
 
-mod = DynamicFactor(scores, k_factors=1, factor_order=2)
+mod = DynamicFactor(scores, k_factors=2, factor_order=2)
 res = mod.fit(maxiter=500)
 print(res.summary())
 

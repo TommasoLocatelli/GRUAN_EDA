@@ -14,7 +14,7 @@ mwr_paths = [
     r'data\cloudnet-examples\20260817_cabauw_hatpro-multi_46797fd6.nc'
 ]
 
-path = mwr_paths[1]
+path = mwr_paths[0]
 netcdf = gp.read_netcdf(path)
 data = netcdf.data
 
@@ -78,9 +78,38 @@ pblh_theta_df.columns = ['time', 'pbl_height_theta']
 fig, axes = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
 
 # ---------------------------------
-# SUBPLOT 1 — RH + Moist PBLH
+# SUBPLOT 1 — θ + Thermal PBLH
 # ---------------------------------
 ax = axes[0]
+
+sc2 = ax.scatter(
+    data['time'],
+    data['height'],
+    c=data['potential_temperature'],
+    cmap='plasma',
+    s=10
+)
+
+ax.plot(
+    pblh_theta_df['time'],
+    pblh_theta_df['pbl_height_theta'],
+    color='black',
+    linewidth=2,
+    label='Thermal PBL (max θ gradient)'
+)
+
+cbar2 = fig.colorbar(sc2, ax=ax)
+cbar2.set_label('Potential Temperature (K)')
+
+ax.set_xlabel('Time')
+ax.set_title('Potential Temperature with Thermal PBL height')
+ax.legend()
+
+
+# ---------------------------------
+# SUBPLOT 2 — RH + Moist PBLH
+# ---------------------------------
+ax = axes[1]
 
 sc1 = ax.scatter(
     data['time'],
@@ -106,33 +135,6 @@ ax.set_ylabel('Altitude (m)')
 ax.set_title('RH profile with Moist PBL height')
 ax.legend()
 
-# ---------------------------------
-# SUBPLOT 2 — θ + Thermal PBLH
-# ---------------------------------
-ax = axes[1]
-
-sc2 = ax.scatter(
-    data['time'],
-    data['height'],
-    c=data['potential_temperature'],
-    cmap='plasma',
-    s=10
-)
-
-ax.plot(
-    pblh_theta_df['time'],
-    pblh_theta_df['pbl_height_theta'],
-    color='black',
-    linewidth=2,
-    label='Thermal PBL (max θ gradient)'
-)
-
-cbar2 = fig.colorbar(sc2, ax=ax)
-cbar2.set_label('Potential Temperature (K)')
-
-ax.set_xlabel('Time')
-ax.set_title('Potential Temperature with Thermal PBL height')
-ax.legend()
 
 axes[0].tick_params(axis='x', rotation=45)
 axes[1].tick_params(axis='x', rotation=45)
