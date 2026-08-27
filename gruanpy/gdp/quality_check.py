@@ -5,12 +5,11 @@ def missing_data(data, columns=None):
     """
     Check missing values in selected columns.
     Returns:
-        dict: {column: DataFrame of rows with missing values}
-        DataFrame: combined problematic rows
+        DataFrame with columns:
+            variable, missing_count, indices
     """
     if data is None:
-        print("No data table found in GDP object.")
-        return {}, pd.DataFrame()
+        return pd.DataFrame()
 
     df = data
 
@@ -25,33 +24,33 @@ def missing_data(data, columns=None):
         if missing_cols:
             print(f"Warning: these columns do not exist: {missing_cols}")
 
-    missing_rows = {}
+    results = []
 
     for col in df_selected.columns:
         mask = df_selected[col].isna()
         if mask.any():
-            missing_rows[col] = df.loc[mask]
+            idx = df.index[mask].tolist()
+            results.append({
+                "variable": col,
+                "missing_count": len(idx),
+                "indices": idx
+            })
 
-    if len(missing_rows) == 0:
-        print("No missing values found.")
-        return {}, pd.DataFrame()
+    if len(results) == 0:
+        return pd.DataFrame()
 
-    print("\nMissing values detected:")
-    for col, rows in missing_rows.items():
-        print(f"{col}: {len(rows)} missing")
-
-    combined = pd.concat(missing_rows.values()).drop_duplicates()
-    return missing_rows, combined
+    return pd.DataFrame(results)
 
 def physics_constraint(data, columns=None):
     """
-    Check physical constraints and return problematic rows.
-    Variables without defined constraints are ignored (no QC needed).
+    Check physical constraints.
+    Returns:
+        DataFrame with columns:
+            variable, violation_count, indices
     """
 
     if data is None:
-        print("No data table found in GDP object.")
-        return {}, pd.DataFrame()
+        return pd.DataFrame()
 
     df = data
 
@@ -69,8 +68,8 @@ def physics_constraint(data, columns=None):
     # Physical constraints
     constraints = {
         "alt":      (0, 40000),
-        "temp":     (150, 350),     # Kelvin
-        "rh":       (0, 150),       # supersaturation allowed
+        "temp":     (150, 350),
+        "rh":       (0, 150),
         "wmeri":    (-150, 150),
         "wzon":     (-150, 150),
     }
@@ -84,7 +83,7 @@ def physics_constraint(data, columns=None):
         "wzon_uc":  (0, 150),
     }
 
-    violations = {}
+    summary = []
 
     for col in df_selected.columns:
         series = df_selected[col]
@@ -92,41 +91,51 @@ def physics_constraint(data, columns=None):
         # Uncertainty variables
         if col.endswith("_uc"):
             if col not in uc_constraints:
-                # No constraint defined → skip
                 continue
 
             low, high = uc_constraints[col]
             mask = (series < low) | (series > high)
+
             if mask.any():
-                violations[col] = df.loc[mask]
+                idx = df.index[mask].tolist()
+                summary.append({
+                    "variable": col,
+                    "violation_count": len(idx),
+                    "indices": idx
+                })
+
             continue
 
         # Main variables
         if col in constraints:
             low, high = constraints[col]
             mask = (series < low) | (series > high)
+
             if mask.any():
-                violations[col] = df.loc[mask]
-        else:
-            # No constraint defined → skip
-            continue
+                idx = df.index[mask].tolist()
+                summary.append({
+                    "variable": col,
+                    "violation_count": len(idx),
+                    "indices": idx
+                })
 
-    # Combine violations
-    if len(violations) == 0:
-        print("All selected columns satisfy physical constraints.")
-        return {}, pd.DataFrame()
+        # Variables without constraints → skip
 
-    combined = pd.concat(violations.values()).drop_duplicates()
+    if len(summary) == 0:
+        return pd.DataFrame()
+    
+    return pd.DataFrame(summary)
 
-    return violations, combined
-
-def detect_outliers(data, columns=None, method="iqr", z_thresh=3.5, iqr_factor=1.5):
+def detect_outliers(data, columns=None, method="iqr", z_thresh=3.5, iqr_factor=5):
     """
-    Detect outliers and return problematic rows.
+    Detect outliers.
+    Returns:
+        DataFrame with columns:
+            variable, outlier_count, indices
     """
+
     if data is None:
-        print("No data table found in GDP object.")
-        return {}, pd.DataFrame()
+        return pd.DataFrame()
 
     df = data
 
@@ -141,7 +150,7 @@ def detect_outliers(data, columns=None, method="iqr", z_thresh=3.5, iqr_factor=1
         if missing_cols:
             print(f"Warning: these columns do not exist: {missing_cols}")
 
-    outlier_rows = {}
+    summary = []
 
     for col in df_selected.columns:
         series = df_selected[col].dropna()
@@ -170,78 +179,62 @@ def detect_outliers(data, columns=None, method="iqr", z_thresh=3.5, iqr_factor=1
         else:
             raise ValueError("method must be 'zscore' or 'iqr'")
 
-        bad_idx = series[mask].index
+        bad_idx = series[mask].index.tolist()
+
         if len(bad_idx) > 0:
-            outlier_rows[col] = df.loc[bad_idx]
+            summary.append({
+                "variable": col,
+                "outlier_count": len(bad_idx),
+                "indices": bad_idx
+            })
 
-    if len(outlier_rows) == 0:
-        print("No outliers detected.")
-        return {}, pd.DataFrame()
+    if len(summary) == 0:
+        return pd.DataFrame()
 
-    print("\nOutliers detected:")
-    for col, rows in outlier_rows.items():
-        print(f"{col}: {len(rows)} outliers")
-
-    combined = pd.concat(outlier_rows.values()).drop_duplicates()
-    return outlier_rows, combined
+    return pd.DataFrame(summary)
 
 def altitude_drops(data):
     """
-    Detect altitude drops in GDP data.
-
-    Returns
-    -------
-    dict
-        {
-            "time_not_increasing": DataFrame of problematic rows,
-            "altitude_drops": DataFrame of problematic rows
-        }
-    DataFrame
-        Combined DataFrame of all problematic rows
+    Detect non‑increasing time values in GDP data.
+    Since data is sorted by altitude, altitude drops are redundant.
+    
+    Returns:
+        DataFrame with columns:
+            check_type, count, indices
     """
 
     if data is None:
-        print("No data table found in GDP object.")
-        return {}, pd.DataFrame()
+        return pd.DataFrame()
 
     df = data
 
-    # Check required columns
+    # Required columns
     required = ["time", "alt"]
     missing = [c for c in required if c not in df.columns]
     if missing:
         print(f"Missing required columns: {missing}")
-        return {}, pd.DataFrame()
+        return pd.DataFrame()
 
-    problems = {}
+    summary = []
 
     # -------------------------
-    # 1. TIME NOT INCREASING
+    # TIME NOT INCREASING
     # -------------------------
     time_diff = df["time"].diff()
-    mask_time = time_diff <= pd.Timedelta(0)  # non-increasing or equal
+    mask_time = time_diff <= pd.Timedelta(0)
 
     if mask_time.any():
-        problems["time_not_increasing"] = df.loc[mask_time]
-        print(f"Time not strictly increasing: {mask_time.sum()} rows")
-
+        idx = df.index[mask_time].tolist()
+        summary.append({
+            "check_type": "time_not_increasing",
+            "count": len(idx),
+            "indices": idx
+        })
+    
     # -------------------------
-    # 2. ALTITUDE DROPS
+    # Final output
     # -------------------------
-    alt_diff = df["alt"].diff()
-    mask_alt = alt_diff < 0  # altitude decreases
+    if len(summary) == 0:
+        return pd.DataFrame()
 
-    if mask_alt.any():
-        problems["altitude_drops"] = df.loc[mask_alt]
-        print(f"Altitude drops detected: {mask_alt.sum()} rows")
-
-    # -------------------------
-    # Combine all problematic rows
-    # -------------------------
-    if len(problems) == 0:
-        print("No altitude drops or time-order issues detected.")
-        return {}, pd.DataFrame()
-
-    combined = pd.concat(problems.values()).drop_duplicates()
-
-    return problems, combined
+    return pd.DataFrame(summary)

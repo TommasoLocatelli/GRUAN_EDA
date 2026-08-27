@@ -5,15 +5,14 @@ import sys
 import os
 import matplotlib.pyplot as plt
 import gruanpy as gp
-from apps.visual_config.color_map import map_labels_to_colors
+from gruanpy.plots.color_map import map_labels_to_colors
 
 folder = r'data\products_RS41-GDP-1_POT_2025'
 file_paths = [
     os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.nc')
 ]
 for file_path in file_paths[:5]:
-    gdp = gp.read_gdp(file_path)
-    gdp.data = gp.upper_bound(gdp.data)
+    gdp = gp.read_gdp(file_path, upper_bound=True)
     where = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Site.Name']['Value'].values[0]
     when = gdp.global_attrs[gdp.global_attrs['Attribute'] == 'g.Measurement.StartTime']['Value'].values[0]
     

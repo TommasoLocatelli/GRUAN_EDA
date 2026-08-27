@@ -33,18 +33,17 @@ class GDP(NETCDF):
         self.apply_quality_checks()
 
     def apply_quality_checks(self):
-        """
-        Run all QC functions and store results in qc_results dict.
-        """
 
         if self.data is None:
-            # No data → no QC
             self.qc_results = {}
             return self.qc_results
 
         self.qc_results["missing_data"] = missing_data(self.data)
+
         self.qc_results["physics_constraint"] = physics_constraint(self.data)
+
         self.qc_results["detect_outliers"] = detect_outliers(self.data)
+
         self.qc_results["altitude_drops"] = altitude_drops(self.data)
 
         return self.qc_results
