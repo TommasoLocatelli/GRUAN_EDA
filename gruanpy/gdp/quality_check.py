@@ -70,6 +70,8 @@ def physics_constraint(data, columns=None):
         "alt":      (0, 40000),
         "temp":     (150, 350),
         "rh":       (0, 150),
+        'press':    (0,1200),
+        'wvmr_mass':(0,20000), 
         "wmeri":    (-150, 150),
         "wzon":     (-150, 150),
     }
@@ -79,6 +81,8 @@ def physics_constraint(data, columns=None):
         "alt_uc":   (0, 20000),
         "temp_uc":  (0, 200),
         "rh_uc":    (0, 75),
+        "press_uc": (0, 600),
+        "wvmr_mass_uc":(0,10000),
         "wmeri_uc": (0, 150),
         "wzon_uc":  (0, 150),
     }

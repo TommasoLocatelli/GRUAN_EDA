@@ -18,6 +18,9 @@ for file_path in file_paths[0:10]:
     print(f"\nReading: {file_path}")
     gdp = gp.read_gdp(file_path, upper_bound=True,
         columns=gp.COLUMNS_OF_INTEREST)
+
+    print(gdp.data.head())
+
     for key, value in gdp.qc_results.items():
         print(key, value)
 
