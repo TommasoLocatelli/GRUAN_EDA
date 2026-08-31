@@ -2,7 +2,10 @@ import pandas as pd
 import xarray as xr
 import os
 from gruanpy.physics.pblh import apply_upper_bound
+from gruanpy.physics.formulas import virtual_potential_temperature, virtual_potential_temperature_uncertainty
 from gruanpy.gdp.data_models import GDP, NETCDF
+import gruanpy
+import pickle
 
 def read_gdp(file_path, only_global_attrs=False, upper_bound = False, columns = False):
     """
@@ -27,6 +30,20 @@ def read_gdp(file_path, only_global_attrs=False, upper_bound = False, columns = 
             data = apply_upper_bound(data, upper_bound=upper_bound)
 
         if columns:
+            # Virtual potential temperature
+            if ("theta_v" in columns and "theta_v" not in data.columns) or ("theta_v_uc" in columns and "theta_v_uc" not in data.columns):
+                T = data["temp"]
+                p = data["press"]
+                r = data["wvmr_mass"] / 1e6
+                data["theta_v"] = virtual_potential_temperature(T, p, r)
+                T_unc = data["temp_uc"]
+                p_unc = data["press_uc"]
+                r_unc = data["wvmr_mass_uc"]
+                r_unc = data["wvmr_mass_uc"] / 1e6
+                data["theta_v_uc"] = virtual_potential_temperature_uncertainty(
+                    T, p, r, T_unc, p_unc, r_unc
+                )
+
             valid_cols = [c for c in columns if c in data.columns]
             missing_cols = set(columns) - set(valid_cols)
 
@@ -84,3 +101,7 @@ def read_netcdf(file_path):
     ])
 
     return NETCDF(global_attrs, data, variables_attrs)
+
+def read_pkl(path):
+    with open(path, "rb") as f:
+        return pickle.load(f)

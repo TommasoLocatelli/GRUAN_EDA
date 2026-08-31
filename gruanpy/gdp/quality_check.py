@@ -6,7 +6,7 @@ def missing_data(data, columns=None):
     Check missing values in selected columns.
     Returns:
         DataFrame with columns:
-            variable, missing_count, indices
+            variable, missing_count, indices, gaps
     """
     if data is None:
         return pd.DataFrame()
@@ -30,10 +30,36 @@ def missing_data(data, columns=None):
         mask = df_selected[col].isna()
         if mask.any():
             idx = df.index[mask].tolist()
+
+            # --- GAP DETECTION ---
+            gaps = []
+            start = None
+            length = 0
+
+            for i in range(len(idx)):
+                if start is None:
+                    # start a new gap
+                    start = idx[i]
+                    length = 1
+                else:
+                    # check if contiguous
+                    if idx[i] == idx[i-1] + 1:
+                        length += 1
+                    else:
+                        # gap ended
+                        gaps.append({"start": start, "length": length})
+                        start = idx[i]
+                        length = 1
+
+            # add last gap
+            if start is not None:
+                gaps.append({"start": start, "length": length})
+
             results.append({
                 "variable": col,
                 "missing_count": len(idx),
-                "indices": idx
+                "indices": idx,
+                "gaps": gaps
             })
 
     if len(results) == 0:
@@ -74,6 +100,7 @@ def physics_constraint(data, columns=None):
         'wvmr_mass':(0,20000), 
         "wmeri":    (-150, 150),
         "wzon":     (-150, 150),
+        "theta_v":  (150, 500),
     }
 
     # Uncertainty constraints
@@ -85,6 +112,7 @@ def physics_constraint(data, columns=None):
         "wvmr_mass_uc":(0,10000),
         "wmeri_uc": (0, 150),
         "wzon_uc":  (0, 150),
+        "theta_v_uc": (0, 175),
     }
 
     summary = []

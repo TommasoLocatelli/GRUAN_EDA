@@ -1,7 +1,7 @@
 # Public API for the gruanpy package
 # --- GDP ---
 from .gdp.download import search_gdp, download_gdp, exec_cds_request
-from .gdp.read import read_cdm, read_gdp, read_netcdf
+from .gdp.read import read_cdm, read_gdp, read_netcdf, read_pkl
 
 # --- Physics ---
 from .physics.formulas import *
@@ -22,6 +22,7 @@ __all__ = [
     "read_cdm",
     "read_gdp",
     "read_netcdf",
+    "read_pkl",
 
     # SSM
     "LocalLinearLevel",

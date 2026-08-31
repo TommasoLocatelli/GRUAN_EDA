@@ -17,8 +17,8 @@ from gruanpy.physics.formulas import (tetens_equation,
     virtual_potential_temperature,
     bulk_richardson_number)
 
-COLUMNS_OF_INTEREST=['time', 'alt', 'alt_uc', 'temp', 'temp_uc', 
-                    'rh', 'rh_uc', 'press', 'press_uc', 'wvmr_mass', 'wvmr_mass_uc'
+COLUMNS_OF_INTEREST=['time', 'alt', 'alt_uc', 'temp', 'temp_uc', 'theta_v', 'theta_v_uc',
+                    'rh', 'rh_uc', 'press', 'press_uc', 'wvmr_mass', 'wvmr_mass_uc',
                     'wmeri', 'wmeri_uc', 'wzon', 'wzon_uc']
 
 def apply_upper_bound(data, upper_bound=3500, apply=True):
