@@ -14,7 +14,7 @@ mwr_paths = [
     r'data\cloudnet-examples\20260817_cabauw_hatpro-multi_46797fd6.nc'
 ]
 
-path = mwr_paths[0]
+path = mwr_paths[2]
 netcdf = gp.read_netcdf(path)
 data = netcdf.data
 
@@ -40,14 +40,10 @@ rh_grad_long.columns = ['height', 'time', 'rh_gradient']
 # Moist PBLH = minimum RH gradient
 pblh_rh_df = (
     rh_grad_long.groupby('time')
-    .apply(
-        lambda g: g.loc[g['rh_gradient'].idxmin()][['height']],
-        include_groups=False
-    )
+    .apply(lambda g: g.loc[g['rh_gradient'].idxmin()][['height']], include_groups=False)
     .reset_index()
 )
 pblh_rh_df.columns = ['time', 'pbl_height_rh']
-
 
 # -----------------------------
 # POTENTIAL TEMPERATURE GRADIENT & THERMAL PBLH
@@ -64,18 +60,38 @@ theta_grad_long.columns = ['height', 'time', 'theta_gradient']
 # Thermal PBLH = maximum theta gradient
 pblh_theta_df = (
     theta_grad_long.groupby('time')
-    .apply(
-        lambda g: g.loc[g['theta_gradient'].idxmax()][['height']],
-        include_groups=False
-    )
+    .apply(lambda g: g.loc[g['theta_gradient'].idxmax()][['height']], include_groups=False)
     .reset_index()
 )
 pblh_theta_df.columns = ['time', 'pbl_height_theta']
 
 # -----------------------------
+# PARCEL METHOD PBLH (θ crossing)
+# -----------------------------
+theta_surface = theta_grid.loc[theta_grid.index.min()]
+
+parcel_pblh = []
+for t in theta_grid.columns:
+    profile = theta_grid[t].values
+    surf = theta_surface[t]
+    mask = profile > surf #+ 0.5
+    if mask.any():
+        idx = np.argmax(mask)
+        height = theta_grid.index[idx]
+    else:
+        height = np.nan
+    parcel_pblh.append(height)
+
+pblh_parcel_df = pd.DataFrame({
+    "time": theta_grid.columns,
+    "pbl_height_parcel": parcel_pblh
+})
+
+
+# -----------------------------
 # TWO SUBPLOTS: RH + θ
 # -----------------------------
-fig, axes = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
+fig, axes = plt.subplots(1, 2, figsize=(18, 6), sharey=True)
 
 # ---------------------------------
 # SUBPLOT 1 — θ + Thermal PBLH
@@ -101,10 +117,19 @@ ax.plot(
 cbar2 = fig.colorbar(sc2, ax=ax)
 cbar2.set_label('Potential Temperature (K)')
 
+# Parcel method PBLH
+ax.plot(
+    pblh_parcel_df['time'],
+    pblh_parcel_df['pbl_height_parcel'],
+    color='blue',
+    linewidth=2,
+    label='Parcel PBL (θ crossing)'
+)
+
+
 ax.set_xlabel('Time')
 ax.set_title('Potential Temperature with Thermal PBL height')
 ax.legend()
-
 
 # ---------------------------------
 # SUBPLOT 2 — RH + Moist PBLH
@@ -134,7 +159,6 @@ ax.set_xlabel('Time')
 ax.set_ylabel('Altitude (m)')
 ax.set_title('RH profile with Moist PBL height')
 ax.legend()
-
 
 axes[0].tick_params(axis='x', rotation=45)
 axes[1].tick_params(axis='x', rotation=45)
