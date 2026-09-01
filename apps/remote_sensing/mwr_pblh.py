@@ -24,69 +24,64 @@ data = data[data["height"] <= 5000]
 # Ensure time is datetime
 data['time'] = pd.to_datetime(data['time'])
 
-# -----------------------------
-# RH GRADIENT & MOIST PBLH
-# -----------------------------
-grid_rh = data.pivot(index='height', columns='time', values='relative_humidity')
+def mwr_pblh(data, pm_offset=0.5):
+    # Potential temperature
+    theta_grid = data.pivot(index='height', columns='time', values='potential_temperature')
+    height_vals = theta_grid.index.values
+    theta_grad = np.gradient(theta_grid.values, height_vals, axis=0)
+    theta_grad_df = pd.DataFrame(theta_grad, index=theta_grid.index, columns=theta_grid.columns)
+    theta_grad_long = theta_grad_df.stack().reset_index()
+    theta_grad_long.columns = ['height', 'time', 'theta_gradient']
 
-height_vals = grid_rh.index.values
-rh_grad = np.gradient(grid_rh.values, height_vals, axis=0)
+    # Thermal PBLH = maximum theta gradient
+    pblh_theta_df = (
+        theta_grad_long.groupby('time')
+        .apply(lambda g: g.loc[g['theta_gradient'].idxmax()][['height']], include_groups=False)
+        .reset_index()
+    )
+    pblh_theta_df.columns = ['time', 'pbl_height_theta']
 
-rh_grad_df = pd.DataFrame(rh_grad, index=grid_rh.index, columns=grid_rh.columns)
+    # Parcel method
+    theta_surface = theta_grid.loc[theta_grid.index.min()]
+    parcel_pblh = []
+    for t in theta_grid.columns:
+        profile = theta_grid[t].values
+        surf = theta_surface[t]
+        mask = profile > surf + pm_offset
+        if mask.any():
+            idx = np.argmax(mask)
+            height = theta_grid.index[idx]
+        else:
+            height = np.nan
+        parcel_pblh.append(height)
 
-rh_grad_long = rh_grad_df.stack().reset_index()
-rh_grad_long.columns = ['height', 'time', 'rh_gradient']
+    pblh_parcel_df = pd.DataFrame({
+        "time": theta_grid.columns,
+        "pbl_height_parcel": parcel_pblh
+    })
 
-# Moist PBLH = minimum RH gradient
-pblh_rh_df = (
-    rh_grad_long.groupby('time')
-    .apply(lambda g: g.loc[g['rh_gradient'].idxmin()][['height']], include_groups=False)
-    .reset_index()
-)
-pblh_rh_df.columns = ['time', 'pbl_height_rh']
+    # Relative humidity
+    grid_rh = data.pivot(index='height', columns='time', values='relative_humidity')
 
-# -----------------------------
-# POTENTIAL TEMPERATURE GRADIENT & THERMAL PBLH
-# -----------------------------
-theta_grid = data.pivot(index='height', columns='time', values='potential_temperature')
+    height_vals = grid_rh.index.values
+    rh_grad = np.gradient(grid_rh.values, height_vals, axis=0)
 
-theta_grad = np.gradient(theta_grid.values, height_vals, axis=0)
+    rh_grad_df = pd.DataFrame(rh_grad, index=grid_rh.index, columns=grid_rh.columns)
 
-theta_grad_df = pd.DataFrame(theta_grad, index=theta_grid.index, columns=theta_grid.columns)
+    rh_grad_long = rh_grad_df.stack().reset_index()
+    rh_grad_long.columns = ['height', 'time', 'rh_gradient']
 
-theta_grad_long = theta_grad_df.stack().reset_index()
-theta_grad_long.columns = ['height', 'time', 'theta_gradient']
+    # Moist PBLH = minimum RH gradient
+    pblh_rh_df = (
+        rh_grad_long.groupby('time')
+        .apply(lambda g: g.loc[g['rh_gradient'].idxmin()][['height']], include_groups=False)
+        .reset_index()
+    )
+    pblh_rh_df.columns = ['time', 'pbl_height_rh']
 
-# Thermal PBLH = maximum theta gradient
-pblh_theta_df = (
-    theta_grad_long.groupby('time')
-    .apply(lambda g: g.loc[g['theta_gradient'].idxmax()][['height']], include_groups=False)
-    .reset_index()
-)
-pblh_theta_df.columns = ['time', 'pbl_height_theta']
+    return pblh_theta_df, pblh_parcel_df, pblh_rh_df
 
-# -----------------------------
-# PARCEL METHOD PBLH (θ crossing)
-# -----------------------------
-theta_surface = theta_grid.loc[theta_grid.index.min()]
-
-parcel_pblh = []
-for t in theta_grid.columns:
-    profile = theta_grid[t].values
-    surf = theta_surface[t]
-    mask = profile > surf #+ 0.5
-    if mask.any():
-        idx = np.argmax(mask)
-        height = theta_grid.index[idx]
-    else:
-        height = np.nan
-    parcel_pblh.append(height)
-
-pblh_parcel_df = pd.DataFrame({
-    "time": theta_grid.columns,
-    "pbl_height_parcel": parcel_pblh
-})
-
+pblh_theta_df, pblh_parcel_df, pblh_rh_df = mwr_pblh(data, pm_offset=0)
 
 # -----------------------------
 # TWO SUBPLOTS: RH + θ
@@ -126,7 +121,7 @@ ax.plot(
     label='Parcel PBL (θ crossing)'
 )
 
-
+ax.set_ylabel('Altitude (m)')
 ax.set_xlabel('Time')
 ax.set_title('Potential Temperature with Thermal PBL height')
 ax.legend()
@@ -156,7 +151,6 @@ cbar1 = fig.colorbar(sc1, ax=ax)
 cbar1.set_label('Relative Humidity (%)')
 
 ax.set_xlabel('Time')
-ax.set_ylabel('Altitude (m)')
 ax.set_title('RH profile with Moist PBL height')
 ax.legend()
 
