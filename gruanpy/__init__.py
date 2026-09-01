@@ -2,7 +2,7 @@
 # --- GDP ---
 from .gdp.download import search_gdp, download_gdp, exec_cds_request
 from .gdp.read import read_cdm, read_gdp, read_netcdf, read_pkl
-
+from .gdp.time_utils import *
 # --- Physics ---
 from .physics.formulas import *
 from .physics.constants import *
@@ -34,4 +34,9 @@ __all__ = [
 __all__ += [
     name for name, obj in globals().items()
     if getattr(obj, "__module__", "").startswith("gruanpy.physics")
+]
+
+__all__ += [
+    name for name, obj in globals().items()
+    if getattr(obj, "__module__", "").startswith("gruanpy.time_utils")
 ]

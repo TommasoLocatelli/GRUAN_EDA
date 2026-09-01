@@ -1,3 +1,7 @@
+"""
+This script read gdps and build a pickle containing them for each site.
+"""
+
 import time
 import pickle
 import gruanpy as gp
