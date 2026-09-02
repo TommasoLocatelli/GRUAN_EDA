@@ -25,25 +25,40 @@ all_outliers = []
 
 for dataset in datasets:
     for pid, gdp in tqdm.tqdm(dataset.items()):
-        data = gdp.data
+        outliers = detect_outliers(gdp.data[['theta', 'theta_uc']], iqr_factor=100)
+        
+        if isinstance(outliers, pd.DataFrame) and not outliers.empty:
 
-        alt = data["alt"].values
-        theta = data["theta"].values
-        theta_uc = data["theta_uc"].values
+            # Expand each row: one row per outlier index
+            expanded_rows = []
 
-        plt.figure(figsize=(6, 8))
-        plt.plot(theta, alt, label="θ")
-        plt.fill_betweenx(
-            alt,
-            theta - theta_uc,
-            theta + theta_uc,
-            alpha=0.3,
-            label="θ uncertainty"
-        )
+            for _, row in outliers.iterrows():
+                variable = row["variable"]
+                indices = row["indices"]
 
-        plt.xlabel("Virtual Potential Temperature θ [K]")
-        plt.ylabel("Altitude [m]")
-        plt.title(f"{pid} – θ profile with uncertainty")
-        plt.legend()
-        plt.grid(True)
-        plt.show()
+                for idx in indices:
+                    expanded_rows.append({
+                        "pid": pid,
+                        "variable": variable,
+                        "index": idx,
+                        "value": gdp.data.loc[idx, variable]
+                    })
+
+            expanded_df = pd.DataFrame(expanded_rows)
+            all_outliers.append(expanded_df)
+
+
+# Combine all outlier rows into one DataFrame
+if all_outliers:
+    outliers_df = pd.concat(all_outliers, ignore_index=True)
+
+    # Max theta outlier
+    max_theta = outliers_df[outliers_df["variable"] == "theta"]["value"].max()
+
+    # Max theta_uc outlier
+    max_theta_uc = outliers_df[outliers_df["variable"] == "theta_uc"]["value"].max()
+
+    print("Max theta outlier:", max_theta)
+    print("Max theta_uc outlier:", max_theta_uc)
+else:
+    print("No outliers found.")
