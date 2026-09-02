@@ -7,11 +7,14 @@ https://www.statsmodels.org/stable/examples/notebooks/generated/statespace_local
 """
 
 class UnivariateLLT(sm.tsa.statespace.MLEModel):
-    def __init__(self, endog):
-        # Model order
+    def __init__(self, endog, measurement_sigma2=None):
         k_states = k_posdef = 2
 
-        # Initialize the statespace
+        # Store fixed measurement variance sequence if provided
+        self.measurement_sigma2 = (
+            measurement_sigma2.T if measurement_sigma2 is not None else None
+        )
+
         super().__init__(
             endog,
             k_states=k_states,
@@ -20,21 +23,28 @@ class UnivariateLLT(sm.tsa.statespace.MLEModel):
             loglikelihood_burn=k_states,
         )
 
-        # Initialize the matrices
         self.ssm["design"] = np.array([1, 0])
         self.ssm["transition"] = np.array([[1, 1], [0, 1]])
         self.ssm["selection"] = np.eye(k_states)
 
-        # Cache some indices
+        # Univariate obs_cov
+        self.ssm["obs_cov"] = np.zeros((1, 1, self.nobs))
+
         self._state_cov_idx = ("state_cov",) + np.diag_indices(k_posdef)
 
     @property
     def param_names(self):
-        return ["sigma2.measurement", "sigma2.level", "sigma2.trend"]
+        if self.measurement_sigma2 is None:
+            return ["sigma2.measurement", "sigma2.level", "sigma2.trend"]
+        else:
+            return ["sigma2.level", "sigma2.trend"]
 
     @property
     def start_params(self):
-        return [np.std(self.endog)] * 3
+        if self.measurement_sigma2 is None:
+            return [np.std(self.endog)] * 3
+        else:
+            return [np.std(self.endog)] * 2
 
     def transform_params(self, unconstrained):
         return unconstrained**2
@@ -46,10 +56,15 @@ class UnivariateLLT(sm.tsa.statespace.MLEModel):
         params = super().update(params, *args, **kwargs)
 
         # Observation covariance
-        self.ssm["obs_cov", 0, 0] = params[0]
+        if self.measurement_sigma2 is None:
+            self.ssm["obs_cov", 0, 0] = params[0]
+            state_params = params[1:]
+        else:
+            self.ssm["obs_cov", 0, 0] = self.measurement_sigma2[:]
+            state_params = params
 
         # State covariance
-        self.ssm[self._state_cov_idx] = params[1:]
+        self.ssm[self._state_cov_idx] = state_params
 
 
 """

@@ -32,7 +32,7 @@ class LocalLinearLevel(sm.tsa.statespace.MLEModel):
 
         # Use time-varying observation covariance 
         self.ssm["obs_cov"] = np.zeros((k_states, k_states, self.nobs))
-
+        
         # Cache some indices
         self._state_cov_idx = ("state_cov",) + np.diag_indices(k_posdef)
 

@@ -81,6 +81,36 @@ print(f"LAU: {removed_lau}")
 print(f"LIN: {removed_lin}")
 
 # ---------------------------------------------------------
+# Compute Virtual Potential Temperature
+# ---------------------------------------------------------
+from gruanpy.physics.formulas import virtual_potential_temperature, virtual_potential_temperature_uncertainty
+import tqdm
+
+def compute_theta(dataset):
+    for pid, gdp in tqdm.tqdm(dataset.items()):
+        data = gdp.data
+
+        r_ppm     = data['wvmr_mass'].values
+        r_ppm_unc = data['wvmr_mass_uc'].values
+
+        # ppm → kg/kg
+        r     = r_ppm * 1e-6
+        r_unc = r_ppm_unc * 1e-6
+
+        data['theta'] = virtual_potential_temperature(
+            data['temp'], data['press'], r
+        )
+
+        data['theta_uc'] = virtual_potential_temperature_uncertainty(
+            data['temp'], data['press'], r,
+            data['temp_uc'], data['press_uc'], r_unc
+        )
+
+# Apply to all datasets
+for dataset in [hko, lau, lin]:
+    compute_theta(dataset)
+
+# ---------------------------------------------------------
 # Save filtered PKLs
 # ---------------------------------------------------------
 
