@@ -1,104 +1,54 @@
-import pickle
-import gruanpy as gp
-import tqdm
-from gruanpy.ssm.statsmodels.univariate import UnivariateLLL, UnivariateLLT
-import numpy as np
+import dill
+from collections import defaultdict
 
 # ---------------------------------------------------------
-# Load GDPs
+# Load the pickle file with dill
 # ---------------------------------------------------------
 
-hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_preprocessed.pkl"
-lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_preprocessed.pkl"
-lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_preprocessed.pkl"
+pkl_path = "ssm_fit_lll_llt_HKO_2024.pkl"
 
-hko = gp.read_pkl(hko_path)
-lau = gp.read_pkl(lau_path)
-lin = gp.read_pkl(lin_path)
+with open(pkl_path, "rb") as f:
+    results = dill.load(f)
 
-gdps = {**hko, **lau, **lin}
-print("Total GDPs:", len(gdps))
-
-variables = ['alt', 'theta', 'rh', 'wmeri', 'wzon']
-
-results = dict()
+print("Loaded results.")
+print("Number of PIDs:", len(results))
+print("\n")
 
 # ---------------------------------------------------------
-# Fit all models
+# Count convergence across all PIDs / variables / models
 # ---------------------------------------------------------
 
-for pid, gdp in tqdm.tqdm(gdps.items()):
-    data = gdp.data
-    pid_results = dict()
+convergence_summary = defaultdict(int)
+not_converged_per_var = defaultdict(int)
 
-    for var in variables:
-        endog = data[var].values.astype(float)
-        endog_uc = data[var + '_uc'].values.astype(float)
+for pid, pid_results in results.items():
+    for var, var_results in pid_results.items():
+        for model_name, (model, fit_result) in var_results.items():
 
-        # GRUAN measurement uncertainty → measurement variance
-        measurement_sigma2 = (endog_uc * 0.5)**2
+            converged = fit_result.mle_retvals.get("converged", None)
 
-        # -----------------------------
-        # LLL MLE
-        # -----------------------------
-        lll_mle = UnivariateLLL(endog=endog)
-        lll_mle_results = lll_mle.fit(
-            method='powell',
-            maxiter=100,
-            full_output=1,
-            disp=False
-        )
-
-        # -----------------------------
-        # LLL GRUAN
-        # -----------------------------
-        lll_gruan = UnivariateLLL(endog=endog, measurement_sigma2=measurement_sigma2)
-        lll_gruan_results = lll_gruan.fit(
-            method='powell',
-            maxiter=100,
-            full_output=1,
-            disp=False
-        )
-
-        # -----------------------------
-        # LLT MLE
-        # -----------------------------
-        llt_mle = UnivariateLLT(endog=endog)
-        llt_mle_results = llt_mle.fit(
-            method='powell',
-            maxiter=100,
-            full_output=1,
-            disp=False
-        )
-
-        # -----------------------------
-        # LLT GRUAN
-        # -----------------------------
-        llt_gruan = UnivariateLLT(endog=endog, measurement_sigma2=measurement_sigma2)
-        llt_gruan_results = llt_gruan.fit(
-            method='powell',
-            maxiter=100,
-            full_output=1,
-            disp=False
-        )
-
-        # Store results
-        pid_results[var] = {
-            'lll_mle': (lll_mle, lll_mle_results),
-            'lll_gruan': (lll_gruan, lll_gruan_results),
-            'llt_mle': (llt_mle, llt_mle_results),
-            'llt_gruan': (llt_gruan, llt_gruan_results)
-        }
-
-    results[pid] = pid_results
+            if converged is True:
+                convergence_summary["converged"] += 1
+            elif converged is False:
+                convergence_summary["not_converged"] += 1
+                not_converged_per_var[var] += 1
+            else:
+                convergence_summary["unknown"] += 1
 
 # ---------------------------------------------------------
-# Save results
+# Print summary
 # ---------------------------------------------------------
 
-output_path = "ssm_fit_lll_llt_hko_lau_lin_2024.pkl"
+print("Convergence summary:")
+print(f"  Converged:      {convergence_summary['converged']}")
+print(f"  Not converged:  {convergence_summary['not_converged']}")
+print(f"  Unknown flag:   {convergence_summary['unknown']}")
+print("\n")
 
-with open(output_path, "wb") as f:
-    pickle.dump(results, f)
+# ---------------------------------------------------------
+# Print not-converged counts per variable
+# ---------------------------------------------------------
 
-print(f"\nSaved results to: {output_path}")
+print("Not converged per variable:")
+for var, count in not_converged_per_var.items():
+    print(f"  {var}: {count}")

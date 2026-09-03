@@ -5,7 +5,7 @@ from pprint import pprint
 # Load the pickle file
 # ---------------------------------------------------------
 
-pkl_path = "ssm_fit_lll_llt_hko_lau_lin_2024.pkl"
+pkl_path = "ssm_fit_lll_llt_HKO_2024.pkl"
 
 with open(pkl_path, "rb") as f:
     results = pickle.load(f)
