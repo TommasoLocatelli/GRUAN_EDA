@@ -52,3 +52,4 @@ print("\n")
 print("Not converged per variable:")
 for var, count in not_converged_per_var.items():
     print(f"  {var}: {count}")
+

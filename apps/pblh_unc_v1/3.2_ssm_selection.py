@@ -77,3 +77,8 @@ if hasattr(fit_result, "smoother_results"):
 
 else:
     print("No smoother results available for this model.")
+
+"""
+Not converged per variable:
+  alt: 62
+"""
