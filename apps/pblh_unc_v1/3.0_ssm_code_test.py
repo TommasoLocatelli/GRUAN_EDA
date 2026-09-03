@@ -1,6 +1,8 @@
 from gruanpy.ssm.statsmodels.univariate import UnivariateLLL, UnivariateLLT
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+import io
 
 # ---------------------------------------------------------
 # Synthetic generators
@@ -41,73 +43,93 @@ def generate_llt(n=500, sigma2_level=0.5, sigma2_trend=0.2, sigma2_meas=1.0, see
     return y, level, trend
 
 
-# ---------------------------------------------------------
-# Test 1 — LLL with MLE measurement variance
-# ---------------------------------------------------------
-if False: # Test 1 & 2
-    print("\n=== Test 1 - LLL (MLE measurement variance) ===")
-    y, true_level = generate_lll()
+SEED = 42
 
+# ---------------------------------------------------------
+# PDF REPORT
+# ---------------------------------------------------------
+
+with PdfPages("LLL_LLT_code_test_report.pdf") as pdf:
+
+    # ---------------------------------------------------------
+    # Test 1 — LLL with MLE measurement variance
+    # ---------------------------------------------------------
+    buffer = io.StringIO()
+    print("\n=== Test 1 - LLL (MLE measurement variance) ===", file=buffer)
+
+    y, true_level = generate_lll(seed=SEED)
     model = UnivariateLLL(y)
     res = model.fit(maxiter=200, disp=False)
 
-    print("True params: sigma2.measurement=1.0, sigma2.level=0.5")
-    print("Estimated params:", res.params)
-    print(res.summary())
+    print("True params: sigma2.measurement=1.0, sigma2.level=0.5", file=buffer)
+    print("Estimated params:", res.params, file=buffer)
+    print(res.summary(), file=buffer)
 
     smoothed_level = res.smoother_results.smoothed_state[0]
 
-    plt.figure(figsize=(10,4))
+    fig = plt.figure(figsize=(10,4))
     plt.plot(true_level, label="True level")
     plt.plot(smoothed_level, label="Smoothed level")
     plt.title("Test 1 - LLL State Recovery (MLE measurement variance)")
     plt.legend()
-    plt.show()
+    pdf.savefig(fig)
+    plt.close(fig)
+
+    # Save text page
+    text_fig = plt.figure(figsize=(8.5, 11))
+    text_fig.text(0.01, 0.99, buffer.getvalue(), va="top", family="monospace", fontsize=9)
+    pdf.savefig(text_fig)
+    plt.close(text_fig)
 
 
-# ---------------------------------------------------------
-# Test 2 — LLL with fixed measurement variance array
-# ---------------------------------------------------------
+    # ---------------------------------------------------------
+    # Test 2 — LLL with fixed measurement variance array
+    # ---------------------------------------------------------
+    buffer = io.StringIO()
+    print("\n=== Test 2 - LLL (fixed measurement variance) ===", file=buffer)
 
-    print("\n=== Test 2 - LLL (fixed measurement variance) ===")
     meas_var = np.ones_like(y) * 1.0
-
     model = UnivariateLLL(y, measurement_sigma2=meas_var)
     res = model.fit(maxiter=200, disp=False)
 
-    print("True params: sigma2.level=0.5 (measurement variance fixed to 1.0)")
-    print("Estimated params:", res.params)
-    print(res.summary())
+    print("True params: sigma2.level=0.5 (measurement variance fixed to 1.0)", file=buffer)
+    print("Estimated params:", res.params, file=buffer)
+    print(res.summary(), file=buffer)
 
     smoothed_level = res.smoother_results.smoothed_state[0]
 
-    plt.figure(figsize=(10,4))
+    fig = plt.figure(figsize=(10,4))
     plt.plot(true_level, label="True level")
     plt.plot(smoothed_level, label="Smoothed level")
     plt.title("Test 2 - LLL State Recovery (fixed measurement variance)")
     plt.legend()
-    plt.show()
+    pdf.savefig(fig)
+    plt.close(fig)
+
+    text_fig = plt.figure(figsize=(8.5, 11))
+    text_fig.text(0.01, 0.99, buffer.getvalue(), va="top", family="monospace", fontsize=9)
+    pdf.savefig(text_fig)
+    plt.close(text_fig)
 
 
-if True: # Test 3 & 4 & 5
     # ---------------------------------------------------------
     # Test 3 — LLT with MLE measurement variance
     # ---------------------------------------------------------
-    print("\n=== Test 3 - LLT (MLE measurement variance) ===")
-    y, true_level, true_trend = generate_llt()
+    buffer = io.StringIO()
+    print("\n=== Test 3 - LLT (MLE measurement variance) ===", file=buffer)
 
+    y, true_level, true_trend = generate_llt(seed=SEED)
     model = UnivariateLLT(y)
     res = model.fit(maxiter=200, disp=False)
 
-    print("True params: sigma2.measurement=1.0, sigma2.level=0.5, sigma2.trend=0.2")
-    print("Estimated params:", res.params)
-    print(res.summary())
+    print("True params: sigma2.measurement=1.0, sigma2.level=0.5, sigma2.trend=0.2", file=buffer)
+    print("Estimated params:", res.params, file=buffer)
+    print(res.summary(), file=buffer)
 
     smoothed_level = res.smoother_results.smoothed_state[0]
     smoothed_trend = res.smoother_results.smoothed_state[1]
 
     fig, ax = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
-
     ax[0].plot(true_level, label="True level")
     ax[0].plot(smoothed_level, label="Smoothed level")
     ax[0].set_title("Test 3 - LLT Level State Recovery")
@@ -119,27 +141,33 @@ if True: # Test 3 & 4 & 5
     ax[1].legend()
 
     plt.tight_layout()
-    plt.show()
+    pdf.savefig(fig)
+    plt.close(fig)
+
+    text_fig = plt.figure(figsize=(8.5, 11))
+    text_fig.text(0.01, 0.99, buffer.getvalue(), va="top", family="monospace", fontsize=9)
+    pdf.savefig(text_fig)
+    plt.close(text_fig)
 
 
     # ---------------------------------------------------------
     # Test 4 — LLT with fixed measurement variance array
     # ---------------------------------------------------------
-    print("\n=== Test 4 - LLT (fixed measurement variance) ===")
-    meas_var = np.ones_like(y) * 1.0
+    buffer = io.StringIO()
+    print("\n=== Test 4 - LLT (fixed measurement variance) ===", file=buffer)
 
+    meas_var = np.ones_like(y) * 1.0
     model = UnivariateLLT(y, measurement_sigma2=meas_var)
     res = model.fit(maxiter=200, disp=False)
 
-    print("True params: sigma2.level=0.5, sigma2.trend=0.2 (measurement variance fixed to 1.0)")
-    print("Estimated params:", res.params)
-    print(res.summary())
+    print("True params: sigma2.level=0.5, sigma2.trend=0.2 (measurement variance fixed to 1.0)", file=buffer)
+    print("Estimated params:", res.params, file=buffer)
+    print(res.summary(), file=buffer)
 
     smoothed_level = res.smoother_results.smoothed_state[0]
     smoothed_trend = res.smoother_results.smoothed_state[1]
 
     fig, ax = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
-
     ax[0].plot(true_level, label="True level")
     ax[0].plot(smoothed_level, label="Smoothed level")
     ax[0].set_title("Test 4 - LLT Level State Recovery (fixed measurement variance)")
@@ -151,27 +179,33 @@ if True: # Test 3 & 4 & 5
     ax[1].legend()
 
     plt.tight_layout()
-    plt.show()
+    pdf.savefig(fig)
+    plt.close(fig)
+
+    text_fig = plt.figure(figsize=(8.5, 11))
+    text_fig.text(0.01, 0.99, buffer.getvalue(), va="top", family="monospace", fontsize=9)
+    pdf.savefig(text_fig)
+    plt.close(text_fig)
 
 
     # ---------------------------------------------------------
-    # Test 5 — LLT with *inflated* fixed measurement variance
+    # Test 5 — LLT with inflated measurement variance
     # ---------------------------------------------------------
-    print("\n=== Test 5 - LLT (inflated fixed measurement variance) ===")
+    buffer = io.StringIO()
+    print("\n=== Test 5 - LLT (inflated fixed measurement variance) ===", file=buffer)
+
     inflated_meas_var = np.ones_like(y) * 10.0
-
     model = UnivariateLLT(y, measurement_sigma2=inflated_meas_var)
     res = model.fit(maxiter=200, disp=False)
 
-    print("True params: sigma2.level=0.5, sigma2.trend=0.2 (measurement variance fixed to 10.0)")
-    print("Estimated params:", res.params)
-    print(res.summary())
+    print("True params: sigma2.level=0.5, sigma2.trend=0.2 (measurement variance fixed to 10.0)", file=buffer)
+    print("Estimated params:", res.params, file=buffer)
+    print(res.summary(), file=buffer)
 
     smoothed_level = res.smoother_results.smoothed_state[0]
     smoothed_trend = res.smoother_results.smoothed_state[1]
 
     fig, ax = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
-
     ax[0].plot(true_level, label="True level")
     ax[0].plot(smoothed_level, label="Smoothed level")
     ax[0].set_title("Test 5 - LLT Level State Recovery (inflated measurement variance)")
@@ -183,4 +217,12 @@ if True: # Test 3 & 4 & 5
     ax[1].legend()
 
     plt.tight_layout()
-    plt.show()
+    pdf.savefig(fig)
+    plt.close(fig)
+
+    text_fig = plt.figure(figsize=(8.5, 11))
+    text_fig.text(0.01, 0.99, buffer.getvalue(), va="top", family="monospace", fontsize=9)
+    pdf.savefig(text_fig)
+    plt.close(text_fig)
+
+print("Saved report: LLL_LLT_code_test_report.pdf")

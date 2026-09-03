@@ -18,6 +18,7 @@ temp/*
 *.pkl
 *.png
 *.csv
+*.pdf
 
 # Distribution / packaging
 .Python

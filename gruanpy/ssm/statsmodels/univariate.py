@@ -4,6 +4,9 @@ import numpy as np
 """
 Univariate Local Linear Trend Model
 https://www.statsmodels.org/stable/examples/notebooks/generated/statespace_local_linear_trend.html
+
+Parameters can also be fixed 
+results = model.fit_constrained({'sigma2.measurement': 0})
 """
 
 class UnivariateLLT(sm.tsa.statespace.MLEModel):
