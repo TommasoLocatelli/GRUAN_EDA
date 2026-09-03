@@ -73,8 +73,13 @@ y_t = level_t + eps_t
 level_t = level_{t-1} + eta_t
 """
 class UnivariateLLL(sm.tsa.statespace.MLEModel):
-    def __init__(self, endog):
+    def __init__(self, endog, measurement_sigma2=None):
         k_states = k_posdef = 1  # only one state: the level
+
+        # Store fixed measurement variance sequence if provided
+        self.measurement_sigma2 = (
+            measurement_sigma2.T if measurement_sigma2 is not None else None
+        )
 
         super().__init__(
             endog,
@@ -93,17 +98,25 @@ class UnivariateLLL(sm.tsa.statespace.MLEModel):
         # Selection matrix (noise enters the state)
         self.ssm["selection"] = np.eye(k_states)
 
+        # Univariate obs_cov (time-varying if measurement_sigma2 is provided)
+        self.ssm["obs_cov"] = np.zeros((1, 1, self.nobs))
+
         # Cache diagonal indices for state covariance
         self._state_cov_idx = ("state_cov",) + np.diag_indices(k_posdef)
 
     @property
     def param_names(self):
-        return ["sigma2.measurement", "sigma2.level"]
+        if self.measurement_sigma2 is None:
+            return ["sigma2.measurement", "sigma2.level"]
+        else:
+            return ["sigma2.level"]
 
     @property
     def start_params(self):
-        # reasonable initial guesses
-        return [np.std(self.endog), np.std(self.endog)]
+        if self.measurement_sigma2 is None:
+            return [np.std(self.endog), np.std(self.endog)]
+        else:
+            return [np.std(self.endog)]
 
     def transform_params(self, unconstrained):
         # enforce positivity
@@ -116,7 +129,14 @@ class UnivariateLLL(sm.tsa.statespace.MLEModel):
         params = super().update(params, *args, **kwargs)
 
         # Measurement noise variance
-        self.ssm["obs_cov", 0, 0] = params[0]
+        if self.measurement_sigma2 is None:
+            # scalar parameter
+            self.ssm["obs_cov", 0, 0] = params[0]
+            state_params = params[1:]
+        else:
+            # fixed time-varying measurement variance
+            self.ssm["obs_cov", 0, 0] = self.measurement_sigma2[:]
+            state_params = params
 
         # State noise variance (level innovation)
-        self.ssm[self._state_cov_idx] = params[1]
+        self.ssm[self._state_cov_idx] = state_params
