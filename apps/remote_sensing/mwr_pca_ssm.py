@@ -53,7 +53,7 @@ def pca_diagnostic(pca, pivot, X_std):
     plt.tight_layout()
     plt.show()
 
-def reconstruct_observation(scores, results, n_components, means, stdevs):
+def reconstruct_observation(scores, pca, results, n_components, means, stdevs):
 
     scores_smooth = scores.copy()
     scores_smooth[:, :n_components] = results.fittedvalues[:, :n_components]
@@ -65,6 +65,7 @@ def reconstruct_observation(scores, results, n_components, means, stdevs):
     reconstructed = recon_std * stdevs + means
 
     return reconstructed
+
 
 def reconstruction_diagnostic(pivot, reconstructed):
     diff = pivot.values - reconstructed
@@ -129,10 +130,10 @@ def pblh_diagnostic(pivot, reconstructed_df, obs_pblh, smooth_pblh):
         color="red", linewidth=2, label="Observed PBLH"
     )
 
-    axes[0].plot(#********
-        smooth_pblh["time"], smooth_pblh["pbl_height_parcel"],
-        color="orange", linewidth=2, label="Smoothed PBLH"
-    )
+    #axes[0].plot(#********
+    #    smooth_pblh["time"], smooth_pblh["pbl_height_parcel"],
+    #    color="orange", linewidth=2, label="Smoothed PBLH"
+    #)
 
     axes[0].set_title("Original Potential Temperature + Observed PBLH")
     axes[0].set_ylabel("Height [m]")
@@ -206,7 +207,7 @@ if __name__ == '__main__':
 
     print(results.summary())
 
-    reconstructed=reconstruct_observation(scores, results, N_COMPONENTS, means, stdevs)
+    reconstructed=reconstruct_observation(scores, pca, results, N_COMPONENTS, means, stdevs)
 
     reconstruction_diagnostic(pivot, reconstructed)
 
