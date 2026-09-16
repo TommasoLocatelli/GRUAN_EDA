@@ -7,6 +7,18 @@ from mwr_pblh import mwr_pre_proc, mwr_parcel_method
 from sklearn.decomposition import PCA
 from gruanpy.ssm.statsmodels.multivariate import MultivariateLLL
 
+TEXT_SIZE=20
+#c="""
+plt.rcParams.update({
+    #"font.size": 5,            # Base font size
+    "axes.titlesize": TEXT_SIZE,       # Subplot titles
+    "axes.labelsize": TEXT_SIZE,       # Axis labels
+    "xtick.labelsize": TEXT_SIZE,      # Tick labels
+    "ytick.labelsize": TEXT_SIZE,
+    "legend.fontsize": TEXT_SIZE,      # Legend text
+    "figure.titlesize": TEXT_SIZE,     # Suptitle
+})
+
 def apply_pca(pivot, n_components):
     pca = PCA(n_components=n_components)
     scores = pca.fit_transform(pivot)
@@ -66,7 +78,6 @@ def reconstruct_observation(scores, pca, results, n_components, means, stdevs):
 
     return reconstructed
 
-
 def reconstruction_diagnostic(pivot, reconstructed):
     diff = pivot.values - reconstructed
 
@@ -75,22 +86,23 @@ def reconstruction_diagnostic(pivot, reconstructed):
     vmin = pivot.values.min()
     vmax = pivot.values.max()
     im0 = axes[0].pcolormesh(pivot.index, pivot.columns, pivot.values.T,
-                            shading='auto', cmap='viridis',
+                            shading='auto', cmap='viridis',#cmap='viridis',
                             vmin=vmin, vmax=vmax)
 
     im1 = axes[1].pcolormesh(pivot.index, pivot.columns, reconstructed.T,
-                            shading='auto', cmap='viridis',
+                            shading='auto', cmap='viridis',#cmap='viridis',
                             vmin=vmin, vmax=vmax)
 
     im2 = axes[2].pcolormesh(pivot.index, pivot.columns, diff.T,
-                            shading='auto', cmap='coolwarm')
+                            shading='auto', cmap='coolwarm',#cmap='coolwarm'
+                            )
 
 
     axes[0].set_title("Original Potential Temperature")
     axes[0].set_ylabel("Height [m]")
     fig.colorbar(im0, ax=axes[0], label="K")
 
-    axes[1].set_title("Reconstructed (State-Space Smoothed)")
+    axes[1].set_title("Reconstructed (PCA State-Space Smoothed)")
     axes[1].set_ylabel("Height [m]")
     fig.colorbar(im1, ax=axes[1], label="K")
 
@@ -193,7 +205,7 @@ if __name__ == '__main__':
 
     pivot = data.pivot(index="time", columns="height", values="potential_temperature").dropna(axis=1, how='any')
 
-    N_COMPONENTS=7
+    N_COMPONENTS=10
 
     means = pivot.values.mean(axis=0)
     stdevs = pivot.values.std(axis=0, ddof=0)

@@ -105,6 +105,9 @@ if __name__ == '__main__':
 
     data = mwr_pre_proc(netcdf)
 
+    print("Distinct times:", data['time'].nunique())
+    print("Distinct heights:", data['height'].nunique())
+
     # Compute PBLH diagnostics
     pblh_theta_df, pblh_parcel_df, pblh_rh_df = mwr_pblh(data, pm_offset=0.5)
 

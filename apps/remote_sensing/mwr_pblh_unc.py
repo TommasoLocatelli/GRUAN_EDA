@@ -7,6 +7,18 @@ from mwr_pblh import mwr_pre_proc, mwr_parcel_method
 from mwr_pca_ssm import apply_pca, pca_diagnostic, reconstruct_observation, reconstruction_diagnostic, pblh_diagnostic
 from gruanpy.ssm.statsmodels.multivariate import MultivariateLLL
 
+TEXT_SIZE=20
+#c="""
+plt.rcParams.update({
+    #"font.size": 5,            # Base font size
+    "axes.titlesize": TEXT_SIZE,       # Subplot titles
+    "axes.labelsize": TEXT_SIZE,       # Axis labels
+    "xtick.labelsize": TEXT_SIZE,      # Tick labels
+    "ytick.labelsize": TEXT_SIZE,
+    "legend.fontsize": TEXT_SIZE,      # Legend text
+    "figure.titlesize": TEXT_SIZE,     # Suptitle
+})
+
 def simulate_ssm(model, M, seed=42):
     simulator=model.simulation_smoother(seed=seed) # default method is KFS; (method='cfa')  # can specify CFA method
     simulations=[]
@@ -106,7 +118,7 @@ def pblh_monte_carlo_diagnostic(
         obs_pblh["pbl_height_parcel"],
         color="red",
         linewidth=2,
-        label="Observed"
+        label="Standard PBLH"
     )
 
     ax.set_title(title)
@@ -138,7 +150,7 @@ if __name__=='__main__':
     pivot = data.pivot(index="time", columns="height", values="potential_temperature").dropna(axis=1, how='any')
     print(f"Observation dimensions {pivot.shape}")
 
-    N_COMPONENTS=7
+    N_COMPONENTS=10
 
     means = pivot.values.mean(axis=0)
     stdevs = pivot.values.std(axis=0, ddof=0)
@@ -184,7 +196,7 @@ if __name__=='__main__':
     pivot=pivot,
     obs_pblh=mwr_parcel_method(pivot, offset=0.5),
     sim_pblh_list=sim_pblh_list,
-    title="Monte Carlo Parcel-Method PBLH Diagnostic"
+    title="Monte Carlo Parcel-Method PBLH"
 )
 
 

@@ -12,6 +12,9 @@ vdop = data.pivot(index="time", columns="height", values="beta_raw")
 # Filter heights up to 5000 m
 vdop_5km = vdop.loc[:, vdop.columns <= 1600]
 
+vdop_5km = vdop.loc[:, vdop.columns <= 1600]
+print(vdop_5km.shape)
+
 times = pd.to_datetime(vdop_5km.index)
 heights = vdop_5km.columns.values
 
