@@ -6,10 +6,9 @@ import cartopy.feature as cfeature
 import numpy as np
 import plotly.graph_objects as go
 
-
 # Load data
 df = pd.read_csv(r"data/solar_baloon/solarballoon_09july2026.csv")
-#df = pd.read_csv(r"data/solar_baloon/solarballoon_19june2026.csv")
+df = pd.read_csv(r"data/solar_baloon/solarballoon_19june2026.csv")
 
 # Convert timestamp column to datetime
 # Try 'datetime' first, fall back to 'time_received'
