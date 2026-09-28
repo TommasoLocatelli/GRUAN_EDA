@@ -11,7 +11,7 @@ import os
 start_time = time.time() 
 
 folders = [
-    #r'data\products_RS41-GDP-1_HKO-RS-01_2024'#,
+    r'data\products_RS41-GDP-1_HKO-RS-01_2024',
     #r'data\products_RS41-GDP-1_LAU-RS-02_2024',
     r'data\products_RS41-GDP-1_LIN-RS-01_2024'
 ]
@@ -34,7 +34,7 @@ for folder in folders:
         print(f"No .nc files found in {folder}")
         continue
 
-    if len(nc_files) > 800:
+    if folder==r'data\products_RS41-GDP-1_LIN-RS-01_2024':
         nc_files = [
         f for f in nc_files
         if ("T000000" in f or "T120000" in f)
@@ -45,6 +45,12 @@ for folder in folders:
         try:
             g = gp.read_gdp(nc, upper_bound=4000, columns=gp.COLUMNS_OF_INTEREST)
             pid = g.global_attrs[g.global_attrs['Attribute']=='g.Product.Id']['Value'].values[0]
+            tod = gp.get_time_of_day(g)
+
+            if tod == 'twilight':
+                print(f"Skip twilight, Product.Id detected: {pid} (skipping {nc})")
+                continue
+            continue
 
             if pid in dataset:
                 print(f"Duplicate Product.Id detected: {pid} (skipping {nc})")
