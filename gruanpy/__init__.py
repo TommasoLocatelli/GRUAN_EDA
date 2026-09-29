@@ -7,7 +7,8 @@ from .gdp.time_utils import *
 from .physics.formulas import *
 from .physics.constants import *
 from .physics.pblh import *
-
+# --- Plots ---
+from .plots import color_map
 # --- SSM ---
 from .ssm.statsmodels.local_linear_level import LocalLinearLevel
 from .ssm.statsmodels.local_linear_trend import LocalLinearTrend

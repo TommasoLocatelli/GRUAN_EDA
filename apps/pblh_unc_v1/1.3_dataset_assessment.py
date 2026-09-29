@@ -21,9 +21,9 @@ plt.rcParams.update({
     "figure.titlesize": TEXT_SIZE,     # Suptitle
 })
 
-hko = gp.read_pkl(r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024.pkl")
-lau = gp.read_pkl(r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024.pkl")
-lin = gp.read_pkl(r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024.pkl")
+hko = gp.read_pkl(r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_no_twilight.pkl")
+lau = gp.read_pkl(r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_no_twilight.pkl")
+lin = gp.read_pkl(r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_no_twilight.pkl")
 
 if True: # filter profiles with more than TH missing data
     from missing_data_utils import *

@@ -9,9 +9,9 @@ import gruanpy as gp
 import numpy as np
 import matplotlib.pyplot as plt
 
-hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024.pkl"
-lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024.pkl"
-lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024.pkl"
+hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_no_twilight.pkl"
+lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_no_twilight.pkl"
+lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_no_twilight.pkl"
 
 hko = gp.read_pkl(hko_path)
 lau = gp.read_pkl(lau_path)
