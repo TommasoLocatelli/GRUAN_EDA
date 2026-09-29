@@ -25,9 +25,9 @@ def log(msg):
 start_time = time.time()
 
 folders = [
-    r'data\products_RS41-GDP-1_HKO-RS-01_2024'#,
-    #r'data\products_RS41-GDP-1_LAU-RS-02_2024',
-    #r'data\products_RS41-GDP-1_LIN-RS-01_2024'
+    #r'data\products_RS41-GDP-1_HKO-RS-01_2024'#,
+    r'data\products_RS41-GDP-1_LAU-RS-02_2024',
+    r'data\products_RS41-GDP-1_LIN-RS-01_2024'
 ]
 
 for folder in folders:
