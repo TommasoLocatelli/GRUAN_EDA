@@ -8,6 +8,7 @@ from collections import Counter
 import gruanpy as gp
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 TEXT_SIZE=22
 #c="""
@@ -21,9 +22,9 @@ plt.rcParams.update({
     "figure.titlesize": TEXT_SIZE,     # Suptitle
 })
 
-hko = gp.read_pkl(r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_no_twilight.pkl")
-lau = gp.read_pkl(r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_no_twilight.pkl")
-lin = gp.read_pkl(r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_no_twilight.pkl")
+hko = gp.read_pkl(r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024.pkl")
+lau = gp.read_pkl(r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024.pkl")
+lin = gp.read_pkl(r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024.pkl")
 
 if True: # filter profiles with more than TH missing data
     from missing_data_utils import *
@@ -34,7 +35,7 @@ if True: # filter profiles with more than TH missing data
     lau_counts = missing_count_per_profile(lau_md)
     lin_counts = missing_count_per_profile(lin_md)
     # Threshold
-    TH = 10
+    TH = 15
     print(f'Missing values threshold {TH}')
     # Filter HKO
     hko = {
@@ -55,7 +56,7 @@ if True: # filter profiles with more than TH missing data
         if count <= TH
     }
 
-if True: # Remove profile with alt_uc outliers
+if False: # Remove profile with alt_uc outliers
     bad_pids = {
         899535, 902160, 879420, 879500, 895881, 895978, 896461, 900862, 900922,
         900986, 900990, 922207, 922325, 904337, 904899, 905503, 905637, 906011,
@@ -285,7 +286,7 @@ if False: # calibrate outliers IQR coef
     else:
         print("No outliers found.")
 
-if False: # look at outliers detected
+if True: # look at outliers detected
 
     # Read the outlier file
     df = pd.read_csv("outliers.txt", sep="\t")
@@ -399,21 +400,55 @@ if False: # check missing data
     lau_counts = missing_count_per_profile(lau_md)
     lin_counts = missing_count_per_profile(lin_md)
 
+    # get rid of zeroes in the count
+    hko_counts_nozero = [c for c in hko_counts if c != 0]
+    lau_counts_nozero = [c for c in lau_counts if c != 0]
+    lin_counts_nozero = [c for c in lin_counts if c != 0]
+
+    #print(hko_counts_nozero)
+
+    def quartiles(values):
+        q1 = np.percentile(values, 25)
+        q2 = np.percentile(values, 50)   # median
+        q3 = np.percentile(values, 75)
+        return q1, q2, q3
+
+    hko_q1, hko_q2, hko_q3 = quartiles(hko_counts_nozero)
+    lau_q1, lau_q2, lau_q3 = quartiles(lau_counts_nozero)
+    lin_q1, lin_q2, lin_q3 = quartiles(lin_counts_nozero)
+
+    print(f"HKO missing values — Q1: {hko_q1}, median: {hko_q2}, Q3: {hko_q3}")
+    print(f"LAU missing values — Q1: {lau_q1}, median: {lau_q2}, Q3: {lau_q3}")
+    print(f"LIN missing values — Q1: {lin_q1}, median: {lin_q2}, Q3: {lin_q3}")
+
+          
+    threshold=15
+    def count_profiles_over_threshold(counts, threshold=threshold):
+        return sum(c > threshold for c in counts)
+
+    print(f"HKO profiles with >{threshold} missing values: {count_profiles_over_threshold(hko_counts)} over {len(hko_counts_nozero)}")
+    print(f"LAU profiles with >{threshold} missing values: {count_profiles_over_threshold(lau_counts)} over {len(lau_counts_nozero)}")
+    print(f"LIN profiles with >{threshold} missing values: {count_profiles_over_threshold(lin_counts)} over {len(lin_counts_nozero)}")
+
+    print(f"Max missing values in HKO: {max(hko_counts)}")
+    print(f"Max missing values in LAU: {max(lau_counts)}")
+    print(f"Max missing values in LIN: {max(lin_counts)}")
+    
     # Choose a common range across all stations
-    min_pos = min(min(hko_counts), min(lau_counts), min(lin_counts))
-    max_pos = max(max(hko_counts), max(lau_counts), max(lin_counts))
+    min_pos = min(min(hko_counts_nozero), min(lau_counts_nozero), min(lin_counts_nozero))
+    max_pos = max(max(hko_counts_nozero), max(lau_counts_nozero), max(lin_counts_nozero))
 
     # Define fixed bin edges
-    bins = np.linspace(min_pos, max_pos, 10)   
+    bins = np.linspace(min_pos, max_pos, int((max_pos-min_pos)/5))   
 
     plt.figure(figsize=(10, 8))
-    plt.hist(hko_counts, bins=bins, alpha=0.5, label="HKO")
-    plt.hist(lau_counts, bins=bins, alpha=0.5, label="LAU")
-    plt.hist(lin_counts, bins=bins, alpha=0.5, label="LIN")
+    plt.hist(hko_counts_nozero, bins=bins, alpha=0.5, label="HKO")
+    plt.hist(lau_counts_nozero, bins=bins, alpha=0.5, label="LAU")
+    plt.hist(lin_counts_nozero, bins=bins, alpha=0.5, label="LIN")
 
     plt.title("Missing Value Count per Profile – All Stations")
-    plt.xlabel("Missing values")
-    plt.ylabel("Profiles")
+    plt.xlabel("Count of Missing values")
+    plt.ylabel("Count of profiles")
     plt.legend()
     plt.show()
 
@@ -426,16 +461,16 @@ if False: # check missing data
     max_pos = max(max(hko_gap_sizes), max(lau_gap_sizes), max(lin_gap_sizes))
 
     # Define fixed bin edges
-    bins = np.linspace(min_pos, max_pos, 7)   
+    bins = np.linspace(min_pos, max_pos, int((max_pos-min_pos)/2))   
 
     plt.figure(figsize=(10, 8))
     plt.hist(hko_gap_sizes, bins=bins, alpha=0.5, label="HKO")
     plt.hist(lau_gap_sizes, bins=bins, alpha=0.5, label="LAU")
     plt.hist(lin_gap_sizes, bins=bins, alpha=0.5, label="LIN")
 
-    plt.title("Gap Size Distribution – All Stations")
-    plt.xlabel("Gap length")
-    plt.ylabel("Frequency")
+    plt.title("Gap lenght Distribution – All Stations")
+    plt.xlabel("Gap length (s)")
+    plt.ylabel("Absolute Frequency")
     plt.legend()
     plt.show()
 
@@ -457,8 +492,8 @@ if False: # check missing data
     plt.hist(lin_positions, bins=bins, alpha=0.5, label="LIN")
 
     plt.title("Missing Value Position Distribution – All Stations")
-    plt.xlabel("Index (approx altitude level)")
-    plt.ylabel("Frequency")
+    plt.xlabel("Altitude (m)")
+    plt.ylabel("Absolute Frequency")
     plt.legend()
 
     plt.show()
@@ -471,7 +506,7 @@ if False: # check missing data
 
     plot_combined_missing_pie(combined_missing)
 
-if True: # summary plots
+if False: # summary plots
         
     def analyze_site(dataset, site_key):
         day_night = Counter()
