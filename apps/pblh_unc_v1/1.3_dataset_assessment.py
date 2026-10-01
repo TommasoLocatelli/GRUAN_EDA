@@ -56,12 +56,15 @@ if True: # filter profiles with more than TH missing data
         if count <= TH
     }
 
-if False: # Remove profile with alt_uc outliers
-    bad_pids = {
-        899535, 902160, 879420, 879500, 895881, 895978, 896461, 900862, 900922,
-        900986, 900990, 922207, 922325, 904337, 904899, 905503, 905637, 906011,
-        906981
+if True: # Remove profile with alt_uc outliers
+    bad_pids = pid_set = {
+    899535, 902160, 879420, 879500, 895881, 895978, 896317, 896285, 896461, 896506,
+    900862, 900922, 900986, 900990, 922207, 922295, 922297, 922325, 922357, 922422,
+    922426, 922432, 882327, 898859, 899605, 901376, 901614, 901631, 901695, 901851,
+    902754, 902826, 903679, 904337, 904487, 904506, 904714, 904899, 904920, 905360,
+    905503, 905637, 905718, 905843, 906011, 906364, 906607, 906981, 907115
     }
+
     bad_pids={str(pid) for pid in bad_pids}
 
     # --- HKO ---
@@ -257,7 +260,7 @@ if False: # calibrate outliers IQR coef
 
     for dataset in datasets:
         for pid, gdp in tqdm.tqdm(dataset.items()):
-            outliers = detect_outliers(gdp.data, iqr_factor=100)
+            outliers = detect_outliers(gdp.data, iqr_factor=0.5)
 
             if isinstance(outliers, pd.DataFrame) and not outliers.empty:
 
@@ -286,7 +289,7 @@ if False: # calibrate outliers IQR coef
     else:
         print("No outliers found.")
 
-if True: # look at outliers detected
+if False: # look at outliers detected
 
     # Read the outlier file
     df = pd.read_csv("outliers.txt", sep="\t")
@@ -299,7 +302,7 @@ if True: # look at outliers detected
     # Filter for alt_uc values greater than 100
     alt_high = df[(df["variable"] == "alt_uc") & (df["value"] > 100)]
 
-    print(alt_high)
+    print(alt_high.sort_values(by="value", ascending=False))
 
     print(alt_high["pid"].unique())
 
@@ -506,7 +509,7 @@ if False: # check missing data
 
     plot_combined_missing_pie(combined_missing)
 
-if False: # summary plots
+if True: # summary plots
         
     def analyze_site(dataset, site_key):
         day_night = Counter()
