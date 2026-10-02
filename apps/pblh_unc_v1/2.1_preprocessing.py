@@ -1,5 +1,5 @@
 """
-This script apply preprocessing criterion on original dataset.
+This script applies preprocessing criteria on original dataset.
 """
 
 import pickle
@@ -8,16 +8,29 @@ from collections import Counter
 import gruanpy as gp
 import numpy as np
 import matplotlib.pyplot as plt
+from missing_data_utils import *
 
-hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_no_twilight.pkl"
-lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_no_twilight.pkl"
-lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_no_twilight.pkl"
+# ---------------------------------------------------------
+# Load PKLs
+# ---------------------------------------------------------
+
+hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024.pkl"
+lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024.pkl"
+lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024.pkl"
 
 hko = gp.read_pkl(hko_path)
 lau = gp.read_pkl(lau_path)
 lin = gp.read_pkl(lin_path)
 
-from missing_data_utils import *
+# Original counts
+orig_hko = len(hko)
+orig_lau = len(lau)
+orig_lin = len(lin)
+
+# ---------------------------------------------------------
+# Missing data filtering
+# ---------------------------------------------------------
+
 hko_md = [gdp.qc_results['missing_data'] for pid, gdp in hko.items()]
 lau_md = [gdp.qc_results['missing_data'] for pid, gdp in lau.items()]
 lin_md = [gdp.qc_results['missing_data'] for pid, gdp in lin.items()]
@@ -26,8 +39,13 @@ hko_counts = missing_count_per_profile(hko_md)
 lau_counts = missing_count_per_profile(lau_md)
 lin_counts = missing_count_per_profile(lin_md)
 
-TH = 10
+TH = 15
 print(f'Missing values threshold {TH}')
+
+# Count deletions due to missing data
+del_md_hko = sum(count > TH for count in hko_counts)
+del_md_lau = sum(count > TH for count in lau_counts)
+del_md_lin = sum(count > TH for count in lin_counts)
 
 # Filter HKO
 hko = {
@@ -55,9 +73,11 @@ lin = {
 # ---------------------------------------------------------
 
 bad_pids = {
-    899535, 902160, 879420, 879500, 895881, 895978, 896461, 900862, 900922,
-    900986, 900990, 922207, 922325, 904337, 904899, 905503, 905637, 906011,
-    906981
+    899535, 902160, 879420, 879500, 895881, 895978, 896317, 896285, 896461, 896506,
+    900862, 900922, 900986, 900990, 922207, 922295, 922297, 922325, 922357, 922422,
+    922426, 922432, 882327, 898859, 899605, 901376, 901614, 901631, 901695, 901851,
+    902754, 902826, 903679, 904337, 904487, 904506, 904714, 904899, 904920, 905360,
+    905503, 905637, 905718, 905843, 906011, 906364, 906607, 906981, 907115
 }
 bad_pids = {str(pid) for pid in bad_pids}
 
@@ -65,20 +85,21 @@ print("Removing profiles with alt_uc outliers...")
 
 before_hko = len(hko)
 hko = {pid: gdp for pid, gdp in hko.items() if pid not in bad_pids}
-removed_hko = before_hko - len(hko)
+del_alt_hko = before_hko - len(hko)
 
 before_lau = len(lau)
 lau = {pid: gdp for pid, gdp in lau.items() if pid not in bad_pids}
-removed_lau = before_lau - len(lau)
+del_alt_lau = before_lau - len(lau)
 
 before_lin = len(lin)
 lin = {pid: gdp for pid, gdp in lin.items() if pid not in bad_pids}
-removed_lin = before_lin - len(lin)
+del_alt_lin = before_lin - len(lin)
 
 print("Removed profiles due to alt_uc outliers:")
-print(f"HKO: {removed_hko}")
-print(f"LAU: {removed_lau}")
-print(f"LIN: {removed_lin}")
+print(f"HKO: {del_alt_hko}")
+print(f"LAU: {del_alt_lau}")
+print(f"LIN: {del_alt_lin}")
+
 
 # ---------------------------------------------------------
 # Compute Virtual Potential Temperature
@@ -134,3 +155,39 @@ print("Filtered PKLs saved:")
 print(hko_out)
 print(lau_out)
 print(lin_out)
+
+# ---------------------------------------------------------
+# Final counts
+# ---------------------------------------------------------
+
+final_hko = len(hko)
+final_lau = len(lau)
+final_lin = len(lin)
+
+# ---------------------------------------------------------
+# Summary
+# ---------------------------------------------------------
+
+print("\n================ SUMMARY ================\n")
+
+print("Original number of profiles:")
+print(f"HKO: {orig_hko}")
+print(f"LAU: {orig_lau}")
+print(f"LIN: {orig_lin}\n")
+
+print("Deleted due to missing data:")
+print(f"HKO: {del_md_hko}")
+print(f"LAU: {del_md_lau}")
+print(f"LIN: {del_md_lin}\n")
+
+print("Deleted due to alt_uc anomalies:")
+print(f"HKO: {del_alt_hko}")
+print(f"LAU: {del_alt_lau}")
+print(f"LIN: {del_alt_lin}\n")
+
+print("Final number of profiles:")
+print(f"HKO: {final_hko}")
+print(f"LAU: {final_lau}")
+print(f"LIN: {final_lin}")
+
+print("\n=========================================\n")

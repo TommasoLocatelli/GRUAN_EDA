@@ -541,7 +541,7 @@ if True: # summary plots
             stacked.append([counter.get(cat, 0) for cat in categories])
         return np.array(stacked)
 
-    dn_categories = ["daytime", "nighttime", "twilight"]
+    dn_categories = ["daytime", "nighttime"]#, "twilight"]
     season_categories = ["winter", "spring", "summer", "autumn"]
 
     dn_stacked = prepare_stacked([lin_dn, hko_dn, lau_dn], dn_categories)
@@ -553,13 +553,13 @@ if True: # summary plots
     ax = axes[0]
     bottom = np.zeros(len(sites))
 
-    colors_dn = ["#1f77b4", "#ff7f0e", "#9467bd"]  # day, night, twilight
+    colors_dn = ["#1f77b4", "#ff7f0e"]#, "#9467bd"]  # day, night, twilight
 
     for i, cat in enumerate(dn_categories):
         ax.bar(sites, dn_stacked[:, i], bottom=bottom, label=cat, color=colors_dn[i])
         bottom += dn_stacked[:, i]
 
-    ax.set_ylabel("Number of launches")
+    ax.set_ylabel("Number of profiles")
     ax.grid(axis="y", alpha=0.3)
     ax.legend(loc='lower center',
             bbox_to_anchor=(0.5, 1.02),
