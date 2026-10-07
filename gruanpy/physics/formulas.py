@@ -1,5 +1,4 @@
 # Various atmospheric formulas
-
 from gruanpy.physics.constants import EPSILON, Poisson_exponent, p0, R_DRY_AIR, R_WATER_VAPOR, G0
 import numpy as np
 
@@ -148,7 +147,6 @@ def virtual_potential_temperature_inverse_uncertainty(thv, p, r, thv_uc, p_uc, r
     T_uc = np.sqrt((dT_dthv * thv_uc)**2 + (dT_dp * p_uc)**2 + (dT_dr * r_uc)**2)
     return T_uc
     
-
 def tetens_equation(T):
     """Calculate the saturation vapor pressure using Tetens equation.
     Parameters:
