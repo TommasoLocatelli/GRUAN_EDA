@@ -49,7 +49,7 @@ SEED = 42
 # PDF REPORT
 # ---------------------------------------------------------
 
-with PdfPages("LLL_LLT_code_test_report.pdf") as pdf:
+with PdfPages(r"apps\pblh_unc_v1\reports\3.0_ssm_code_simulation_test.pdf") as pdf:
 
     # ---------------------------------------------------------
     # Test 1 — LLL with MLE measurement variance

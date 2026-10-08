@@ -1,55 +1,55 @@
-import dill
-from collections import defaultdict
+import pickle
+import gruanpy as gp
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import tqdm
+from gruanpy.ssm.statsmodels.univariate import UnivariateLLL, UnivariateLLT, DeterministicLevelLLT, UnivariateLLT_AR1
 
-# ---------------------------------------------------------
-# Load the pickle file with dill
-# ---------------------------------------------------------
+hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_preprocessed.pkl"
+lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_preprocessed.pkl"
+lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_preprocessed.pkl"
 
-pkl_path = "ssm_fit_lll_llt_HKO_2024.pkl"
+dataset = gp.read_pkl(hko_path)
 
-with open(pkl_path, "rb") as f:
-    results = dill.load(f)
 
-print("Loaded results.")
-print("Number of PIDs:", len(results))
-print("\n")
+for pid, gdp in dataset.items():
+    data=gdp.data
+    from statsmodels.tsa.statespace.mlemodel import MLEModel
+    optimizers=['newton', 'lbfgs', 'powell']
+    vars=['alt', 'theta_v', 'rh', 'wzon', 'wmeri']
+    models = [UnivariateLLL, UnivariateLLT, DeterministicLevelLLT, UnivariateLLT_AR1]
+    unc=[var+'_uc' for var in vars]
 
-# ---------------------------------------------------------
-# Count convergence across all PIDs / variables / models
-# ---------------------------------------------------------
 
-convergence_summary = defaultdict(int)
-not_converged_per_var = defaultdict(int)
+    opt='powell'
+    var='wmeri'
+    measurement_sigma2=(data[var+'_uc']*0.5)**2
+    measurement_sigma2*=1
+    model=DeterministicLevelLLT
+    ssm=model(data[var])#, measurement_sigma2)
+    results=ssm.fit(maxiter=200, method=opt, disp=True)
+    
+    #from statsmodels.tsa.arima.model import ARIMA
+    #model = ARIMA(data[var], trend="t", order=(1, 1, 1))
+    #results = model.fit()
 
-for pid, pid_results in results.items():
-    for var, var_results in pid_results.items():
-        for model_name, (model, fit_result) in var_results.items():
+    print(results.summary())
+    plt.figure(figsize=(12,6))
 
-            converged = fit_result.mle_retvals.get("converged", None)
+    # Original data
+    plt.plot(data[var], label='Observations', alpha=0.7)
 
-            if converged is True:
-                convergence_summary["converged"] += 1
-            elif converged is False:
-                convergence_summary["not_converged"] += 1
-                not_converged_per_var[var] += 1
-            else:
-                convergence_summary["unknown"] += 1
+    # Level component (state 0)
+    plt.plot(results.smoothed_state[0], label='Smoothed Level State', linestyle='--')
 
-# ---------------------------------------------------------
-# Print summary
-# ---------------------------------------------------------
+    plt.title(f"{var}: original vs smoothed state")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
-print("Convergence summary:")
-print(f"  Converged:      {convergence_summary['converged']}")
-print(f"  Not converged:  {convergence_summary['not_converged']}")
-print(f"  Unknown flag:   {convergence_summary['unknown']}")
-print("\n")
+    fig=results.plot_diagnostics()
+    fig.set_size_inches(15,10)
+    plt.show(block=True)
 
-# ---------------------------------------------------------
-# Print not-converged counts per variable
-# ---------------------------------------------------------
-
-print("Not converged per variable:")
-for var, count in not_converged_per_var.items():
-    print(f"  {var}: {count}")
-
+    break
