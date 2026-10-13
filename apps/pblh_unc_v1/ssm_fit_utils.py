@@ -8,285 +8,102 @@ from matplotlib.backends.backend_pdf import PdfPages
 from scipy.stats import gaussian_kde, norm, probplot
 from statsmodels.stats.diagnostic import acorr_ljungbox
 from statsmodels.stats.stattools import jarque_bera
+import pprint
 
+def add_text_page(pdf, text, title=None, fontsize=8):
+    fig, ax = plt.subplots(figsize=(8.27, 11.69))  # A4 portrait
+    ax.axis("off")
 
-def report_smoothing_goodness(results, observations, path):
-    """
-    Create a PDF diagnostic report for fitted state-space model results.
+    y = 0.98
 
-    Parameters
-    ----------
-    results : statsmodels state-space results
-        Fitted results, preferably with smoothing enabled.
-    observations : array-like
-        Observed time series, shape (nobs,) or (nobs, k_endog).
-    path : str or path-like
-        Output PDF filename.
-
-    Report sections
-    ---------------
-    1. Convergence and model information
-    2. Parameter estimates and uncertainty
-    3. Observations with measurement uncertainty
-    4. Smoothed states with uncertainty
-    5. Smoothed measurement disturbances with uncertainty
-    6. Standardized residual histogram and normal comparison
-    7. Normal Q-Q plot
-    8. Residual autocorrelation
-    9. Residual metrics and statistical tests
-
-    Notes
-    -----
-    State-space arrays commonly use the shape
-    (number of variables, number of observations).
-    The function handles this convention explicitly.
-
-    Forecast errors are not the same as smoothed disturbances.
-    Both are labeled according to their actual statistical meaning.
-    """
-
-    y = np.asarray(observations, dtype=float)
-
-    if y.ndim == 1:
-        y = y[:, None]
-
-    if y.ndim != 2:
-        raise ValueError(
-            "observations must be a 1D or 2D array."
+    if title:
+        ax.text(
+            0.01, y, title,
+            fontsize=12,
+            fontweight="bold",
+            va="top",
+            family="monospace"
         )
+        y -= 0.04
 
-    nobs, k_endog = y.shape
+    ax.text(
+        0.01, y, text,
+        fontsize=fontsize,
+        va="top",
+        family="monospace",
+        wrap=True
+    )
 
-    if nobs == 0:
-        raise ValueError("observations cannot be empty.")
+    pdf.savefig(fig, bbox_inches="tight")
+    plt.close(fig)
+
+def report_smoothing_goodness(results, observations, meas_unc=None, path='test.pdf'):
+    """
+    Add documentation
+
+    MLEResults
+    Class to hold results from fitting a state space model.
+    
+    model : Model instance
+        A reference to the model that was fit.
+    filter_results : KalmanFilter instance
+        The underlying state space model and Kalman filter output
+    nobs : float
+        The number of observations used to fit the model.
+    params : ndarray
+        The parameters of the model.
+    scale : float
+        This is currently set to 1.0 unless the model uses concentrated
+        filtering.
+    """
+    # ---------------------------------------------------------
+    # Compute metrics
+    # ---------------------------------------------------------
 
     model = results.model
-    fr = results.filter_results
+    nobs = results.nobs
+    params = results.params
 
-    # ---------------------------------------------------------
-    # Helpers
-    # ---------------------------------------------------------
+    obs = np.asarray(observations, dtype=float)
+    meas_unc = np.asarray(meas_unc, dtype=float)
 
-    def get_array(name):
-        """Return an available result array, or None."""
-        value = getattr(results, name, None)
-        if value is None:
-            value = getattr(fr, name, None)
-        if value is None:
-            return None
-        return np.asarray(value)
+    # one-step-ahead prediction residuals (innovations)
+    pred_resid = results.filter_results.forecasts_error[0]
 
-    def observation_by_time(arr, n, k):
-        """
-        Convert an observation-space array to shape (n, k).
-        Expected input shape is generally (k, n).
-        """
-        if arr is None:
-            return None
+    # innovation variance
+    pred_var = results.filter_results.forecasts_error_cov[0, 0, :]
 
-        arr = np.asarray(arr)
+    # standardized innovations
+    pred_std_resid = pred_resid / np.sqrt(pred_var)
 
-        if arr.ndim == 1:
-            if arr.size == n:
-                return arr[:, None]
-            return None
+    filtered = results.states.filtered.iloc[:, 0].to_numpy()
+    filtered_cov = results.states.filtered_cov
+    filtered_var = results.states.filtered_cov.iloc[:, 0].to_numpy()
+    filtered_std = np.sqrt(filtered_var)
 
-        if arr.ndim == 2:
-            if arr.shape == (k, n):
-                return arr.T
-            if arr.shape == (n, k):
-                return arr
+    smoothed_state=results.smoothed_state[0]
+    smoothed_state_cov=results.smoothed_state_cov
+    smoothed_var = smoothed_state_cov[0, 0, :]
+    smoothed_std = np.sqrt(smoothed_var)
 
-        return None
+    # residuals
+    filtered_resid = obs - filtered
+    smoothed_resid = obs - smoothed_state
 
-    def safe_float(value):
-        try:
-            value = np.asarray(value).squeeze()
-            return float(value) if value.ndim == 0 else str(value)
-        except Exception:
-            return str(value)
+    # standardized residuals
+    filtered_std_resid = filtered_resid / filtered_std
+    smoothed_std_resid = smoothed_resid / smoothed_std
 
-    def add_text_page(title, lines):
-        """Write readable text onto one or more PDF pages."""
-        lines_per_page = 48
+    mle_retvals = results.mle_retvals
+    mle_settings = results.mle_settings
 
-        for start in range(0, max(len(lines), 1), lines_per_page):
-            fig = plt.figure(figsize=(8.27, 11.69))
-            fig.suptitle(
-                title if start == 0 else title + " (continued)",
-                fontsize=15,
-                y=0.97
-            )
+    summary=results.summary()
 
-            page_lines = lines[start:start + lines_per_page]
-
-            fig.text(
-                0.07, 0.92,
-                "\n".join(page_lines),
-                va="top",
-                ha="left",
-                fontsize=9,
-                family="monospace",
-                wrap=True
-            )
-
-            pdf.savefig(fig, bbox_inches="tight")
-            plt.close(fig)
-
-    def add_series_plot(
-        title, series, labels, ylabel,
-        lower=None, upper=None
-    ):
-        """Plot one or more time series with optional uncertainty bands."""
-        series = np.asarray(series, dtype=float)
-
-        if series.ndim == 1:
-            series = series[:, None]
-
-        fig, ax = plt.subplots(figsize=(11, 5.5))
-        t = np.arange(series.shape[0])
-
-        for j in range(series.shape[1]):
-            label = (
-                labels[j]
-                if j < len(labels)
-                else f"Series {j + 1}"
-            )
-
-            ax.plot(t, series[:, j], label=label, linewidth=1.2)
-
-            if lower is not None and upper is not None:
-                lo = np.asarray(lower)
-                hi = np.asarray(upper)
-
-                if lo.ndim == 1:
-                    lo = lo[:, None]
-                if hi.ndim == 1:
-                    hi = hi[:, None]
-
-                if (
-                    j < lo.shape[1]
-                    and j < hi.shape[1]
-                    and lo.shape[0] == series.shape[0]
-                    and hi.shape[0] == series.shape[0]
-                ):
-                    ax.fill_between(
-                        t, lo[:, j], hi[:, j],
-                        alpha=0.2
-                    )
-
-        ax.set_title(title)
-        ax.set_xlabel("Observation")
-        ax.set_ylabel(ylabel)
-        ax.grid(True, alpha=0.3)
-        ax.legend(loc="best")
-        fig.tight_layout()
-        pdf.savefig(fig)
-        plt.close(fig)
-
-    def covariance_std(cov, n, k):
-        """
-        Extract marginal standard deviations from covariance arrays.
-
-        Supports common observation-space layouts:
-        (k, k, n), (n, k, k), or (k, n).
-        """
-        if cov is None:
-            return None
-
-        cov = np.asarray(cov)
-
-        if cov.ndim == 3:
-            if cov.shape == (k, k, n):
-                variances = np.stack(
-                    [np.diag(cov[:, :, i]) for i in range(n)]
-                )
-            elif cov.shape == (n, k, k):
-                variances = np.stack(
-                    [np.diag(cov[i]) for i in range(n)]
-                )
-            else:
-                return None
-
-        elif cov.ndim == 2 and cov.shape == (k, n):
-            variances = cov.T
-
-        else:
-            return None
-
-        return np.sqrt(np.maximum(variances, 0))
-
-    def state_std(cov):
-        """Extract standard deviations for states over time."""
-        if cov is None:
-            return None
-
-        cov = np.asarray(cov)
-
-        if cov.ndim != 3:
-            return None
-
-        # statsmodels state covariance convention: (states, states, time)
-        if cov.shape[0] == cov.shape[1]:
-            return np.sqrt(
-                np.maximum(
-                    np.diagonal(cov, axis1=0, axis2=1).T,
-                    0
-                )
-            )
-
-        # Alternative layout: (time, states, states)
-        if cov.shape[1] == cov.shape[2]:
-            return np.sqrt(
-                np.maximum(
-                    np.diagonal(cov, axis1=1, axis2=2),
-                    0
-                )
-            )
-
-        return None
-
-    # ---------------------------------------------------------
-    # Gather model and smoother output
-    # ---------------------------------------------------------
-
-    smoothed_state = get_array("smoothed_state")
-    smoothed_state_cov = get_array("smoothed_state_cov")
-
-    smoothed_measurement = get_array(
-        "smoothed_measurement_disturbance"
-    )
-    smoothed_measurement_cov = get_array(
-        "smoothed_measurement_disturbance_cov"
-    )
-
-    standardized_errors = get_array(
-        "standardized_forecasts_error"
-    )
-    forecast_errors = get_array("forecasts_error")
-    forecast_error_cov = get_array("forecasts_error_cov")
-
-    obs_cov = getattr(model.ssm, "obs_cov", None)
-    obs_cov = None if obs_cov is None else np.asarray(obs_cov)
-
-    state_names = list(
-        getattr(model, "state_names", []) or []
-    )
-    if smoothed_state is not None:
-        n_states = smoothed_state.shape[0]
-        if len(state_names) != n_states:
-            state_names = [
-                f"State {i + 1}" for i in range(n_states)
-            ]
-
-    endog_names = getattr(model, "endog_names", None)
-    if not isinstance(endog_names, list):
-        endog_names = [endog_names] if endog_names else []
-
-    if len(endog_names) != k_endog:
-        endog_names = [
-            f"Observation {i + 1}" for i in range(k_endog)
-        ]
+    summary_text = results.summary().as_text()
+    summary_text += "\n\nNote:\nResiduals in diagnostic tests are one-step-ahead prediction errors."
+    retvals_text = pprint.pformat(results.mle_retvals, indent=2)
+    settings_text = pprint.pformat(results.mle_settings, indent=2)
+    mle_text = retvals_text +"\n"+ settings_text
 
     # ---------------------------------------------------------
     # Build the report
@@ -294,362 +111,200 @@ def report_smoothing_goodness(results, observations, path):
 
     with PdfPages(path) as pdf:
 
-        # 1. Convergence and model summary
-        lines = [
-            "MODEL",
-            f"Model class: {model.__class__.__name__}",
-            f"Observations supplied: {nobs}",
-            f"Endogenous variables: {k_endog}",
-            f"Endogenous names: {endog_names}",
-            f"State names: {state_names}",
-            f"Log likelihood: {safe_float(getattr(results, 'llf', np.nan))}",
-            f"AIC: {safe_float(getattr(results, 'aic', np.nan))}",
-            f"BIC: {safe_float(getattr(results, 'bic', np.nan))}",
-            f"HQIC: {safe_float(getattr(results, 'hqic', np.nan))}",
-            "",
-            "CONVERGENCE",
-        ]
-
-        mle_retvals = getattr(results, "mle_retvals", None)
-
-        if mle_retvals is not None:
-            for key, value in mle_retvals.items():
-                lines.append(f"{key}: {value}")
-        else:
-            lines.append(
-                "Optimizer return details are unavailable."
-            )
-
-        mle_settings = getattr(results, "mle_settings", None)
-        if mle_settings:
-            lines.append("")
-            lines.append("Optimizer settings:")
-            for key, value in mle_settings.items():
-                lines.append(f"{key}: {value}")
-
-        lines.extend([
-            "",
-            "MODEL SPECIFICATION",
-            f"Number of estimated parameters: {len(results.params)}",
-            f"Parameter names: {getattr(results, 'param_names', [])}",
-            f"Number of diffuse observations: "
-            f"{getattr(fr, 'nobs_diffuse', 'unavailable')}",
-            f"Likelihood burn: "
-            f"{getattr(results, 'loglikelihood_burn', 'unavailable')}",
-        ])
-
-        add_text_page("State-Space Smoothing Report", lines)
-
-        # 2. Parameter estimates and confidence intervals
-        try:
-            param_table = results.summary().tables
-            for table in param_table:
-                add_text_page(
-                    "Parameter Estimates",
-                    str(table).splitlines()
-                )
-        except Exception as exc:
-            lines = ["Parameter estimates"]
-            names = getattr(
-                results, "param_names",
-                [f"Parameter {i + 1}" for i in range(len(results.params))]
-            )
-
-            try:
-                bse = np.asarray(results.bse)
-            except Exception:
-                bse = np.full(len(results.params), np.nan)
-
-            for i, value in enumerate(results.params):
-                se = bse[i] if i < len(bse) else np.nan
-                lines.append(
-                    f"{names[i] if i < len(names) else i}: "
-                    f"estimate={value:.6g}, SE={se:.6g}"
-                )
-
-            lines.append(f"Summary fallback reason: {exc}")
-            add_text_page("Parameter Estimates", lines)
-
-        # 3. Observations with measurement uncertainty
-        # Measurement covariance describes observation noise, not
-        # uncertainty in the observed data themselves.
-        obs_sd = None
-
-        if obs_cov is not None:
-            if obs_cov.ndim == 3:
-                if obs_cov.shape[:2] == (k_endog, k_endog):
-                    obs_sd = np.sqrt(
-                        np.maximum(
-                            np.stack([
-                                np.diag(obs_cov[:, :, i])
-                                for i in range(obs_cov.shape[2])
-                            ]),
-                            0
-                        )
-                    )
-            elif obs_cov.ndim == 2 and obs_cov.shape == (
-                k_endog, k_endog
-            ):
-                obs_sd = np.tile(
-                    np.sqrt(np.maximum(np.diag(obs_cov), 0)),
-                    (nobs, 1)
-                )
-
-        if obs_sd is not None:
-            obs_sd = obs_sd[:nobs]
-            if obs_sd.shape[0] == nobs:
-                add_series_plot(
-                    "Observed Series with Measurement-Noise Band (±1 SD)",
-                    y,
-                    endog_names,
-                    "Observed value",
-                    y - obs_sd,
-                    y + obs_sd
-                )
-        else:
-            add_series_plot(
-                "Observed Series",
-                y,
-                endog_names,
-                "Observed value"
-            )
-
-        # 4. Smoothed states with uncertainty
-        if smoothed_state is not None:
-            states = np.asarray(smoothed_state).T
-
-            std = state_std(smoothed_state_cov)
-            if std is not None:
-                std = std[:states.shape[0]]
-
-            if std is not None and std.shape == states.shape:
-                add_series_plot(
-                    "Smoothed State Estimates with 95% Confidence Bands",
-                    states,
-                    state_names,
-                    "Smoothed state",
-                    states - 1.96 * std,
-                    states + 1.96 * std
-                )
-            else:
-                add_series_plot(
-                    "Smoothed State Estimates (Uncertainty Unavailable)",
-                    states,
-                    state_names,
-                    "Smoothed state"
-                )
-        else:
-            add_text_page(
-                "Smoothed States",
-                ["Smoothed states are unavailable. Ensure the model was smoothed."]
-            )
-
-        # 5. Smoothed measurement disturbances
-        if smoothed_measurement is not None:
-            disturbance = observation_by_time(
-                smoothed_measurement, nobs, k_endog
-            )
-
-            disturbance_std = covariance_std(
-                smoothed_measurement_cov, nobs, k_endog
-            )
-
-            if disturbance is not None:
-                if (
-                    disturbance_std is not None
-                    and disturbance_std.shape == disturbance.shape
-                ):
-                    add_series_plot(
-                        "Smoothed Measurement Disturbances with 95% Bands",
-                        disturbance,
-                        endog_names,
-                        "Smoothed measurement disturbance",
-                        disturbance - 1.96 * disturbance_std,
-                        disturbance + 1.96 * disturbance_std
-                    )
-                else:
-                    add_series_plot(
-                        "Smoothed Measurement Disturbances",
-                        disturbance,
-                        endog_names,
-                        "Smoothed measurement disturbance"
-                    )
-        else:
-            add_text_page(
-                "Smoothed Measurement Disturbances",
-                [
-                    "Smoothed measurement disturbances are unavailable.",
-                    "These are not automatically equivalent to residuals",
-                    "from the smoothed state signal."
-                ]
-            )
-
-        # 6. Standardized residual diagnostics
-        # These are standardized one-step-ahead forecast errors.
-        # statsmodels does not generally provide a universal
-        # standardized smoothed-residual series.
-        std_err = observation_by_time(
-            standardized_errors, nobs, k_endog
+        # Summary page
+        add_text_page(
+            pdf,
+            str(summary_text),
+            title="State Space Model Summary"
         )
 
-        if std_err is None:
-            add_text_page(
-                "Residual Diagnostics",
-                [
-                    "Standardized forecast errors are unavailable.",
-                    "Histogram, Q-Q plot, and autocorrelation diagnostics",
-                    "cannot be computed from this results object."
-                ]
+        add_text_page(
+            pdf,
+            mle_text,
+            title="MLE Optimization"
+        )
+
+
+        # ---------------------------------------------------------
+        # Observation / Filtered / Smoothed comparison
+        # ---------------------------------------------------------
+
+        fig, ax = plt.subplots(figsize=(11, 6))
+
+        x = np.arange(len(obs))
+
+        ax.plot(
+            x,
+            obs,
+            ".",
+            color="black",
+            alpha=0.5,
+            label="Observations"
+        )
+
+        ax.plot(
+            x,
+            filtered,
+            color="tab:orange",
+            lw=1.5,
+            label="Filtered state"
+        )
+
+        ax.plot(
+            x,
+            smoothed_state,
+            color="tab:blue",
+            lw=2,
+            label="Smoothed state"
+        )
+
+        if meas_unc is not None:
+            ax.fill_between(
+                x,
+                obs - meas_unc,
+                obs + meas_unc,
+                color="gray",
+                alpha=0.2,
+                label="Observation uncertainty"
             )
-            return
 
-        for j in range(k_endog):
-            r = std_err[:, j]
-            r = r[np.isfinite(r)]
+        # smoothed uncertainty
+        ax.fill_between(
+            x,
+            smoothed_state - 2 * smoothed_std,
+            smoothed_state + 2 * smoothed_std,
+            color="tab:blue",
+            alpha=0.20,
+            label="Smoothed 95% CI"
+        )
 
-            if r.size < 3:
-                continue
+        # filtered uncertainty
+        ax.fill_between(
+            x,
+            filtered - 2 * filtered_std,
+            filtered + 2 * filtered_std,
+            color="tab:orange",
+            alpha=0.20,
+            label="Filtered 95% CI"
+        )
+        ax.set_title("Observations vs Filtered vs Smoothed State")
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Value")
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+        plt.show()
+        pdf.savefig(fig)
+        plt.close(fig)
 
-            name = endog_names[j]
+        fig, axes = plt.subplots(
+        2, 1,
+        figsize=(11, 8),
+        sharex=True
+        )
 
-            # Exclude diffuse initialization and likelihood-burn periods
-            burn = max(
-                int(getattr(results, "loglikelihood_burn", 0) or 0),
-                int(getattr(fr, "nobs_diffuse", 0) or 0)
-            )
-            r_all = std_err[:, j]
-            r = r_all[burn:]
-            r = r[np.isfinite(r)]
+        axes[0].plot(filtered_resid, label="Filtered residual")
+        axes[0].plot(smoothed_resid, label="Smoothed residual")
+        axes[0].axhline(0, color="black", ls="--")
+        axes[0].set_title("Residuals")
+        axes[0].legend()
 
-            if r.size < 3:
-                continue
+        axes[1].plot(filtered_std_resid,
+                    label="Filtered standardized residual")
+        axes[1].plot(smoothed_std_resid,
+                    label="Smoothed standardized residual")
+        axes[1].axhline(0, color="black", ls="--")
+        axes[1].axhline(2, color="red", ls=":")
+        axes[1].axhline(-2, color="red", ls=":")
+        axes[1].set_title("Standardized Residuals")
+        axes[1].legend()
+        plt.show()
 
-            # Histogram and normal density
-            fig, ax = plt.subplots(figsize=(8, 5))
-            ax.hist(
-                r, bins="auto", density=True,
-                alpha=0.55, edgecolor="black",
-                label="Standardized forecast errors"
-            )
+        pdf.savefig(fig)
+        plt.close(fig)
 
-            xmin, xmax = ax.get_xlim()
-            x = np.linspace(xmin, xmax, 300)
-            ax.plot(
-                x, norm.pdf(x), linewidth=2,
-                label="Standard normal N(0, 1)"
-            )
+        from scipy.stats import ttest_1samp
+        from scipy.stats import shapiro
+        from statsmodels.stats.diagnostic import acorr_ljungbox
+        from statsmodels.stats.stattools import jarque_bera
 
-            if r.size >= 5 and np.std(r) > 0:
-                try:
-                    kde = gaussian_kde(r)
-                    ax.plot(x, kde(x), label="Estimated density")
-                except (ValueError, np.linalg.LinAlgError):
-                    pass
+        pred_std_resid = pred_std_resid[np.isfinite(pred_std_resid)]
 
-            ax.set_title(f"Standardized Residual Distribution: {name}")
-            ax.set_xlabel("Standardized forecast error")
-            ax.set_ylabel("Density")
-            ax.legend()
-            ax.grid(True, alpha=0.25)
-            fig.tight_layout()
-            pdf.savefig(fig)
-            plt.close(fig)
+        # Mean = 0
+        t_stat, t_p = ttest_1samp(pred_std_resid, 0)
 
-            # Q-Q plot
-            fig, ax = plt.subplots(figsize=(6, 6))
-            probplot(r, dist="norm", plot=ax)
-            ax.set_title(f"Normal Q-Q Plot: {name}")
-            ax.grid(True, alpha=0.25)
-            fig.tight_layout()
-            pdf.savefig(fig)
-            plt.close(fig)
+        # Normality
+        jb_stat, jb_p, skew, kurt = jarque_bera(pred_std_resid)
 
-            # ACF plot with approximate confidence bands
-            max_lag = min(40, max(1, len(r) // 5))
-            centered = r - np.mean(r)
-            denom = np.dot(centered, centered)
+        # Optional normality test
+        sw_stat, sw_p = shapiro(pred_std_resid)
 
-            if denom > 0:
-                acf = np.array([
-                    np.dot(centered[lag:], centered[:len(r)-lag])
-                    / denom
-                    for lag in range(max_lag + 1)
-                ])
+        # Whiteness
+        lb10 = acorr_ljungbox(pred_std_resid, lags=[10], return_df=True)
+        lb20 = acorr_ljungbox(pred_std_resid, lags=[20], return_df=True)
 
-                fig, ax = plt.subplots(figsize=(9, 4.5))
-                lags = np.arange(max_lag + 1)
-                ax.axhline(0, linewidth=1)
-                ax.axhline(
-                    1.96 / np.sqrt(len(r)),
-                    linestyle="--"
-                )
-                ax.axhline(
-                    -1.96 / np.sqrt(len(r)),
-                    linestyle="--"
-                )
-                ax.vlines(lags[1:], 0, acf[1:])
-                ax.plot(lags, acf, "o", markersize=3)
-                ax.set_title(
-                    f"Standardized Forecast-Error Autocorrelation: {name}"
-                )
-                ax.set_xlabel("Lag")
-                ax.set_ylabel("Autocorrelation")
-                ax.grid(True, alpha=0.25)
-                fig.tight_layout()
-                pdf.savefig(fig)
-                plt.close(fig)
+        def verdict(p, alpha=0.05):
+            return "PASS" if p > alpha else "FAIL"
 
-            # 7. Residual metrics and statistical tests
-            lines = [
-                f"Residual diagnostics: {name}",
-                f"Number of usable residuals: {len(r)}",
-                f"Mean: {np.mean(r):.6g}",
-                f"Standard deviation: {np.std(r, ddof=1):.6g}",
-                f"Mean absolute error: {np.mean(np.abs(r)):.6g}",
-                f"Mean squared error: {np.mean(r ** 2):.6g}",
-                f"Root mean squared error: "
-                f"{np.sqrt(np.mean(r ** 2)):.6g}",
-                f"Minimum: {np.min(r):.6g}",
-                f"Maximum: {np.max(r):.6g}",
-                f"Skewness/kurtosis/JB test:",
-            ]
+        import pandas as pd
 
-            try:
-                jb, jb_pvalue, skew, kurtosis = jarque_bera(r)
-                lines.extend([
-                    f"Jarque-Bera statistic: {jb:.6g}",
-                    f"Jarque-Bera p-value: {jb_pvalue:.6g}",
-                    f"Skewness: {skew:.6g}",
-                    f"Kurtosis: {kurtosis:.6g}",
-                ])
-            except Exception as exc:
-                lines.append(f"Jarque-Bera unavailable: {exc}")
+        diagnostics = pd.DataFrame([
+            {
+                "Test": "Mean = 0 (t-test)",
+                "Statistic": t_stat,
+                "p-value": t_p,
+                "Decision": verdict(t_p)
+            },
+            {
+                "Test": "Jarque-Bera Normality",
+                "Statistic": jb_stat,
+                "p-value": jb_p,
+                "Decision": verdict(jb_p)
+            },
+            {
+                "Test": "Shapiro-Wilk Normality",
+                "Statistic": sw_stat,
+                "p-value": sw_p,
+                "Decision": verdict(sw_p)
+            },
+            {
+                "Test": "Ljung-Box (lag 10)",
+                "Statistic": lb10["lb_stat"].iloc[0],
+                "p-value": lb10["lb_pvalue"].iloc[0],
+                "Decision": verdict(lb10["lb_pvalue"].iloc[0])
+            },
+            {
+                "Test": "Ljung-Box (lag 20)",
+                "Statistic": lb20["lb_stat"].iloc[0],
+                "p-value": lb20["lb_pvalue"].iloc[0],
+                "Decision": verdict(lb20["lb_pvalue"].iloc[0])
+            }
+        ])
 
-            if len(r) >= 10:
-                try:
-                    lb_lags = sorted(set([
-                        min(5, len(r) // 5),
-                        min(10, len(r) // 5)
-                    ]))
-                    lb_lags = [lag for lag in lb_lags if lag >= 1]
+        fig, ax = plt.subplots(figsize=(11, 4))
+        ax.axis('off')
 
-                    lb = acorr_ljungbox(
-                        r, lags=lb_lags, return_df=True
-                    )
+        table = ax.table(
+            cellText=np.round(
+                diagnostics[["Statistic", "p-value"]].values,
+                4
+            ),
+            colLabels=["Statistic", "p-value"],
+            rowLabels=diagnostics["Test"],
+            cellLoc='center',
+            loc='center'
+        )
 
-                    lines.append("")
-                    lines.append("Ljung-Box serial-correlation test:")
+        table.auto_set_font_size(False)
+        table.set_fontsize(9)
+        table.scale(1, 1.8)
 
-                    for lag, row in lb.iterrows():
-                        lines.append(
-                            f"Lag {lag}: Q={row['lb_stat']:.6g}, "
-                            f"p-value={row['lb_pvalue']:.6g}"
-                        )
-                except Exception as exc:
-                    lines.append(
-                        f"Ljung-Box test unavailable: {exc}"
-                    )
+        ax.set_title(
+            "Diagnostic Tests on Standardized One-Step-Ahead Prediction Residuals",
+            fontsize=12,
+            pad=20
+        )
 
-            add_text_page("Residual Metrics", lines)
+        pdf.savefig(fig, bbox_inches="tight")
+        plt.close(fig)
 
     print(f"Saved report: {path}")

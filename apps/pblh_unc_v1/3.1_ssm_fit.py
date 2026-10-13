@@ -17,11 +17,11 @@ for pid, gdp in dataset.items():
     unc=[var+'_uc' for var in vars]
 
     opt='powell'
-    var='alt'
+    var='theta_v'
     measurement_sigma2=(data[var+'_uc']*0.5)**2
     measurement_sigma2*=1
     model=UnivariateLLL
-    ssm=model(data[var], measurement_sigma2)
+    ssm=model(data[var])#, measurement_sigma2)
     results=ssm.fit(maxiter=200, method=opt, disp=True)
     
     #from statsmodels.tsa.arima.model import ARIMA
@@ -30,6 +30,6 @@ for pid, gdp in dataset.items():
 
     #print(results.summary())
 
-    report_smoothing_goodness(results, data[var], r'apps\pblh_unc_v1\reports\3.1_test.pdf')
+    report_smoothing_goodness(results, data[var], data[var+'_uc'], path=r'apps\pblh_unc_v1\reports\3.1_test.pdf')
 
     break
