@@ -10,10 +10,9 @@ dataset = gp.read_pkl(hko_path)
 
 for pid, gdp in dataset.items():
     data=gdp.data
-    optimizers=['newton', 'lbfgs', 'powell']
-    vars=['alt', 'theta_v', 'rh', 'wzon', 'wmeri']
-    models = [UnivariateLLL, UnivariateLLT, DeterministicLevelLLT]
-    opts=['powell', 'lbfgs']
+    opts=['powell']#, 'lbfgs']
+    vars=['alt', 'theta_v',  'wzon']#,'rh', 'wmeri']
+    models = [UnivariateLLL, UnivariateLLT]#, DeterministicLevelLLT]
     #, UnivariateLLT_AR1]
     #from statsmodels.tsa.arima.model import ARIMA
     #model = ARIMA(data[var], trend="t", order=(1, 1, 1))
@@ -25,16 +24,15 @@ for pid, gdp in dataset.items():
                 for gruan_unc_coef in [1, 0.1, 10]:
                     prior_meas_unc = 'gruan'
                     if gruan_unc_coef !=1:
-                        data[var+'_uc']*=gruan_unc_coef
                         prior_meas_unc+=str(gruan_unc_coef)
-                    measurement_sigma2=(data[var+'_uc']*0.5)**2  
+                    measurement_sigma2=(data[var+'_uc']*gruan_unc_coef*0.5)**2  
                     ssm=model(data[var], measurement_sigma2)
                     results=ssm.fit(maxiter=200, method=opt, disp=True)
                     model_name = ssm.__class__.__name__
                     report_smoothing_goodness(
                         results=results, 
                         observations=data[var], 
-                        meas_unc=data[var+'_uc'], 
+                        meas_unc=data[var+'_uc']*gruan_unc_coef, 
                         path=rf'apps\pblh_unc_v1\reports\3.1_ssm_fit\{var}\3.1_ssm_fit_{pid}_{var}_{model_name}_{opt}_{prior_meas_unc}.pdf',
                         plot=False,
                         zoom=(80,100))
@@ -42,7 +40,7 @@ for pid, gdp in dataset.items():
                 prior_meas_unc_flag=False
                 ssm=model(data[var])
                 prior_meas_unc = 'mle'
-                results=ssm.fit(maxiter=200, method=opt, disp=True)
+                results=ssm.fit(maxiter=500, method=opt, disp=True)
                 report_smoothing_goodness(
                     results=results, 
                     observations=data[var], 
@@ -50,5 +48,5 @@ for pid, gdp in dataset.items():
                     path=rf'apps\pblh_unc_v1\reports\3.1_ssm_fit\{var}\3.1_ssm_fit_{pid}_{var}_{model_name}_{opt}_{prior_meas_unc}.pdf',
                     plot=False,
                     zoom=(80,100))
-
+        break
     break
