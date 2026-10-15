@@ -3,11 +3,11 @@ import io
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
-
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy.stats import gaussian_kde, norm, probplot
 from statsmodels.stats.diagnostic import acorr_ljungbox
 from statsmodels.stats.stattools import jarque_bera
+from scipy.stats import jarque_bera
 import pprint
 
 def add_text_page(pdf, text, title=None, fontsize=8):
@@ -38,36 +38,91 @@ def add_text_page(pdf, text, title=None, fontsize=8):
     plt.close(fig)
 
 def report_smoothing_goodness(
-        results, 
+        results,
         observations,
-        meas_unc=None, 
+        meas_unc=None,
         path='test.pdf',
         plot=True,
         zoom=False):
     """
-    Add documentation
+    Generate a PDF report assessing the quality of a state-space model fit
+    and Kalman smoothing results.
 
-    MLEResults
-    Class to hold results from fitting a state space model.
-    
-    model : Model instance
-        A reference to the model that was fit.
-    filter_results : KalmanFilter instance
-        The underlying state space model and Kalman filter output
-    nobs : float
-        The number of observations used to fit the model.
-    params : ndarray
-        The parameters of the model.
-    scale : float
-        This is currently set to 1.0 unless the model uses concentrated
-        filtering.
+    The report summarizes the fitted model, optimization diagnostics,
+    smoothed state estimates, residual behaviour, uncertainty calibration,
+    and goodness-of-fit metrics. It is intended as a post-fit diagnostic
+    tool to evaluate whether the smoothed state provides an adequate
+    representation of the observed data.
+
+    The report includes:
+
+    - Model summary produced by Statsmodels.
+    - MLE optimization settings and convergence information.
+    - Comparison between observations and smoothed state estimates.
+    - Smoothed-state uncertainty intervals.
+    - Residual and standardized residual diagnostics.
+    - Goodness-of-fit metrics (RMSE, MAE, Bias, R²).
+    - Standardized residual coverage diagnostics.
+    - Information criteria (Log-Likelihood, AIC, BIC).
+    - Residual independence tests (Ljung-Box).
+    - Residual normality test (Jarque-Bera).
+
+    Notes
+    -----
+    Residuals analyzed in this report are smoothing residuals:
+
+        residual = observation - smoothed_state
+
+    These residuals assess how closely the smoothed state reproduces
+    the observed data. They differ from the one-step-ahead prediction
+    errors (innovations) typically reported in the Statsmodels model
+    summary.
+
+    Parameters
+    ----------
+    results : statsmodels.tsa.statespace.mlemodel.MLEResults
+        Fitted state-space model results object.
+
+    observations : array-like
+        Original observations used to fit the model.
+
+    meas_unc : float or array-like, optional
+        Observation uncertainty (1σ). If the model estimates
+        'sigma2.measurement', the fitted value is used instead.
+
+    path : str, default='test.pdf'
+        Output PDF filename.
+
+    plot : bool, default=True
+        If True, figures are displayed interactively before being
+        written to the PDF report.
+
+    zoom : bool or tuple(int, int), default=False
+        If a tuple (xmin, xmax) is provided, the observation versus
+        smoothed-state plot is restricted to the specified interval.
+
+    Returns
+    -------
+    None
+        Saves the generated report to 'path'.
+
+    Examples
+    --------
+    >>> results = model.fit()
+    >>> report_smoothing_goodness(
+    ...     results,
+    ...     observations=y,
+    ...     meas_unc=0.5,
+    ...     path="smoothing_report.pdf"
+    ... )
     """
+
     # ---------------------------------------------------------
     # Compute metrics
     # ---------------------------------------------------------
     obs = np.asarray(observations, dtype=float)
-    meas_unc = np.asarray(meas_unc, dtype=float)
-
+    if meas_unc is not None:
+        meas_unc = np.asarray(meas_unc, dtype=float)
     model = results.model
     
     nobs = results.nobs
@@ -90,22 +145,85 @@ def report_smoothing_goodness(
     # standardized residuals
     smoothed_std_resid = smoothed_resid / np.maximum(smoothed_std, 1e-8)
 
-    mle_retvals = results.mle_retvals
-    mle_settings = results.mle_settings
+    ret = results.mle_retvals
+    sett = results.mle_settings
+    method = sett.get("optimizer", "unknown")
+    converged = ret.get("converged", "unknown")
+    iterations = ret.get("iterations", "unknown")
+    fcalls = ret.get("fcalls", "unknown")
+    warnflag = ret.get("warnflag", "unknown")
+    fopt = ret.get("fopt", np.nan)
+
+    mle_text = f"""
+    Optimizer
+    ---------
+    Method               : {method}
+
+    Convergence
+    -----------
+    Converged            : {converged}
+    Iterations           : {iterations}
+    Function evaluations : {fcalls}
+    Warning flag         : {warnflag}
+
+    Objective Function
+    ------------------
+    Final objective      : {fopt:.6f}
+
+    Interpretation
+    --------------
+    Converged=True and Warning flag=0 indicate that the optimizer
+    terminated successfully and a local optimum was found.
+    """
+
 
     summary=results.summary()
 
     summary_text = results.summary().as_text()
-    summary_text += "\n\nNote:\n- Residuals in diagnostic tests are one-step-ahead prediction errors."
+    summary_text += "\n\nNote:\n- State Space Model Summary Residuals in diagnostic tests are one-step-ahead prediction errors. Futher analysis will consider smoothed states residuals."
     if prior_meas_unc_flag:
         summary_text += "\n- Measurement unceratinty is fixed before MLE."
     else:
         summary_text += "\n- Measurement unceratinty is estimated by MLE."
-    
-    retvals_text = pprint.pformat(results.mle_retvals, indent=2)
-    settings_text = pprint.pformat(results.mle_settings, indent=2)
-    mle_text = retvals_text +"\n"+ settings_text
 
+    aic = results.aic
+    bic = results.bic
+    hqic = results.hqic
+    llf = results.llf
+
+    rmse = np.sqrt(np.mean(smoothed_resid**2))
+    mae = np.mean(np.abs(smoothed_resid))
+    bias = np.mean(smoothed_resid)
+
+    ss_res = np.sum(smoothed_resid**2)
+    ss_tot = np.sum((obs - np.mean(obs))**2)
+    r2 = 1 - ss_res/ss_tot if ss_tot > 0 else np.nan
+
+    std_res_mean = np.mean(smoothed_std_resid)
+    std_res_std = np.std(smoothed_std_resid)
+    # Fraction of standardized residuals falling within ±1 standard deviation.
+    # For perfectly calibrated Gaussian residuals, expected ≈ 68.3%.
+    inside1 = np.mean(np.abs(smoothed_std_resid) <= 1)
+
+    # Fraction of standardized residuals falling within ±2 standard deviations.
+    # For perfectly calibrated Gaussian residuals, expected ≈ 95.4%.
+    inside2 = np.mean(np.abs(smoothed_std_resid) <= 2)
+
+    # Fraction of standardized residuals falling within ±3 standard deviations.
+    # For perfectly calibrated Gaussian residuals, expected ≈ 99.7%.
+    inside3 = np.mean(np.abs(smoothed_std_resid) <= 3)
+
+    lb = acorr_ljungbox(
+    smoothed_std_resid,
+    lags=[1, 5, 10],
+    return_df=True
+    )
+
+    lb_p1  = lb.loc[1, "lb_pvalue"]
+    lb_p5  = lb.loc[5, "lb_pvalue"]
+    lb_p10 = lb.loc[10, "lb_pvalue"]
+
+    jb_stat, jb_p = jarque_bera(smoothed_std_resid)
     # ---------------------------------------------------------
     # Build the report
     # ---------------------------------------------------------
@@ -220,5 +338,98 @@ def report_smoothing_goodness(
             plt.show()
         pdf.savefig(fig)
         plt.close(fig)
+
+        fit_text = f"""
+
+        Residuals Metrics
+        -------------
+        RMSE                : {rmse:.4f}
+            Lower is better.
+            Represents the typical fitting error.
+
+        MAE                 : {mae:.4f}
+            Lower is better.
+            Average absolute deviation between observations and smoothed estimates.
+
+        Bias                : {bias:.4f}
+            Measures systematic over- or under-estimation.
+
+        R²                  : {r2:.4f}
+            Fraction of observational variance reproduced by the smoothed state.
+            Higher is generally better.
+            Values should be interpreted in light of the measurement noise level.
+
+        Standardize Residual Metrics
+        --------------------
+        Std. Residual Mean  : {std_res_mean:.4f}
+            Expected value: 0.
+            Large deviations suggest model bias.
+
+        Std. Residual Std   : {std_res_std:.4f}
+            Expected value: 1.
+            Values >1 indicate underestimated uncertainty.
+            Values <1 indicate overestimated uncertainty.
+
+
+        Standardize Residual Coverage Diagnostics
+        --------------------
+        Within ±1σ          : {inside1:.1%}
+            Theoretical Gaussian value: 68.3%
+
+        Within ±2σ          : {inside2:.1%}
+            Theoretical Gaussian value: 95.4%
+
+        Within ±3σ          : {inside3:.1%}
+            Theoretical Gaussian value: 99.7%
+
+        Interpretation:
+            Coverage significantly below expectations:
+                uncertainty is underestimated.
+            Coverage significantly above expectations:
+                uncertainty is overestimated.
+
+        Likelihood Metrics
+        ------------------
+        Log-Likelihood      : {llf:.3f}
+            Higher is better when comparing models.
+
+        AIC                 : {aic:.3f}
+            Lower is better.
+            Useful for comparing alternative models.
+
+        BIC                 : {bic:.3f}
+            Lower is better.
+            Stronger penalty for model complexity than AIC.
+
+
+        Standardize Residual Statistical Tests
+        -----------------
+        Ljung-Box Test (Residual Independence)
+        Lag 1  p-value : {lb_p1  :.4f}
+        Lag 5  p-value : {lb_p5  :.4f}
+        Lag 10 p-value : {lb_p10 :.4f}
+
+        Target:
+            p > 0.05
+
+        Interpretation:
+            p > 0.05  No evidence of residual autocorrelation.
+            p ≤ 0.05  Remaining temporal structure is present and
+                    may not be explained by the model.
+
+        Jarque-Bera p-value (Normality): {jb_p:.4f}
+            Tests whether residuals are approximately Gaussian.
+            Desired: p > 0.05
+
+            Interpretation:
+                p > 0.05  Residuals consistent with normality.
+                p ≤ 0.05  Non-Gaussian residual behaviour detected.
+        """
+
+        add_text_page(
+        pdf,
+        fit_text,
+        title="Goodness of Fit"
+    )
 
     print(f"Saved report: {path}")
