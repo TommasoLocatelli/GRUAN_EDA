@@ -11,8 +11,8 @@ dataset = gp.read_pkl(hko_path)
 for pid, gdp in dataset.items():
     data=gdp.data
     opts=['powell']#, 'lbfgs']
-    vars=['alt',]# 'theta_v',  'wzon']#,'rh', 'wmeri']
-    models = [UnivariateLLL,]# UnivariateLLT]#, DeterministicLevelLLT]
+    vars=['theta_v']#'alt', ,  'wzon']#,'rh', 'wmeri']
+    models = [UnivariateLLL, UnivariateLLT]#, DeterministicLevelLLT]
     #, UnivariateLLT_AR1]
     #from statsmodels.tsa.arima.model import ARIMA
     #model = ARIMA(data[var], trend="t", order=(1, 1, 1))
