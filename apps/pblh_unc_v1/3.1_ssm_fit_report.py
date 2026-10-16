@@ -11,8 +11,8 @@ dataset = gp.read_pkl(hko_path)
 for pid, gdp in dataset.items():
     data=gdp.data
     opts=['powell']#, 'lbfgs']
-    vars=['alt', 'theta_v',  'wzon']#,'rh', 'wmeri']
-    models = [UnivariateLLL, UnivariateLLT]#, DeterministicLevelLLT]
+    vars=['alt',]# 'theta_v',  'wzon']#,'rh', 'wmeri']
+    models = [UnivariateLLL,]# UnivariateLLT]#, DeterministicLevelLLT]
     #, UnivariateLLT_AR1]
     #from statsmodels.tsa.arima.model import ARIMA
     #model = ARIMA(data[var], trend="t", order=(1, 1, 1))
@@ -21,7 +21,7 @@ for pid, gdp in dataset.items():
         for opt in opts:
             for model in models:
                 prior_meas_unc_flag = True
-                for gruan_unc_coef in [1, 0.1, 10]:
+                for gruan_unc_coef in [1,]:# 0.1, 10]:
                     prior_meas_unc = 'gruan'
                     if gruan_unc_coef !=1:
                         prior_meas_unc+=str(gruan_unc_coef)
@@ -32,7 +32,7 @@ for pid, gdp in dataset.items():
                     report_smoothing_goodness(
                         results=results, 
                         observations=data[var], 
-                        meas_unc=data[var+'_uc']*gruan_unc_coef, 
+                        measurement_unc=data[var+'_uc']*gruan_unc_coef, 
                         path=rf'apps\pblh_unc_v1\reports\3.1_ssm_fit\{var}\3.1_ssm_fit_{pid}_{var}_{model_name}_{opt}_{prior_meas_unc}.pdf',
                         plot=False,
                         zoom=(80,100))
@@ -44,7 +44,7 @@ for pid, gdp in dataset.items():
                 report_smoothing_goodness(
                     results=results, 
                     observations=data[var], 
-                    meas_unc=data[var+'_uc'], 
+                    measurement_unc=data[var+'_uc'], 
                     path=rf'apps\pblh_unc_v1\reports\3.1_ssm_fit\{var}\3.1_ssm_fit_{pid}_{var}_{model_name}_{opt}_{prior_meas_unc}.pdf',
                     plot=False,
                     zoom=(80,100))
