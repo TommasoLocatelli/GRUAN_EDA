@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 TEXT_SIZE=22
-#c="""
 plt.rcParams.update({
     #"font.size": 5,            # Base font size
     "axes.titlesize": TEXT_SIZE,       # Subplot titles
