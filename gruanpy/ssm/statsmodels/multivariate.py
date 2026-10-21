@@ -377,8 +377,8 @@ class MultivariateLLTDetLevel(sm.tsa.statespace.MLEModel):
         @property
         def start_params(self):
             return (
-                [np.std(self.endog[:, i]) for i in range(self.k_endog)]
-                + [0.1 * np.std(self.endog[:, i]) for i in range(self.k_endog)]
+                [np.nanstd(self.endog[:, i]) for i in range(self.k_endog)]
+                + [0.1 * np.nanstd(self.endog[:, i]) for i in range(self.k_endog)]
             )
 
         def transform_params(self, unconstrained):

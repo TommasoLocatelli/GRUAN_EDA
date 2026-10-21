@@ -45,9 +45,9 @@ class UnivariateLLT(sm.tsa.statespace.MLEModel):
     @property
     def start_params(self):
         if self.measurement_sigma2 is None:
-            return [np.std(self.endog)] * 3
+            return [np.nanstd(self.endog)] * 3
         else:
-            return [np.std(self.endog)] * 2
+            return [np.nanstd(self.endog)] * 2
 
     def transform_params(self, unconstrained):
         return unconstrained**2
@@ -117,9 +117,9 @@ class UnivariateLLL(sm.tsa.statespace.MLEModel):
     @property
     def start_params(self):
         if self.measurement_sigma2 is None:
-            return [np.std(self.endog), np.std(self.endog)]
+            return [np.nanstd(self.endog), np.nanstd(self.endog)]
         else:
-            return [np.std(self.endog)]
+            return [np.nanstd(self.endog)]
 
     def transform_params(self, unconstrained):
         # enforce positivity

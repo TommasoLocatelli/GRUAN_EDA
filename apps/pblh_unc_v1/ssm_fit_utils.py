@@ -12,6 +12,7 @@ import pprint
 from statsmodels.stats.diagnostic import acorr_ljungbox
 from statsmodels.stats.stattools import durbin_watson
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from gruanpy.ssm.statsmodels.univariate import UnivariateLLL, UnivariateLLT, DeterministicLevelLLT
 
 def add_text_page(pdf, text, title=None, fontsize=8):
     fig, ax = plt.subplots(figsize=(8.27, 11.69))  # A4 portrait
@@ -40,9 +41,98 @@ def add_text_page(pdf, text, title=None, fontsize=8):
     pdf.savefig(fig, bbox_inches="tight")
     plt.close(fig)
 
+def compute_loo_metrics(obs, sigma2, model, step=1, fit_kwargs=None):
+    """
+    Leave-one-out validation for a GRUANPY/state-space model.
+
+    Parameters
+    ----------
+    obs : array-like
+        Observations.
+    sigma2 : array-like
+        Observation variances.
+    model : class
+        Model class, e.g. UnivariateLLT.
+    fit_kwargs : dict, optional
+        Arguments passed to ssm.fit().
+
+    Returns
+    -------
+    dict
+        Summary metrics and arrays of predictions/residuals.
+    """
+
+    if fit_kwargs is None:
+        fit_kwargs = dict(maxiter=200, method="powell", disp=False)
+
+    obs = np.asarray(obs, dtype=np.float64)
+    sigma2 = np.asarray(sigma2, dtype=np.float64)
+
+
+    if sigma2.ndim == 0:
+        sigma2 = np.full_like(obs, sigma2, dtype=np.float64)
+
+    y_true = []
+    y_pred = []
+    y_sigma = []
+
+    for i in range(0, len(obs), step):
+
+        train_obs = obs.copy()
+        train_sigma2 = sigma2.copy()
+
+        train_obs[i] = np.nan
+        train_sigma2[i] = np.nan
+
+        try:
+            ssm = model(train_obs, train_sigma2)
+            results = ssm.fit(**fit_kwargs)
+
+            pred = results.smoothed_state[0, i]
+
+            y_true.append(obs[i])
+            y_pred.append(pred)
+            y_sigma.append(np.sqrt(sigma2[i]))
+
+        except Exception as e:
+            print(f"LOO failed at index {i}: {e}")
+
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    y_sigma = np.asarray(y_sigma)
+
+    residuals = y_pred - y_true
+    z = residuals / y_sigma
+
+    rmse = np.sqrt(np.mean(residuals**2))
+    mae = np.mean(np.abs(residuals))
+    bias = np.mean(residuals)
+
+    chi2_red = np.mean(z**2)
+
+    r = np.corrcoef(y_true, y_pred)[0, 1]
+    r2 = r**2
+
+    return {
+        "rmse": rmse,
+        "mae": mae,
+        "bias": bias,
+        "reduced_chi2": chi2_red,
+        "z_mean": np.mean(z),
+        "z_std": np.std(z),
+        "r": r,
+        "r2": r2,
+        "n": len(y_true),
+        "obs": y_true,
+        "pred": y_pred,
+        "residuals": residuals,
+        "z": z,
+    }
+
 def report_smoothing_goodness(
         results,
         observations,
+        ssm_class = UnivariateLLT,
         measurement_unc=None,
         path='test.pdf',
         plot=True,
@@ -118,6 +208,25 @@ def report_smoothing_goodness(
     lb_p10 = lb.loc[10, "lb_pvalue"]
 
     max_abs_resid = np.max(np.abs(smoother_resid))
+
+    # Leave one out metrics
+    loo_metrics = compute_loo_metrics(
+                obs=obs,
+                sigma2=measurement_sigma2,
+                model=ssm_class,
+                step=20,
+                fit_kwargs=dict(maxiter=200, method="powell", disp=False),
+            )
+
+    loo_rmse = loo_metrics["rmse"]
+    loo_mae = loo_metrics["mae"]
+    loo_bias = loo_metrics["bias"]
+    loo_r2 = loo_metrics["r2"]
+    loo_chi2 = loo_metrics["reduced_chi2"]
+    loo_z_mean = loo_metrics["z_mean"]
+    loo_z_std = loo_metrics["z_std"]
+    loo_n = loo_metrics["n"]
+
 
     # Default ssm summary
     summary=results.summary()
@@ -423,6 +532,145 @@ def report_smoothing_goodness(
         pdf,
         fit_text,
         title="Goodness of Fit"
-    )
+        )
+
+        loo_text = f"""
+
+        Leave-One-Out Cross Validation
+        ------------------------------
+
+        Sample Size
+        -----------
+
+        Number of validation cases : {loo_n}
+
+
+        Prediction Error Metrics
+        ------------------------
+
+        RMSE                       : {loo_rmse:.12f}
+
+            Lower is better.
+
+            Root Mean Square Error of the leave-one-out
+            reconstruction. Measures typical prediction
+            error when one observation is withheld.
+
+
+        MAE                        : {loo_mae:.12f}
+
+            Lower is better.
+
+            Mean Absolute Error of the leave-one-out
+            prediction.
+
+
+        Bias                       : {loo_bias:.12f}
+
+            Target ≈ 0.
+
+            Positive values indicate systematic
+            overestimation.
+
+            Negative values indicate systematic
+            underestimation.
+
+
+        Prediction Skill
+        ----------------
+
+        R²                         : {loo_r2:.12f}
+
+            Fraction of variance reproduced when
+            individual observations are withheld.
+
+            Values close to 1 indicate that the model
+            successfully reconstructs missing observations.
+
+
+        Uncertainty Consistency
+        -----------------------
+
+        Reduced χ²                : {loo_chi2:.12f}
+
+            Target ≈ 1.
+
+            χ² < 1:
+                Prediction errors are smaller than
+                expected from the stated observation
+                uncertainties.
+
+                This may indicate conservative
+                uncertainty estimates or a highly
+                predictive model.
+
+            χ² > 1:
+                Prediction errors are larger than
+                expected from the observation
+                uncertainties.
+
+                This may indicate underestimated
+                uncertainties or model deficiencies.
+
+
+        Standardized Residual Mean : {loo_z_mean:.12f}
+
+            Target ≈ 0.
+
+            Measures systematic bias relative to the
+            observation uncertainty.
+
+
+        Standardized Residual Std  : {loo_z_std:.12f}
+
+            Target ≈ 1.
+
+            Std < 1:
+                Prediction errors are smaller than
+                expected from the uncertainty model.
+
+            Std > 1:
+                Prediction errors are larger than
+                expected from the uncertainty model.
+
+
+        Interpretation
+        --------------
+
+        Leave-one-out validation evaluates the ability
+        of the state-space model to reconstruct an
+        observation that was not used during fitting.
+
+        For each observation:
+
+            1. The observation is removed.
+            2. The model is refitted.
+            3. The removed value is reconstructed from
+            neighbouring observations.
+            4. The prediction is compared with the
+            true withheld observation.
+
+        This procedure provides a direct measure of
+        interpolation performance and tests whether the
+        estimated uncertainty is statistically
+        consistent with the observed reconstruction
+        errors.
+
+        Recommended targets:
+
+            RMSE               -> as small as possible
+            MAE                -> as small as possible
+            Bias               -> approximately zero
+            R²                 -> close to one
+            Reduced χ²         -> close to one
+            z mean             -> approximately zero
+            z std              -> approximately one
+            """
+        add_text_page(
+            pdf,
+            loo_text,
+            title="Leave-One-Out Validation"
+        )
 
     print(f"Saved report: {path}")
+

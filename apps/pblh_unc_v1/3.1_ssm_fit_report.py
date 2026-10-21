@@ -12,7 +12,7 @@ for pid, gdp in dataset.items():
     data=gdp.data
     opts=['powell']#, 'lbfgs']
     vars=['theta_v']#'alt', ,  'wzon']#,'rh', 'wmeri']
-    models = [UnivariateLLL, UnivariateLLT]#, DeterministicLevelLLT]
+    models = [UnivariateLLT]#, UnivariateLLT]#, DeterministicLevelLLT]
     #, UnivariateLLT_AR1]
     #from statsmodels.tsa.arima.model import ARIMA
     #model = ARIMA(data[var], trend="t", order=(1, 1, 1))
@@ -31,7 +31,8 @@ for pid, gdp in dataset.items():
                     model_name = ssm.__class__.__name__
                     report_smoothing_goodness(
                         results=results, 
-                        observations=data[var], 
+                        observations=data[var],
+                        ssm_class=model, 
                         measurement_unc=data[var+'_uc']*gruan_unc_coef, 
                         path=rf'apps\pblh_unc_v1\reports\3.1_ssm_fit\{var}\3.1_ssm_fit_{pid}_{var}_{model_name}_{opt}_{prior_meas_unc}.pdf',
                         plot=False,
