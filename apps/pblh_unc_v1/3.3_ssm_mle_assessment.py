@@ -130,7 +130,62 @@ if False: # read mle pkls and produce a summary pickle
 
     print(f"Saved dataframe to: {out_path}")
 
-if True:
+if False: # whats the problem with gruan fit by powel?
     mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
-    print(mle_summary.head())
-    print(mle_summary.shape)
+
+    print(mle_summary.columns)
+
+    conv_summary = (
+        mle_summary
+        .groupby(["model", "fit_type", "optimizer"])
+        .agg(
+            n=("converged", "size"),
+            n_converged=("converged", "sum"),
+            prop_converged=("converged", "mean"),
+        )
+        .reset_index()
+        .sort_values("prop_converged", ascending=False)
+    )
+
+    print(conv_summary)
+
+    failed_powell_gruan = mle_summary[
+        (mle_summary["optimizer"] == "powell") &
+        (mle_summary["fit_type"] == "gruan") &
+        (~mle_summary["converged"])
+    ]
+
+    print(len(failed_powell_gruan))
+    print(failed_powell_gruan["error"].value_counts(dropna=False))
+
+if True: # The problem is nan values in graun uncertainties
+    hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_preprocessed.pkl"
+    lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_preprocessed.pkl"
+    lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_preprocessed.pkl"
+
+    paths = [lau_path, lin_path, hko_path]
+    variables_labels=['alt', 'theta_v', 'rh', 'wzon', 'wmeri']
+    uncertainties_labels=[var+'_uc' for var in variables_labels]
+    total_nan_per_col = pd.Series(0, index=uncertainties_labels)
+    for path in paths:
+        dataset = gp.read_pkl(path)
+        
+        for pid, gdp in dataset.items():
+            unc = gdp.data[uncertainties_labels]
+
+            unc = unc.fillna(unc.median())
+            print(unc.median())
+
+            total_nan_per_col += unc.isna().sum()
+
+            nan_per_col = unc.isna().sum()
+
+            if nan_per_col.sum() > 0:
+                print(f"\n{pid}")
+                print(nan_per_col[nan_per_col > 0])
+
+    print(total_nan_per_col)
+
+            
+        
+

@@ -9,7 +9,7 @@ hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_preprocessed.pkl"
 lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_preprocessed.pkl"
 lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_preprocessed.pkl"
 
-paths = [lau_path, lin_path]#hko_path
+paths = [lau_path, lin_path, hko_path]
 for path in paths:
     dataset = gp.read_pkl(path)
 
@@ -38,9 +38,11 @@ for path in paths:
 
                 # with uncertainties
                 try:
+                    uncs=data[uncertainties_labels]
+                    uncs = uncs.fillna(uncs.median())
                     ssm = model_cls(
                         data[variables_labels],
-                        data[uncertainties_labels]
+                        uncs
                     )
 
                     results = ssm.fit(
