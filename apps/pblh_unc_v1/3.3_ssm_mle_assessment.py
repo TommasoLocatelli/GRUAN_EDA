@@ -19,8 +19,8 @@ def get_value(table, row_label):
     return None
 
 
-if False: # read mle pkls and produce a summary pickle
-    hko_path = r"apps\pblh_unc_v1\pkls\mle_2024__HKO-RS-01_2024_v0.pkl"
+if False: # Read mle pkls and produce a summary pickle
+    hko_path = r"apps\pblh_unc_v1\pkls\mle_2024__HKO-RS-01_2024.pkl"
     lau_path = r"apps\pblh_unc_v1\pkls\mle_2024__LAU-RS-02_2024.pkl"
     lin_path = r"apps\pblh_unc_v1\pkls\mle_2024__LIN-RS-01_2024.pkl"
 
@@ -65,7 +65,9 @@ if False: # read mle pkls and produce a summary pickle
 
                         else:
                             converged = fit.get("mle_retvals", {}).get("converged", False)
-
+                            warnflag = fit.get("mle_retvals", {}).get("warnflag", 0)
+                            iterations = fit.get("mle_retvals", {}).get("iterations", 1)
+                                                                                    
                             summary = fit.get("summary")
 
                             if summary is None:
@@ -82,6 +84,8 @@ if False: # read mle pkls and produce a summary pickle
                                 "optimizer": optimizer,
                                 "fit_type": fit_type,
                                 "converged": converged,
+                                "warnflag": warnflag,
+                                "iterations": iterations,
 
                                 "nobs": get_value(t1, "No. Observations:"),
                                 "loglik": get_value(t1, "Log Likelihood"),
@@ -130,10 +134,11 @@ if False: # read mle pkls and produce a summary pickle
 
     print(f"Saved dataframe to: {out_path}")
 
-if True: # whats the problem with gruan fit by powel?
+if False: # Wich is the best optimizer? Powell
     mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
 
     print(mle_summary.columns)
+    print(len(mle_summary))
 
     conv_summary = (
         mle_summary
@@ -149,57 +154,87 @@ if True: # whats the problem with gruan fit by powel?
 
     print(conv_summary)
 
-    nonconv_errors = (
-    mle_summary.loc[~mle_summary["converged"]]
-    .groupby(
-        ["model", "fit_type", "optimizer", "error"],
-        dropna=False
-    )
-    .size()
-    .reset_index(name="count")
+if False: # Which is the best model? LLT under MLE type, LLTDetL otherwise
+    mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
+    print(mle_summary.columns)
+
+    mle_summary = mle_summary[mle_summary["optimizer"] == "powell"]
+
+    print(mle_summary.shape)
+
+    # winner per profile and fit_type according to AIC
+    best_aic = mle_summary.loc[
+        mle_summary.groupby(["pid", "fit_type"])["aic"].idxmin()
+    ]
+
+    aic_counts = (
+        best_aic
+        .groupby(["fit_type", "model"])
+        .size()
+        .unstack(fill_value=0)
     )
 
-    print(nonconv_errors)
+    print(aic_counts)
 
-    mask = (
-        ~mle_summary["converged"]
-        & mle_summary["error"].fillna("").str.contains(
-            "measurement_sigma2 must contain finite, nonneg",
-            case=False,
-            regex=False,
+    best_bic = mle_summary.loc[
+        mle_summary.groupby(["pid", "fit_type"])["bic"].idxmin()
+    ]
+
+    bic_counts = (
+        best_bic
+        .groupby(["fit_type", "model"])
+        .size()
+        .unstack(fill_value=0)
+    )
+
+    print(bic_counts)
+
+if False: # SSM assumption are meeted? Never
+    mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
+    print(mle_summary.head())
+
+    mle_summary = mle_summary[mle_summary["optimizer"] == "powell"]
+    mle_summary = mle_summary[
+        mle_summary["model"].isin(
+            ["MultivariateLLL", "MultivariateLLT", "MultivariateLLTDetLevel"]
+    )]
+
+    print(mle_summary.shape)
+    p_value_threshold = 0
+    assumption_summary = (
+        mle_summary
+        .groupby(["model", "fit_type"])
+        .agg(
+            n=("pid", "size"),
+            prob_h_pass=("prob_h", lambda x: (x > p_value_threshold).sum()),
+            prob_jb_pass=("prob_jb", lambda x: (x > p_value_threshold).sum()),
+            prob_q_pass=("prob_q", lambda x: (x > p_value_threshold).sum()),
         )
     )
 
-    bad_pids = mle_summary.loc[
-        mask,
-        "pid"
-    ].tolist()
+    print(assumption_summary)
 
-    print(bad_pids)
+if True: # Look at estimated parameters
+    mle_summary = gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
 
-if False:
-    hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_preprocessed.pkl"
-    lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_preprocessed.pkl"
-    lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_preprocessed.pkl"
+    mle_summary = mle_summary[mle_summary["optimizer"] == "powell"]
+    mle_summary = mle_summary[
+        mle_summary["model"].isin(
+            ["MultivariateLLT", "MultivariateLLTDetLevel"]
+        )
+    ]
 
-    paths = [lau_path, lin_path, hko_path]
-    variables_labels=['alt', 'theta_v', 'rh', 'wzon', 'wmeri']
-    uncertainties_labels=[var+'_uc' for var in variables_labels]
-    total_nan_per_col = pd.Series(0, index=uncertainties_labels)
-    for path in paths:
-        dataset = gp.read_pkl(path)
-        
-        for pid, gdp in dataset.items():
-            unc = gdp.data[uncertainties_labels]
+    # Select columns containing "sigma"
+    sigma_cols = [c for c in mle_summary.columns if "sigma" in c.lower()]
 
-            unc = unc.fillna(unc.median())
+    # Average sigma parameters by model and fit_type
+    sigma_means = (
+        mle_summary
+        .groupby(["model", "fit_type"])[sigma_cols]
+        .transform(lambda x: x**0.5)
+        .mean()
+    )
 
-            total_nan_per_col += unc.isna().sum()
-
-            nan_per_col = unc.isna().sum()
-
-            if nan_per_col.sum() > 0:
-                print(f"\n{pid}")
-                print(nan_per_col[nan_per_col > 0])
-
-    print(total_nan_per_col)
+    for (model, fit_type), group in mle_summary.groupby(["model", "fit_type"]):
+        print(f"\nModel={model}, fit_type={fit_type}")
+        print(group[sigma_cols].mean().to_string().replace("sigma2.", ""))
