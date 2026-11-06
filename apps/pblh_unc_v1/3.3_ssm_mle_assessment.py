@@ -18,7 +18,6 @@ def get_value(table, row_label):
 
     return None
 
-
 if False: # Read mle pkls and produce a summary pickle
     hko_path = r"apps\pblh_unc_v1\pkls\mle_2024__HKO-RS-01_2024.pkl"
     lau_path = r"apps\pblh_unc_v1\pkls\mle_2024__LAU-RS-02_2024.pkl"
@@ -41,70 +40,76 @@ if False: # Read mle pkls and produce a summary pickle
         mle = gp.read_pkl(path)
         print(f"Loading site: {site}")
         for pid, pid_dict in tqdm(mle.items()):
-            for model_name, model_dict in pid_dict.items():
-                for optimizer, opt_dict in model_dict.items():
 
-                    for fit_type in ["gruan", "mle"]:
+            for var, var_dict in pid_dict.items():
 
-                        fit = opt_dict.get(fit_type)
+                for model_name, model_dict in var_dict.items():
 
-                        if fit is None:
-                            continue
+                    for optimizer, opt_dict in model_dict.items():
 
-                        if "error" in fit:
-                            rows.append({
-                                "site": site,
-                                "pid": pid,
-                                "model": model_name,
-                                "optimizer": optimizer,
-                                "fit_type": fit_type,
-                                "converged": False,
-                                "error": fit["error"],
-                            })
-                            continue
+                        for fit_type in ["gruan", "mle"]:
 
-                        else:
-                            converged = fit.get("mle_retvals", {}).get("converged", False)
-                            warnflag = fit.get("mle_retvals", {}).get("warnflag", 0)
-                            iterations = fit.get("mle_retvals", {}).get("iterations", 1)
-                                                                                    
-                            summary = fit.get("summary")
+                            fit = opt_dict.get(fit_type)
 
-                            if summary is None:
+                            if fit is None:
                                 continue
 
-                            t1 = summary.tables[0].data
-                            t2 = summary.tables[1].data
-                            t3 = summary.tables[2].data
+                            if "error" in fit:
+                                rows.append({
+                                    "site": site,
+                                    "pid": pid,
+                                    "variable": var,
+                                    "model": model_name,
+                                    "optimizer": optimizer,
+                                    "fit_type": fit_type,
+                                    "converged": False,
+                                    "error": fit["error"],
+                                })
+                                continue
 
-                            row = {
-                                "site": site,
-                                "pid": pid,
-                                "model": model_name,
-                                "optimizer": optimizer,
-                                "fit_type": fit_type,
-                                "converged": converged,
-                                "warnflag": warnflag,
-                                "iterations": iterations,
+                            else:
+                                converged = fit.get("mle_retvals", {}).get("converged", False)
+                                warnflag = fit.get("mle_retvals", {}).get("warnflag", 0)
+                                iterations = fit.get("mle_retvals", {}).get("iterations", 1)
+                                                                                        
+                                summary = fit.get("summary")
 
-                                "nobs": get_value(t1, "No. Observations:"),
-                                "loglik": get_value(t1, "Log Likelihood"),
-                                "aic": get_value(t1, "AIC"),
-                                "bic": get_value(t1, "BIC"),
+                                if summary is None:
+                                    continue
 
-                                "prob_q": get_value(t3, "Prob(Q):"),
-                                "prob_h": get_value(t3, "Prob(H) (two-sided):"),
-                                "prob_jb": get_value(t3, "Prob(JB):"),
-                            }
-                            row["error"] = None
+                                t1 = summary.tables[0].data
+                                t2 = summary.tables[1].data
+                                t3 = summary.tables[2].data
 
-                            for param_row in t2[1:]:  # skip header
-                                param_name = param_row[0].strip()
-                                coef = pd.to_numeric(param_row[1], errors="coerce")
+                                row = {
+                                    "site": site,
+                                    "pid": pid,
+                                    "variable": var, 
+                                    "model": model_name,
+                                    "optimizer": optimizer,
+                                    "fit_type": fit_type,
+                                    "converged": converged,
+                                    "warnflag": warnflag,
+                                    "iterations": iterations,
 
-                                row[param_name] = coef
+                                    "nobs": get_value(t1, "No. Observations:"),
+                                    "loglik": get_value(t1, "Log Likelihood"),
+                                    "aic": get_value(t1, "AIC"),
+                                    "bic": get_value(t1, "BIC"),
 
-                            rows.append(row)
+                                    "prob_q": get_value(t3, "Prob(Q):"),
+                                    "prob_h": get_value(t3, "Prob(H) (two-sided):"),
+                                    "prob_jb": get_value(t3, "Prob(JB):"),
+                                }
+                                row["error"] = None
+
+                                for param_row in t2[1:]:  # skip header
+                                    param_name = param_row[0].strip()
+                                    coef = pd.to_numeric(param_row[1], errors="coerce")
+
+                                    row[param_name] = coef
+
+                                rows.append(row)
 
     df = pd.DataFrame(rows)
 
@@ -137,59 +142,106 @@ if False: # Read mle pkls and produce a summary pickle
 if False: # Wich is the best optimizer? Powell
     mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
 
-    print(mle_summary.columns)
-    print(len(mle_summary))
+    for var, df_var in mle_summary.groupby("variable"):
 
-    conv_summary = (
-        mle_summary
-        .groupby(["model", "fit_type", "optimizer"])
-        .agg(
-            n=("converged", "size"),
-            n_converged=("converged", "sum"),
-            prop_converged=("converged", "mean"),
+        print(f"\n{'='*80}")
+        print(f"Variable: {var}")
+        print(f"{'='*80}")
+
+        conv_summary = (
+            df_var
+            .groupby(["model", "fit_type", "optimizer"])
+            .agg(
+                n=("converged", "size"),
+                n_converged=("converged", "sum"),
+                prop_converged=("converged", "mean"),
+            )
+            .reset_index()
+            .sort_values("prop_converged", ascending=False)
         )
-        .reset_index()
-        .sort_values("prop_converged", ascending=False)
+
+        print(conv_summary)
+
+        failed = mle_summary.loc[~mle_summary["converged"]]
+
+        print(len(failed))
+        print(
+            failed[
+                [
+                    "site",
+                    "pid",
+                    "variable",
+                    "model",
+                    "optimizer",
+                    "fit_type",
+                    "warnflag",
+                    "iterations",
+                    "error",
+                ]
+            ]
+        )
+
+if False: # Which is the best model?
+
+    mle_summary = gp.read_pkl(
+        r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
     )
 
-    print(conv_summary)
-
-if False: # Which is the best model? LLT under MLE type, LLTDetL otherwise
-    mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
     print(mle_summary.columns)
 
-    mle_summary = mle_summary[mle_summary["optimizer"] == "powell"]
+    mle_summary = mle_summary[
+        (mle_summary["optimizer"] == "powell")
+        & (mle_summary["converged"])
+    ]
 
     print(mle_summary.shape)
 
-    # winner per profile and fit_type according to AIC
-    best_aic = mle_summary.loc[
-        mle_summary.groupby(["pid", "fit_type"])["aic"].idxmin()
-    ]
+    for var, df_var in mle_summary.groupby("variable"):
 
-    aic_counts = (
-        best_aic
-        .groupby(["fit_type", "model"])
-        .size()
-        .unstack(fill_value=0)
-    )
+        print("\n" + "=" * 80)
+        print(f"Variable: {var}")
+        print("=" * 80)
 
-    print(aic_counts)
+        # AIC winner per profile and fit_type
+        best_aic = df_var.loc[
+            df_var.groupby(
+                ["pid", "fit_type"]
+            )["aic"].idxmin()
+        ]
 
-    best_bic = mle_summary.loc[
-        mle_summary.groupby(["pid", "fit_type"])["bic"].idxmin()
-    ]
+        aic_counts = (
+            best_aic
+            .groupby(["fit_type", "model"])
+            .size()
+            .unstack(fill_value=0)
+        )
 
-    bic_counts = (
-        best_bic
-        .groupby(["fit_type", "model"])
-        .size()
-        .unstack(fill_value=0)
-    )
+        print("\nAIC winners")
+        print(aic_counts)
 
-    print(bic_counts)
+        # BIC winner per profile and fit_type
+        best_bic = df_var.loc[
+            df_var.groupby(
+                ["pid", "fit_type"]
+            )["bic"].idxmin()
+        ]
 
-if False: # SSM assumption are meeted? Never
+        bic_counts = (
+            best_bic
+            .groupby(["fit_type", "model"])
+            .size()
+            .unstack(fill_value=0)
+        )
+
+        print("\nBIC winners")
+        print(bic_counts)
+
+if False: # given the best model
+    # it is better with or without gruan unc?
+    # whats the impact on the residuals?
+    pass
+
+if False: # SSM assumption are meeted? To be UPDATED
     mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
     print(mle_summary.head())
 
@@ -214,7 +266,7 @@ if False: # SSM assumption are meeted? Never
 
     print(assumption_summary)
 
-if True: # Look at estimated parameters
+if False: # Look at estimated parameters. To be UPDATED
     mle_summary = gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
 
     mle_summary = mle_summary[mle_summary["optimizer"] == "powell"]
