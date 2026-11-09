@@ -12,7 +12,7 @@ pids=['857603',
       '879125',
       '879119']
 
-#pids = ['857947',]
+#pids = ['857947','879125']
 
 SITE_TIMEZONES = {
     "LIN": "Europe/Berlin",
