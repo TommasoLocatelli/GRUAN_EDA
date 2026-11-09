@@ -139,7 +139,7 @@ if False: # Read mle pkls and produce a summary pickle
 
     print(f"Saved dataframe to: {out_path}")
 
-if False: # Wich is the best optimizer? Powell
+if True: # Wich is the best optimizer? Powell
     # Link at the warnflag documentation
     # https://www.statsmodels.org/devel/dev/generated/statsmodels.base.model.LikelihoodModelResults.html#:~:text=the%20standard%20errors.-,Notes,-The%20covariance%20of
     mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
