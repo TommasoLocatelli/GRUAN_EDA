@@ -139,7 +139,7 @@ if False: # Read mle pkls and produce a summary pickle
 
     print(f"Saved dataframe to: {out_path}")
 
-if True: # Wich is the best optimizer? Powell
+if False: # Wich is the best optimizer? Powell
     # Link at the warnflag documentation
     # https://www.statsmodels.org/devel/dev/generated/statsmodels.base.model.LikelihoodModelResults.html#:~:text=the%20standard%20errors.-,Notes,-The%20covariance%20of
     mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
@@ -149,6 +149,20 @@ if True: # Wich is the best optimizer? Powell
         print(f"\n{'='*80}")
         print(f"Variable: {var}")
         print(f"{'='*80}")
+
+        conv_summary = (
+            df_var
+            .groupby(["optimizer",])
+            .agg(
+                n=("converged", "size"),
+                n_converged=("converged", "sum"),
+                prop_converged=("converged", "mean"),
+            )
+            .reset_index()
+            .sort_values("prop_converged", ascending=False)
+        )
+
+        print(conv_summary)
 
         conv_summary = (
             df_var
@@ -183,7 +197,7 @@ if True: # Wich is the best optimizer? Powell
             ]
         )
 
-if False: # Which is the best model? REMEMBER TO GET RID OF USELESS OPTIMIZER
+if True: # Which is the best model? REMEMBER TO GET RID OF USELESS OPTIMIZER
 
     mle_summary = gp.read_pkl(
         r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
