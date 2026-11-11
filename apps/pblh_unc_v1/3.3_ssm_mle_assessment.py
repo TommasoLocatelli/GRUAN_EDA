@@ -197,7 +197,7 @@ if False: # Wich is the best optimizer? Powell
             ]
         )
 
-if True: # Which is the best model? REMEMBER TO GET RID OF USELESS OPTIMIZER
+if False: # Which is the best model? REMEMBER TO GET RID OF USELESS OPTIMIZER
 
     mle_summary = gp.read_pkl(
         r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
@@ -252,9 +252,99 @@ if True: # Which is the best model? REMEMBER TO GET RID OF USELESS OPTIMIZER
         print("\nBIC winners")
         print(bic_counts)
 
-if False: # given the best model
-    # it is better with or without gruan unc?
-    # whats the impact on the residuals?
+if False: # it is better with or without gruan unc?
+    mle_summary = gp.read_pkl(
+        r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
+    )
+
+    mle_summary = mle_summary[
+        (mle_summary["optimizer"] == "powell")
+        & (mle_summary["converged"])
+    ]
+
+    for var, df_var in mle_summary.groupby("variable"):
+
+        print("\n" + "=" * 80)
+        print(f"Variable: {var}")
+        print("=" * 80)
+
+        # AIC winner per profile and fit_type
+        best_aic = df_var.loc[
+            df_var.groupby(
+                ["pid", "model"]
+            )["aic"].idxmin()
+        ]
+
+        aic_counts = (
+            best_aic
+            .groupby(["fit_type", "model"])
+            .size()
+            .unstack(fill_value=0)
+        )
+
+        print("\nAIC winners")
+        print(aic_counts)
+
+        # BIC winner per profile and fit_type
+        best_bic = df_var.loc[
+            df_var.groupby(
+                ["pid", "model"]
+            )["bic"].idxmin()
+        ]
+
+        bic_counts = (
+            best_bic
+            .groupby(["fit_type", "model"])
+            .size()
+            .unstack(fill_value=0)
+        )
+
+        print("\nBIC winners")
+        print(bic_counts)
+
+if True: # compare GRUAN and MLE meas unc
+
+    mle_summary = gp.read_pkl(
+        r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
+    )
+
+    print(mle_summary.columns)
+
+    mle_summary = mle_summary[
+        (mle_summary["optimizer"] == "powell")
+        & (mle_summary["converged"])
+        & (mle_summary["fit_type"]=="mle")
+    ]
+
+    print(mle_summary.shape)
+
+    mle_summary["sigma.measurement"] = np.sqrt(
+        mle_summary["sigma2.measurement"]
+    )
+
+    summary_stats = (
+        mle_summary
+        .groupby("variable")["sigma.measurement"]
+        .agg(
+            median="median",
+            q25=lambda x: x.quantile(0.25),
+            q75=lambda x: x.quantile(0.75),
+        )
+    )
+
+    summary_stats["median (IQR)"] = (
+        summary_stats["median"].astype(str)
+        + " ("
+        + summary_stats["q25"].astype(str)
+        + ", "
+        + summary_stats["q75"].astype(str)
+        + ")"
+    )
+
+    for var, value in summary_stats["median (IQR)"].items():
+        print(f"{var}: {value}")
+
+if False: # unc impac on residuals
     pass
 
 if False: # SSM assumption are meeted? To be UPDATED
