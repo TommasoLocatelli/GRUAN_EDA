@@ -4,12 +4,13 @@ import numpy as np
 import pandas as pd
 import pickle
 from tqdm import tqdm
+import gc
 
 hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_preprocessed.pkl"
 lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_preprocessed.pkl"
 lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_preprocessed.pkl"
 
-paths = [lin_path,]# hko_path, lau_path]
+paths = [lin_path, hko_path, lau_path]
 for path in paths:
     dataset = gp.read_pkl(path)
 
@@ -17,11 +18,11 @@ for path in paths:
     uncertainties_labels=[var+'_uc' for var in variables_labels]
     labels=variables_labels+uncertainties_labels
     models_classes=[ UnivariateLLL, UnivariateLLT, DeterministicLevelLLT]
-    optimizers=['powell', 'lbfgs', 'nm']
+    optimizers=['powell']#, 'lbfgs', 'nm']
 
     mle = {}
 
-    for pid, gdp in tqdm(list(dataset.items())):
+    for pid, gdp in tqdm(list(dataset.items())[:2]):
 
         data = gdp.data[labels]
 
@@ -57,10 +58,32 @@ for path in paths:
                             disp=False
                         )
 
+                        # smoother residuals
+                        smoother_state = results.smoothed_state[0]
+                        obs =  np.asarray(data[var], dtype=float)
+                        smoother_resid = obs - smoother_state
+
+                        # residuals metrics
+                        rmse = np.sqrt(np.mean(smoother_resid**2))
+                        mae = np.mean(np.abs(smoother_resid))
+                        bias = np.mean(smoother_resid)
+                        ss_res = np.sum(smoother_resid**2)
+                        ss_tot = np.sum((obs - np.mean(obs))**2)
+                        r2 = 1 - ss_res/ss_tot if ss_tot > 0 else np.nan
+                        res_metrics = {
+                            'rmse': rmse,
+                            'mae': mae,
+                            'bias': bias,
+                            'ss_res': ss_res,
+                            'ss_tot': ss_tot,
+                            'r2': r2
+                        }
+
                         mle[pid][var][model_name][opt]["gruan"] = {
                             "mle_retvals": results.mle_retvals,
                             "mle_settings": results.mle_settings,
-                            "summary": results.summary()
+                            "summary": results.summary(),
+                            "res_metrics": res_metrics
                         }
 
                     except Exception as e:
@@ -80,10 +103,32 @@ for path in paths:
                             disp=False
                         )
 
+                        # smoother residuals
+                        smoother_state = results.smoothed_state[0]
+                        obs =  np.asarray(data[var], dtype=float)
+                        smoother_resid = obs - smoother_state
+
+                        # residuals metrics
+                        rmse = np.sqrt(np.mean(smoother_resid**2))
+                        mae = np.mean(np.abs(smoother_resid))
+                        bias = np.mean(smoother_resid)
+                        ss_res = np.sum(smoother_resid**2)
+                        ss_tot = np.sum((obs - np.mean(obs))**2)
+                        r2 = 1 - ss_res/ss_tot if ss_tot > 0 else np.nan
+                        res_metrics = {
+                            'rmse': rmse,
+                            'mae': mae,
+                            'bias': bias,
+                            'ss_res': ss_res,
+                            'ss_tot': ss_tot,
+                            'r2': r2
+                        }
+
                         mle[pid][var][model_name][opt]["mle"] = {
                             "mle_retvals": results.mle_retvals,
                             "mle_settings": results.mle_settings,
-                            "summary": results.summary()
+                            "summary": results.summary(),
+                            "res_metrics": res_metrics
                         }
 
                     except Exception as e:
@@ -94,3 +139,8 @@ for path in paths:
     output_path = f"apps\\pblh_unc_v1\\pkls\\mle_{path[26:-17]}.pkl"
     with open(output_path, "wb") as f:
         pickle.dump(mle, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    # cleanup
+    del mle
+    del dataset
+    gc.collect()

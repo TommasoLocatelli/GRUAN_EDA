@@ -2,9 +2,9 @@ import gruanpy as gp
 from gruanpy.ssm.statsmodels.multivariate import MultivariateLLL, MultivariateLLT, MultivariateLLTDetLevel
 import numpy as np
 import pandas as pd
-import pickle
 from tqdm import tqdm
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 def get_value(table, row_label):
     row_label = row_label.strip()
@@ -77,6 +77,8 @@ if False: # Read mle pkls and produce a summary pickle
                                 if summary is None:
                                     continue
 
+                                res_metrics = fit.get("res_metrics", {})
+
                                 t1 = summary.tables[0].data
                                 t2 = summary.tables[1].data
                                 t3 = summary.tables[2].data
@@ -100,6 +102,13 @@ if False: # Read mle pkls and produce a summary pickle
                                     "prob_q": get_value(t3, "Prob(Q):"),
                                     "prob_h": get_value(t3, "Prob(H) (two-sided):"),
                                     "prob_jb": get_value(t3, "Prob(JB):"),
+
+                                    "rmse": res_metrics.get("rmse"),
+                                    "mae": res_metrics.get("mae"),
+                                    "bias": res_metrics.get("bias"),
+                                    "ss_res": res_metrics.get("ss_res"),
+                                    "ss_tot": res_metrics.get("ss_tot"),
+                                    "r2": res_metrics.get("r2"),
                                 }
                                 row["error"] = None
 
@@ -121,6 +130,13 @@ if False: # Read mle pkls and produce a summary pickle
         "prob_q",
         "prob_h",
         "prob_jb",
+
+        "rmse",
+        "mae",
+        "bias",
+        "ss_res",
+        "ss_tot",
+        "r2",
     ]
 
     coef_cols = [
@@ -139,7 +155,7 @@ if False: # Read mle pkls and produce a summary pickle
 
     print(f"Saved dataframe to: {out_path}")
 
-if False: # Wich is the best optimizer? Powell
+elif False: # Wich is the best optimizer? Powell
     # Link at the warnflag documentation
     # https://www.statsmodels.org/devel/dev/generated/statsmodels.base.model.LikelihoodModelResults.html#:~:text=the%20standard%20errors.-,Notes,-The%20covariance%20of
     mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
@@ -197,7 +213,7 @@ if False: # Wich is the best optimizer? Powell
             ]
         )
 
-if False: # Which is the best model? REMEMBER TO GET RID OF USELESS OPTIMIZER
+elif False: # Which is the best model? REMEMBER TO GET RID OF USELESS OPTIMIZER
 
     mle_summary = gp.read_pkl(
         r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
@@ -252,7 +268,7 @@ if False: # Which is the best model? REMEMBER TO GET RID OF USELESS OPTIMIZER
         print("\nBIC winners")
         print(bic_counts)
 
-if False: # it is better with or without gruan unc?
+elif False: # it is better with or without gruan unc?
     mle_summary = gp.read_pkl(
         r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
     )
@@ -302,52 +318,163 @@ if False: # it is better with or without gruan unc?
         print("\nBIC winners")
         print(bic_counts)
 
-if True: # compare GRUAN and MLE meas unc
+elif False: # compare GRUAN and MLE meas unc
+    # ============================================================================
+    # MLE measurement uncertainty
+    # ============================================================================
 
     mle_summary = gp.read_pkl(
         r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
     )
 
-    print(mle_summary.columns)
-
     mle_summary = mle_summary[
         (mle_summary["optimizer"] == "powell")
         & (mle_summary["converged"])
-        & (mle_summary["fit_type"]=="mle")
+        & (mle_summary["fit_type"] == "mle")
     ]
-
-    print(mle_summary.shape)
 
     mle_summary["sigma.measurement"] = np.sqrt(
         mle_summary["sigma2.measurement"]
     )
 
-    summary_stats = (
+    mle_stats = (
         mle_summary
         .groupby("variable")["sigma.measurement"]
         .agg(
+            mean="mean",
             median="median",
+            std="std",
+            q05=lambda x: x.quantile(0.05),
             q25=lambda x: x.quantile(0.25),
             q75=lambda x: x.quantile(0.75),
+            q95=lambda x: x.quantile(0.95),
+            n="count",
         )
     )
 
-    summary_stats["median (IQR)"] = (
-        summary_stats["median"].astype(str)
-        + " ("
-        + summary_stats["q25"].astype(str)
-        + ", "
-        + summary_stats["q75"].astype(str)
-        + ")"
+    print("\nMLE sigma statistics")
+    print(mle_stats)
+
+
+    # ============================================================================
+    # GRUAN uncertainty
+    # ============================================================================
+
+    hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_preprocessed.pkl"
+    lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_preprocessed.pkl"
+    lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_preprocessed.pkl"
+
+    paths = [lin_path, hko_path, lau_path]
+
+    variables = ['alt', 'theta_v', 'rh', 'wzon', 'wmeri']
+    uncertainties = [f"{v}_uc" for v in variables]
+
+    # store all values
+    gruan_values = {v: [] for v in variables}
+
+    for path in paths:
+
+        dataset = gp.read_pkl(path)
+
+        for pid, gdp in dataset.items():
+
+            sigma = gdp.data[uncertainties] * 0.5
+
+            for var in variables:
+                gruan_values[var].extend(
+                    sigma[f"{var}_uc"].dropna().values
+                )
+
+    gruan_stats = pd.DataFrame({
+        var: {
+            "mean": np.mean(vals),
+            "median": np.median(vals),
+            "std": np.std(vals),
+            "q05": np.quantile(vals, 0.05),
+            "q25": np.quantile(vals, 0.25),
+            "q75": np.quantile(vals, 0.75),
+            "q95": np.quantile(vals, 0.95),
+            "n": len(vals),
+        }
+        for var, vals in gruan_values.items()
+    }).T
+
+    print("\nGRUAN sigma statistics")
+    print(gruan_stats)
+
+
+    # ============================================================================
+    # Ratio comparison
+    # ============================================================================
+
+    comparison = pd.DataFrame(index=variables)
+
+    comparison["MLE_mean"] = mle_stats["mean"]
+    comparison["MLE_median"] = mle_stats["median"]
+
+    comparison["GRUAN_mean"] = gruan_stats["mean"]
+    comparison["GRUAN_median"] = gruan_stats["median"]
+
+    comparison["ratio_mean"] = (
+        comparison["GRUAN_mean"]
+        / comparison["MLE_mean"]
     )
 
-    for var, value in summary_stats["median (IQR)"].items():
-        print(f"{var}: {value}")
+    comparison["ratio_median"] = (
+        comparison["GRUAN_median"]
+        / comparison["MLE_median"]
+    )
 
-if False: # unc impac on residuals
-    pass
+    print("\nComparison")
+    print(comparison)
 
-if False: # SSM assumption are meeted? To be UPDATED
+
+    # ============================================================================
+    # Boxplot comparison
+    # ============================================================================
+
+    fig, axes = plt.subplots(
+        nrows=len(variables),
+        figsize=(8, 3 * len(variables))
+    )
+
+    for ax, var in zip(axes, variables):
+
+        mle_vals = mle_summary.loc[
+            mle_summary["variable"] == var,
+            "sigma.measurement"
+        ].values
+
+        gruan_vals = np.asarray(gruan_values[var])
+
+        ax.boxplot(
+            [mle_vals, gruan_vals],
+            labels=["MLE", "GRUAN"],
+            showfliers=False,
+        )
+
+        ax.set_title(var)
+        ax.set_ylabel("sigma")
+
+    plt.tight_layout()
+    plt.show()
+
+elif True: # unc impac on residuals
+    
+    mle_summary = gp.read_pkl(
+        r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
+    )
+
+    mle_summary = mle_summary[
+        (mle_summary["optimizer"] == "powell")
+        & (mle_summary["converged"])
+        & (mle_summary["fit_type"] == "mle")
+    ]
+
+    print(mle_summary.columns)
+    print(mle_summary[["rmse","r2"]].head())
+
+elif False: # SSM assumption are meeted? To be UPDATED
     mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
     print(mle_summary.head())
 
@@ -372,7 +499,7 @@ if False: # SSM assumption are meeted? To be UPDATED
 
     print(assumption_summary)
 
-if False: # Look at estimated parameters. To be UPDATED
+elif False: # Look at estimated parameters. To be UPDATED
     mle_summary = gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
 
     mle_summary = mle_summary[mle_summary["optimizer"] == "powell"]
