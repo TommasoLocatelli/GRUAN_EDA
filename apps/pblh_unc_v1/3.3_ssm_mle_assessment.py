@@ -333,6 +333,8 @@ elif False: # compare GRUAN and MLE meas unc
         & (mle_summary["fit_type"] == "mle")
     ]
 
+    print(mle_summary.columns)
+
     mle_summary["sigma.measurement"] = np.sqrt(
         mle_summary["sigma2.measurement"]
     )
