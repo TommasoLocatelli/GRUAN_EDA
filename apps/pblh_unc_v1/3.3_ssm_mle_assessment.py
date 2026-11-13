@@ -18,7 +18,7 @@ def get_value(table, row_label):
 
     return None
 
-if False: # Read mle pkls and produce a summary pickle
+if True: # Read mle pkls and produce a summary pickle
     hko_path = r"apps\pblh_unc_v1\pkls\mle_2024__HKO-RS-01_2024.pkl"
     lau_path = r"apps\pblh_unc_v1\pkls\mle_2024__LAU-RS-02_2024.pkl"
     lin_path = r"apps\pblh_unc_v1\pkls\mle_2024__LIN-RS-01_2024.pkl"
