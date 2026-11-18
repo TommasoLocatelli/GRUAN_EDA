@@ -14,6 +14,16 @@ from statsmodels.stats.stattools import durbin_watson
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from gruanpy.ssm.statsmodels.univariate import UnivariateLLL, UnivariateLLT, DeterministicLevelLLT
 
+TEXT_SIZE=16
+plt.rcParams.update({
+    "axes.titlesize": TEXT_SIZE,       # Subplot titles
+    "axes.labelsize": TEXT_SIZE,       # Axis labels
+    "xtick.labelsize": TEXT_SIZE,      # Tick labels
+    "ytick.labelsize": TEXT_SIZE,
+    "legend.fontsize": TEXT_SIZE,      # Legend text
+    "figure.titlesize": TEXT_SIZE,     # Suptitle
+})
+
 def add_text_page(pdf, text, title=None, fontsize=8):
     fig, ax = plt.subplots(figsize=(8.27, 11.69))  # A4 portrait
     ax.axis("off")
@@ -129,6 +139,12 @@ def compute_loo_metrics(obs, sigma2, model, step=1, fit_kwargs=None):
         "z": z,
     }
 
+
+var_to_units = {'alt': 'Altitude ($m$)', 
+        'theta_v': "Virtual Potential Temperature ($K$)",
+        'rh': "Relative Humidity ($\%$)", 
+        'wzon': "Zonal Wind Velocity ($m\,s^{-1}$)",
+        'wmeri': "Meridional Wind Velocity ($m\,s^{-1}$)"}
 def report_smoothing_goodness(
         results,
         observations,
@@ -136,7 +152,8 @@ def report_smoothing_goodness(
         measurement_unc=None,
         path='test.pdf',
         plot=True,
-        zoom=False):
+        zoom=False,
+        var='alt'):
 
     # SSM model
     obs = np.asarray(observations, dtype=float)
@@ -323,7 +340,7 @@ def report_smoothing_goodness(
             smoother_state + smoother_unc,
             color="tab:blue",
             alpha=0.20,
-            label="Smoothed 95% CI"
+            label="Smoothed uncertainty"
         )
         if isinstance(zoom, (tuple, list, np.ndarray)) and len(zoom) == 2:
             xmin, xmax = map(int, zoom)
@@ -345,8 +362,8 @@ def report_smoothing_goodness(
         else:
             ax.set_title("Observations vs Smoothed State")
 
-        ax.set_xlabel("Time")
-        ax.set_ylabel("Value")
+        ax.set_xlabel("Time ($s$)")
+        ax.set_ylabel(var_to_units[var])
         ax.grid(True, alpha=0.3)
         ax.legend()
         if plot:

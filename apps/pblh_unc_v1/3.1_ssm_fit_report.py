@@ -1,6 +1,7 @@
 import gruanpy as gp
 from gruanpy.ssm.statsmodels.univariate import UnivariateLLL, UnivariateLLT, DeterministicLevelLLT, UnivariateLLT_AR1
 from ssm_fit_utils import report_smoothing_goodness
+from tqdm import tqdm
 
 hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_preprocessed.pkl"
 lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_preprocessed.pkl"
@@ -8,16 +9,16 @@ lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_preprocessed.pkl"
 
 dataset = gp.read_pkl(hko_path)
 
-for pid, gdp in dataset.items():
+for pid, gdp in list(dataset.items())[:2]:
     data=gdp.data
     opts=['powell']#, 'lbfgs']
-    vars=['alt', 'wzon','rh', 'wmeri']#],'theta_v']
+    vars=['alt', 'wzon','rh', 'wmeri', 'theta_v']
     models = [UnivariateLLL, UnivariateLLT, DeterministicLevelLLT]
     #, UnivariateLLT_AR1]
     #from statsmodels.tsa.arima.model import ARIMA
     #model = ARIMA(data[var], trend="t", order=(1, 1, 1))
 
-    for var in vars:
+    for var in tqdm(vars):
         for opt in opts:
             for model in models:
                 prior_meas_unc_flag = True
@@ -36,7 +37,8 @@ for pid, gdp in dataset.items():
                         measurement_unc=data[var+'_uc']*gruan_unc_coef, 
                         path=rf'apps\pblh_unc_v1\reports\3.1_ssm_fit\{var}\3.1_ssm_fit_{pid}_{var}_{model_name}_{opt}_{prior_meas_unc}.pdf',
                         plot=False,
-                        zoom=(80,100))
+                        zoom=(80,100),
+                        var=var)
 
                 prior_meas_unc_flag=False
                 ssm=model(data[var])
@@ -48,5 +50,5 @@ for pid, gdp in dataset.items():
                     measurement_unc=data[var+'_uc'], 
                     path=rf'apps\pblh_unc_v1\reports\3.1_ssm_fit\{var}\3.1_ssm_fit_{pid}_{var}_{model_name}_{opt}_{prior_meas_unc}.pdf',
                     plot=False,
-                    zoom=(80,100))
-    break
+                    zoom=(80,100),
+                    var=var)

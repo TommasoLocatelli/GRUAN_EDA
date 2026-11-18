@@ -17,6 +17,19 @@ plt.rcParams.update({
     "figure.titlesize": TEXT_SIZE,     # Suptitle
 })
 
+variables = ['alt', 'theta_v', 'rh', 'wzon', 'wmeri']    
+var_to_labels = {'alt': 'Altitude ($m$)', 
+        'theta_v': "Virtual Potential Temperature ($K$)",
+        'rh': "Relative Humidity ($\%$)", 
+        'wzon': "Zonal Wind Velocity ($m\,s^{-1}$)",
+        'wmeri': "Meridional Wind Velocity ($m\,s^{-1}$)"}
+    
+models_to_labels = {"UnivariateLLL": "LLL",
+                    "UnivariateLLT": "LLT",
+                    "DeterministicLevelLLT": "DetLLT"}
+    
+fit_type_to_labels = {"mle":"MLE", "gruan":"GRUAN"}
+
 def get_value(table, row_label):
     row_label = row_label.strip()
 
@@ -384,8 +397,6 @@ elif False: # compare GRUAN and estimated sigma
 
     paths = [lin_path, hko_path, lau_path]
 
-    variables = ['alt', 'theta_v', 'rh', 'wzon', 'wmeri']
-
     for path in  paths:
         dataset = gp.read_pkl(path)
         for pid, gdp in tqdm(dataset.items()):
@@ -407,20 +418,6 @@ elif True:  # compare GRUAN and estimated sigma
     mle_summary = gp.read_pkl(
         r"apps\pblh_unc_v1\pkls\mle_sigma_2024.pkl"
     )
-
-    variables = ['alt', 'theta_v', 'rh', 'wzon', 'wmeri']
-
-    var_to_labels = {'alt': 'Altitude ($m$)', 
-        'theta_v': "Virtual Potential Temperature ($K$)",
-        'rh': "Relative Humidity ($\%$)", 
-        'wzon': "Zonal Wind Velocity ($m\,s^{-1}$)",
-        'wmeri': "Meridional Wind Velocity ($m\,s^{-1}$)"}
-    
-    models_to_labels = {"UnivariateLLL": "LLL",
-                        "UnivariateLLT": "LLT",
-                        "DeterministicLevelLLT": "DetLLT"}
-    
-    fit_type_to_labels = {"mle":"MLE", "gruan":"GRUAN"}
 
     sigma_labels = {
     "sigma.measurement": r"$\sigma$ Measurement",
@@ -497,6 +494,9 @@ elif True:  # compare GRUAN and estimated sigma
                 s=100,
                 legend=False,
                 ax=ax,
+                alpha=0.25,
+                edgecolor="black",
+                linewidth=0.8,
             )
             #ax.set_xscale("log")
             #ax.set_yscale("log")
@@ -508,7 +508,7 @@ elif True:  # compare GRUAN and estimated sigma
         fig.suptitle(var_to_labels[var])
         plt.tight_layout()
         fig.subplots_adjust(
-            left=0.07,
+            left=0.09,
             bottom=0.116,
             right=0.987,
             top=0.922,
@@ -526,12 +526,21 @@ elif True: # unc impac on residuals
     mle_summary = mle_summary[
         (mle_summary["optimizer"] == "powell")
         & (mle_summary["converged"])
-        & (mle_summary["fit_type"] == "mle")
     ]
 
-    print(mle_summary.columns)
-    print(mle_summary[["rmse","r2"]].head())
+    metrics = ["rmse", "mae", "bias", "r2"]
 
+    for var in variables:
+        print(f"Variable: {var}")
+        var_mle_summary = mle_summary[mle_summary["variable"] == var]
+        summary = (
+            var_mle_summary
+            .groupby(["model", "fit_type"])[metrics]
+            .agg(["mean", "std"]).round(3)
+        )
+    
+        print(summary)
+        print('-'*80)
 elif False: # SSM assumption are meeted? To be UPDATED
     mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
     print(mle_summary.head())
