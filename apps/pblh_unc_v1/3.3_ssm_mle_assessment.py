@@ -30,6 +30,13 @@ models_to_labels = {"UnivariateLLL": "LLL",
     
 fit_type_to_labels = {"mle":"MLE", "gruan":"GRUAN"}
 
+colors = sns.color_palette("tab10")
+palette = {
+    "DetLLT": colors[2],
+    "LLL":    colors[0],
+    "LLT":    colors[1],
+}
+
 def get_value(table, row_label):
     row_label = row_label.strip()
 
@@ -413,11 +420,16 @@ elif False: # compare GRUAN and estimated sigma
     mle_summary.to_pickle(out_path)
     print(f"Saved dataframe to: {out_path}")
 
-elif True:  # compare GRUAN and estimated sigma
+elif False:  # compare GRUAN and estimated sigma
     # step 2, scatter plots
     mle_summary = gp.read_pkl(
         r"apps\pblh_unc_v1\pkls\mle_sigma_2024.pkl"
     )
+
+    mle_summary["model"] = mle_summary["model"].map(models_to_labels)
+    mle_summary["fit_type"] = mle_summary["fit_type"].map(fit_type_to_labels)
+
+    models = sorted(mle_summary["model"].unique())
 
     sigma_labels = {
     "sigma.measurement": r"$\sigma$ Measurement",
@@ -430,8 +442,7 @@ elif True:  # compare GRUAN and estimated sigma
         ("sigma.measurement", "sigma.trend"),
         ("sigma.level", "sigma.trend"),
     ]
-    mle_summary["model"] = mle_summary["model"].map(models_to_labels)
-    mle_summary["fit_type"] = mle_summary["fit_type"].map(fit_type_to_labels)
+
 
     # ------------------------------------------------------------------
     # Create a standalone legend figure once
@@ -443,6 +454,7 @@ elif True:  # compare GRUAN and estimated sigma
         x="sigma.measurement",
         y="sigma.level",
         hue="model",
+        palette=palette,
         style="fit_type",
         s=100,
         ax=ax_tmp,
@@ -490,6 +502,7 @@ elif True:  # compare GRUAN and estimated sigma
                 x=xcol,
                 y=ycol,
                 hue="model",
+                palette=palette,
                 style="fit_type",
                 s=100,
                 legend=False,
@@ -522,6 +535,7 @@ elif True: # unc impac on residuals
     mle_summary = gp.read_pkl(
         r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
     )
+    mle_summary["model"] = mle_summary["model"].map(models_to_labels)
 
     mle_summary = mle_summary[
         (mle_summary["optimizer"] == "powell")
@@ -541,6 +555,118 @@ elif True: # unc impac on residuals
     
         print(summary)
         print('-'*80)
+
+    metrics = ["rmse", "mae", "r2"]
+
+    # ------------------------------------------------------------------
+    # Create standalone legend for model colors
+    # ------------------------------------------------------------------
+
+    tmp_df = (
+        mle_summary[mle_summary["variable"] == variables[0]]
+        .pivot_table(
+            index=["model", "pid"],
+            columns="fit_type",
+            values="rmse",
+            aggfunc="mean",
+        )
+        .dropna(subset=["mle", "gruan"])
+        .reset_index()
+    )
+
+    fig_tmp, ax_tmp = plt.subplots()
+
+    sns.scatterplot(
+        data=tmp_df,
+        x="mle",
+        y="gruan",
+        hue="model",
+        palette=palette,
+        s=100,
+        ax=ax_tmp,
+    )
+
+    handles, labels = ax_tmp.get_legend_handles_labels()
+    plt.close(fig_tmp)
+
+    fig_leg, ax_leg = plt.subplots(figsize=(8, 2))
+
+    ax_leg.legend(
+        handles,
+        labels,
+        loc="center",
+        ncol=len(labels),  # or 2/3/etc.
+        frameon=True,
+    )
+
+    ax_leg.axis("off")
+    plt.show()
+
+    for var in variables:
+
+        df = mle_summary[mle_summary["variable"] == var].copy()
+
+        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+        for ax, metric in zip(axes, metrics):
+
+            plot_df = (
+                df.pivot_table(
+                    index=["model", "pid"],
+                    columns="fit_type",
+                    values=metric,
+                    aggfunc="mean",
+                )
+                .dropna(subset=["mle", "gruan"])
+                .reset_index()
+            )
+
+            if len(plot_df) == 0:
+                ax.set_visible(False)
+                continue
+
+            sns.scatterplot(
+                data=plot_df,
+                x="mle",
+                y="gruan",
+                hue="model",
+                palette=palette,
+                legend=False,
+                ax=ax,
+                alpha=0.25,
+                edgecolor="black",
+                linewidth=0.8,
+            )
+
+            lims = [
+                min(plot_df["mle"].min(), plot_df["gruan"].min()),
+                max(plot_df["mle"].max(), plot_df["gruan"].max()),
+            ]
+
+            ax.plot(lims, lims, "k--", lw=1)
+            ax.set_xlim(lims)
+            ax.set_ylim(lims)
+            
+            #from matplotlib.ticker import FormatStrFormatter
+            #ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+            #ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+
+            ax.set_xlabel("MLE", labelpad=20)
+            ax.set_ylabel("GRUAN")
+            ax.set_title(metric.upper())
+
+        fig.suptitle(var_to_labels[var])
+        plt.tight_layout()
+        fig.subplots_adjust(
+            left=0.069,
+            bottom=0.126,
+            right=0.967,
+            top=0.842,
+            wspace=0.28,
+            hspace=0.200,
+        )
+        plt.show()
+
 elif False: # SSM assumption are meeted? To be UPDATED
     mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
     print(mle_summary.head())
