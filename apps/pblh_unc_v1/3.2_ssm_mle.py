@@ -1,7 +1,6 @@
 import gruanpy as gp
 from gruanpy.ssm.statsmodels.univariate import UnivariateLLL, UnivariateLLT, DeterministicLevelLLT
 import numpy as np
-import pandas as pd
 import pickle
 from tqdm import tqdm
 import gc
@@ -10,7 +9,7 @@ hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_preprocessed.pkl"
 lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_preprocessed.pkl"
 lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_preprocessed.pkl"
 
-paths = [hko_path, lau_path]#,lin_path]
+paths = [lin_path,hko_path, lau_path]
 for path in paths:
     dataset = gp.read_pkl(path)
 
@@ -22,7 +21,7 @@ for path in paths:
 
     mle = {}
 
-    for pid, gdp in tqdm(list(dataset.items())):
+    for pid, gdp in tqdm(list(dataset.items())[:5]):
 
         data = gdp.data[labels]
 
@@ -47,9 +46,10 @@ for path in paths:
                     try:
                         uncs=data[unc_label]
                         uncs = uncs.fillna(uncs.median())
+                        measurement_sigma2=(uncs*0.5)**2
                         ssm = model_cls(
                             data[var],
-                            uncs
+                            measurement_sigma2
                         )
 
                         results = ssm.fit(

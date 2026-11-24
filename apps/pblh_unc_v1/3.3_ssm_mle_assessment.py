@@ -381,10 +381,12 @@ elif False: # compare GRUAN and estimated sigma
         r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
     )
 
-    mle_summary = mle_summary[
-        (mle_summary["optimizer"] == "powell")
-        & (mle_summary["converged"])
-    ]
+    mle_summary = mle_summary[mle_summary["converged"]]
+
+    #mle_summary = mle_summary[
+    #    (mle_summary["optimizer"] == "powell")
+    #    & (mle_summary["converged"])
+    #]
 
     mle_summary["sigma.measurement"] = np.sqrt(
         mle_summary["sigma2.measurement"]
@@ -420,12 +422,16 @@ elif False: # compare GRUAN and estimated sigma
     mle_summary.to_pickle(out_path)
     print(f"Saved dataframe to: {out_path}")
 
-elif False:  # compare GRUAN and estimated sigma
+elif True:  # compare GRUAN and estimated sigma
     # step 2, scatter plots
     mle_summary = gp.read_pkl(
-        r"apps\pblh_unc_v1\pkls\mle_sigma_2024.pkl"
+        r"apps\pblh_unc_v1\pkls\mle_sigma_2024_v3.pkl"
     )
 
+    #mle_summary=mle_summary[mle_summary['optimizer']=='lbfgs']
+    #variables = ['theta_v', 'rh', 'wzon']    
+    print(mle_summary.shape)
+    
     mle_summary["model"] = mle_summary["model"].map(models_to_labels)
     mle_summary["fit_type"] = mle_summary["fit_type"].map(fit_type_to_labels)
 
@@ -511,6 +517,8 @@ elif False:  # compare GRUAN and estimated sigma
                 edgecolor="black",
                 linewidth=0.8,
             )
+            ax.set_xlim(0, 0.025)
+            ax.set_ylim(0, 0.025)
             #ax.set_xscale("log")
             #ax.set_yscale("log")
             #ax.set_title(f"{xcol} vs {ycol}")

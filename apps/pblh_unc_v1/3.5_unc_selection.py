@@ -6,6 +6,7 @@ import tqdm
 import os
 from datetime import datetime
 import pandas as pd
+import numpy as np
 
 if False: # prepare pkls dataset
     COLUMNS_OF_INTEREST=['time',
@@ -64,7 +65,7 @@ if False: # prepare pkls dataset
             ]
             log(f"Keeping only T00 and T12 files: {len(nc_files)} found")
 
-        for nc in tqdm.tqdm(nc_files[:3]):
+        for nc in tqdm.tqdm(nc_files[:10]):
             try:
                 g = gp.read_gdp(nc, upper_bound=4000, columns=COLUMNS_OF_INTEREST)
                 pid = g.global_attrs[g.global_attrs['Attribute'] == 'g.Product.Id']['Value'].values[0]
@@ -114,6 +115,11 @@ if True: #look at unc budget
     ignore_index=True
     )
 
+    data = data.rename(columns={
+    'alt_gph_uc_ucor':'alt_uc_ucor', 
+    'alt_gph_uc_tcor':'alt_uc_tcor',
+    'press_gnss_uc_ucor':'press_uc_ucor',
+    'press_gnss_uc_tcor':'press_uc_tcor'})
 
     # identify variables with total uncertainty columns
     variables = [
@@ -124,35 +130,32 @@ if True: #look at unc budget
         and not c.endswith("_uc_tcor")
     ]
 
-    # NB from expanded to standard unc !!!
-
     for var in variables:
 
-        # uncertainty components for this variable
-        comps = [
-            c for c in data.columns
-            if c.startswith(var + "_uc_")
-        ]
-
-        if not comps:
-            continue
-
-        # variance contribution
-        total_var = sum(data[c]**2 for c in comps)
-        total_var = data[var+'_uc']
-        print(f'Total Var: {total_var}')
+        total_var = data[var + "_uc"]**2
 
         print(f"\n{var}")
-        print("-" * len(var))
 
-        for comp in comps:
+        total_pct = 0
 
-            pct = (
-                (data[comp]**2 / total_var)
-                .mean(skipna=True)
-                * 100
-            )
+        for name, col in [
+            ("ucor", f"{var}_uc_ucor"),
+            ("scor", f"{var}_uc_scor"),
+            ("tcor", f"{var}_uc_tcor"),
+        ]:
 
-            print(f"{comp:<30s} {pct:6.2f}%")
+            if col in data.columns:
 
+                comp_var = data[col]**2
 
+                pct = (
+                    100
+                    * np.nansum(comp_var)
+                    / np.nansum(total_var)
+                )
+
+                total_pct += pct
+
+                print(f"  {name:5s}: {pct:6.2f}%")
+
+        print(f"  total : {total_pct:6.2f}%")
