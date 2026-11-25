@@ -9,7 +9,7 @@ hko_path = r"apps\pblh_unc_v1\pkls\gdp_2024__HKO-RS-01_2024_preprocessed.pkl"
 lau_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LAU-RS-02_2024_preprocessed.pkl"
 lin_path = r"apps\pblh_unc_v1\pkls\gdp_2024__LIN-RS-01_2024_preprocessed.pkl"
 
-paths = [lin_path,hko_path, lau_path]
+paths = [lin_path,]# hko_path, lau_path]
 for path in paths:
     dataset = gp.read_pkl(path)
 
@@ -21,7 +21,7 @@ for path in paths:
 
     mle = {}
 
-    for pid, gdp in tqdm(list(dataset.items())[:5]):
+    for pid, gdp in tqdm(list(dataset.items())):
 
         data = gdp.data[labels]
 
@@ -67,23 +67,18 @@ for path in paths:
                         rmse = np.sqrt(np.mean(smoother_resid**2))
                         mae = np.mean(np.abs(smoother_resid))
                         bias = np.mean(smoother_resid)
-                        ss_res = np.sum(smoother_resid**2)
-                        ss_tot = np.sum((obs - np.mean(obs))**2)
-                        r2 = 1 - ss_res/ss_tot if ss_tot > 0 else np.nan
                         res_metrics = {
                             'rmse': rmse,
                             'mae': mae,
-                            'bias': bias,
-                            'ss_res': ss_res,
-                            'ss_tot': ss_tot,
-                            'r2': r2
+                            'bias': bias
                         }
 
                         mle[pid][var][model_name][opt]["gruan"] = {
                             "mle_retvals": results.mle_retvals,
                             "mle_settings": results.mle_settings,
                             "summary": results.summary(),
-                            "res_metrics": res_metrics
+                            "res_metrics": res_metrics,
+                            "params": results.params
                         }
 
                     except Exception as e:
@@ -112,23 +107,18 @@ for path in paths:
                         rmse = np.sqrt(np.mean(smoother_resid**2))
                         mae = np.mean(np.abs(smoother_resid))
                         bias = np.mean(smoother_resid)
-                        ss_res = np.sum(smoother_resid**2)
-                        ss_tot = np.sum((obs - np.mean(obs))**2)
-                        r2 = 1 - ss_res/ss_tot if ss_tot > 0 else np.nan
                         res_metrics = {
                             'rmse': rmse,
                             'mae': mae,
-                            'bias': bias,
-                            'ss_res': ss_res,
-                            'ss_tot': ss_tot,
-                            'r2': r2
+                            'bias': bias
                         }
 
                         mle[pid][var][model_name][opt]["mle"] = {
                             "mle_retvals": results.mle_retvals,
                             "mle_settings": results.mle_settings,
                             "summary": results.summary(),
-                            "res_metrics": res_metrics
+                            "res_metrics": res_metrics,
+                            "params": results.params
                         }
 
                     except Exception as e:

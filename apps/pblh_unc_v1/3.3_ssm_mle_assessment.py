@@ -109,6 +109,7 @@ if False: # Read mle pkls and produce a summary pickle
                                     continue
 
                                 res_metrics = fit.get("res_metrics", {})
+                                params = fit.get("params", {})
 
                                 t1 = summary.tables[0].data
                                 t2 = summary.tables[1].data
@@ -137,17 +138,18 @@ if False: # Read mle pkls and produce a summary pickle
                                     "rmse": res_metrics.get("rmse"),
                                     "mae": res_metrics.get("mae"),
                                     "bias": res_metrics.get("bias"),
-                                    "ss_res": res_metrics.get("ss_res"),
-                                    "ss_tot": res_metrics.get("ss_tot"),
-                                    "r2": res_metrics.get("r2"),
                                 }
                                 row["error"] = None
 
-                                for param_row in t2[1:]:  # skip header
-                                    param_name = param_row[0].strip()
-                                    coef = pd.to_numeric(param_row[1], errors="coerce")
+                                for param_name, coef in params.items():
+                                    row[param_name] = pd.to_numeric(coef, errors="coerce")
 
-                                    row[param_name] = coef
+                                rows.append(row)
+
+                                #for param_row in t2[1:]:  # skip header
+                                #    param_name = param_row[0].strip()
+                                #    coef = pd.to_numeric(param_row[1], errors="coerce")
+                                #    row[param_name] = coef
 
                                 rows.append(row)
 
@@ -425,7 +427,7 @@ elif False: # compare GRUAN and estimated sigma
 elif True:  # compare GRUAN and estimated sigma
     # step 2, scatter plots
     mle_summary = gp.read_pkl(
-        r"apps\pblh_unc_v1\pkls\mle_sigma_2024_v3.pkl"
+        r"apps\pblh_unc_v1\pkls\mle_sigma_2024.pkl"
     )
 
     #mle_summary=mle_summary[mle_summary['optimizer']=='lbfgs']

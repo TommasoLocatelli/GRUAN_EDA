@@ -8,7 +8,6 @@ https://www.statsmodels.org/stable/examples/notebooks/generated/statespace_local
 Parameters can also be fixed 
 results = model.fit_constrained({'sigma2.measurement': 0})
 """
-sm.show_versions()
 
 class UnivariateLLT(sm.tsa.statespace.MLEModel):
     def __init__(self, endog, measurement_sigma2=None):
