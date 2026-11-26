@@ -167,9 +167,6 @@ if False: # Read mle pkls and produce a summary pickle
         "rmse",
         "mae",
         "bias",
-        "ss_res",
-        "ss_tot",
-        "r2",
     ]
 
     coef_cols = [
@@ -225,8 +222,10 @@ elif False: # Wich is the best optimizer? Powell
             .sort_values("prop_converged", ascending=False)
         )
 
-        print(conv_summary)
+        #print(conv_summary)
 
+
+        c="""
         failed = mle_summary.loc[~mle_summary["converged"]]
 
         print(len(failed))
@@ -244,7 +243,7 @@ elif False: # Wich is the best optimizer? Powell
                     "error",
                 ]
             ]
-        )
+        )"""
 
 elif False: # which optimizer found the most likelihood parameters
     mle_summary=gp.read_pkl(r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl")
@@ -382,13 +381,10 @@ elif False: # compare GRUAN and estimated sigma
     mle_summary = gp.read_pkl(
         r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
     )
-
-    mle_summary = mle_summary[mle_summary["converged"]]
-
-    #mle_summary = mle_summary[
-    #    (mle_summary["optimizer"] == "powell")
-    #    & (mle_summary["converged"])
-    #]
+    mle_summary = mle_summary[
+        (mle_summary["optimizer"] == "powell")
+        & (mle_summary["converged"])
+    ]
 
     mle_summary["sigma.measurement"] = np.sqrt(
         mle_summary["sigma2.measurement"]
@@ -424,7 +420,7 @@ elif False: # compare GRUAN and estimated sigma
     mle_summary.to_pickle(out_path)
     print(f"Saved dataframe to: {out_path}")
 
-elif True:  # compare GRUAN and estimated sigma
+elif False:  # compare GRUAN and estimated sigma plots
     # step 2, scatter plots
     mle_summary = gp.read_pkl(
         r"apps\pblh_unc_v1\pkls\mle_sigma_2024.pkl"
@@ -519,8 +515,8 @@ elif True:  # compare GRUAN and estimated sigma
                 edgecolor="black",
                 linewidth=0.8,
             )
-            ax.set_xlim(0, 0.025)
-            ax.set_ylim(0, 0.025)
+            #ax.set_xlim(0, 0.025)
+            #ax.set_ylim(0, 0.025)
             #ax.set_xscale("log")
             #ax.set_yscale("log")
             #ax.set_title(f"{xcol} vs {ycol}")
@@ -540,7 +536,65 @@ elif True:  # compare GRUAN and estimated sigma
         )
         plt.show()
 
-elif True: # unc impac on residuals
+elif False: # compare GRUAN and estimated sigma table
+    mle_summary = gp.read_pkl(
+        r"apps\pblh_unc_v1\pkls\mle_sigma_2024.pkl"
+    )
+ 
+    mle_summary["model"] = mle_summary["model"].map(models_to_labels)
+    mle_summary["fit_type"] = mle_summary["fit_type"].map(fit_type_to_labels)
+
+    mle_summary["variable"] = pd.Categorical(
+        mle_summary["variable"],
+        categories=variables,
+        ordered=True
+    )
+
+    pd.set_option("display.float_format", "{:.6f}".format)
+
+    avg_sigma = (
+        mle_summary
+        .groupby(["variable", "model", "fit_type"])[
+            ["sigma.measurement", "sigma.level", "sigma.trend"]
+        ]
+        .mean()
+        .round(6)
+        .reset_index()
+    )
+
+    print(avg_sigma.to_string(index=False))
+
+elif True: # unc impac on residuals table
+
+
+    mle_summary = gp.read_pkl(
+        r"apps\pblh_unc_v1\pkls\mle_sigma_2024.pkl"
+    )
+ 
+    mle_summary["model"] = mle_summary["model"].map(models_to_labels)
+    mle_summary["fit_type"] = mle_summary["fit_type"].map(fit_type_to_labels)
+
+    mle_summary["variable"] = pd.Categorical(
+        mle_summary["variable"],
+        categories=variables,
+        ordered=True
+    )
+
+    pd.set_option("display.float_format", "{:.6f}".format)
+
+    avg_sigma = (
+        mle_summary
+        .groupby(["variable", "model", "fit_type"])[
+            ["rmse", "mae", "bias"]
+        ]
+        .mean()
+        .round(6)
+        .reset_index()
+    )
+
+    print(avg_sigma.to_string(index=False))
+
+elif True: # unc impac on residuals plots
     
     mle_summary = gp.read_pkl(
         r"apps\pblh_unc_v1\pkls\mle_summary_2024.pkl"
@@ -552,21 +606,7 @@ elif True: # unc impac on residuals
         & (mle_summary["converged"])
     ]
 
-    metrics = ["rmse", "mae", "bias", "r2"]
-
-    for var in variables:
-        print(f"Variable: {var}")
-        var_mle_summary = mle_summary[mle_summary["variable"] == var]
-        summary = (
-            var_mle_summary
-            .groupby(["model", "fit_type"])[metrics]
-            .agg(["mean", "std"]).round(3)
-        )
-    
-        print(summary)
-        print('-'*80)
-
-    metrics = ["rmse", "mae", "r2"]
+    metrics = ["rmse", "mae", "bias"]
 
     # ------------------------------------------------------------------
     # Create standalone legend for model colors
@@ -648,31 +688,35 @@ elif True: # unc impac on residuals
                 linewidth=0.8,
             )
 
-            lims = [
-                min(plot_df["mle"].min(), plot_df["gruan"].min()),
-                max(plot_df["mle"].max(), plot_df["gruan"].max()),
-            ]
+            if metric != 'bias':
+                lims = [
+                    min(plot_df["mle"].min(), plot_df["gruan"].min()),
+                    max(plot_df["mle"].max(), plot_df["gruan"].max()),
+                ]
 
-            ax.plot(lims, lims, "k--", lw=1)
-            ax.set_xlim(lims)
-            ax.set_ylim(lims)
+                ax.plot(lims, lims, "k--", lw=1)
+                ax.set_xlim(lims)
+                ax.set_ylim(lims)
             
             #from matplotlib.ticker import FormatStrFormatter
             #ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
             #ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
             ax.set_xlabel("MLE", labelpad=20)
-            ax.set_ylabel("GRUAN")
+            if metric == 'rmse':
+                ax.set_ylabel("GRUAN")
+            else:
+                ax.set_ylabel("")
             ax.set_title(metric.upper())
 
         fig.suptitle(var_to_labels[var])
         plt.tight_layout()
         fig.subplots_adjust(
-            left=0.069,
+            left=0.08,
             bottom=0.126,
-            right=0.967,
+            right=0.98,
             top=0.842,
-            wspace=0.28,
+            wspace=0.33,
             hspace=0.200,
         )
         plt.show()
